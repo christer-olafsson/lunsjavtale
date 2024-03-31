@@ -1,0 +1,10 @@
+*.pyc
+db.sqlite3
+tasks
+.idea
+local.py
+celerybeat-schedule
+.vscode
+.env
+logs
+venv
