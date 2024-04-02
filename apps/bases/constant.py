@@ -125,10 +125,3 @@ class FrequencyTypeChoices(models.TextChoices):
     DAY = 'day'
     WEEK = 'week'
     MONTH = 'month'
-
-
-class PanelTypeChoices(models.TextChoices):
-    B2C = 'b2c'
-    B2B = 'b2b'
-    PRE_SELL = 'pre-sell'
-    MERCHANDISER = 'merchandiser'

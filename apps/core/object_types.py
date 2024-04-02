@@ -9,6 +9,7 @@ from .filters import (
     FAQCategoryFilters,
     FAQFilters,
     FollowUsFilters,
+    LanguageFilter,
     PartnerFilters,
     SupportedBrandFilters,
     TypeOfAddressFilter,
@@ -20,6 +21,7 @@ from .models import (
     FAQ,
     FAQCategory,
     FollowUs,
+    Language,
     Partner,
     SupportedBrand,
     TypeOfAddress,
@@ -35,6 +37,17 @@ class TypeOfAddressType(DjangoObjectType):
     class Meta:
         model = TypeOfAddress
         filterset_class = TypeOfAddressFilter
+        interfaces = (graphene.relay.Node, )
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
+class LanguageType(DjangoObjectType):
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = Language
+        filterset_class = LanguageFilter
         interfaces = (graphene.relay.Node, )
         convert_choices_to_enum = False
         connection_class = CountConnection
@@ -146,6 +159,7 @@ class WhoUAreAttachmentType(DjangoObjectType):
 
     class Meta:
         model = WhoUAreAttachment
+        exclude = ['who_u_are']
         filterset_class = WhoUAreAttachmentFilters
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False

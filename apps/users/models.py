@@ -1,8 +1,12 @@
+import datetime
+import decimal
+
 from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
@@ -13,9 +17,15 @@ from apps.bases.utils import (
     build_absolute_uri,
     create_token,
     email_validator,
+    promo_code_validator,
     username_validator,
 )
-from apps.users.choices import DeviceTypeChoices, GenderChoices, RoleTypeChoices
+from apps.users.choices import (
+    AgreementChoices,
+    DeviceTypeChoices,
+    GenderChoices,
+    RoleTypeChoices,
+)
 from apps.users.managers import (
     UserAccessTokenManager,
     UserDeviceTokenManager,
@@ -51,6 +61,7 @@ class ClientDetails(models.Model):
 
 class Company(BaseWithoutID):
     name = models.CharField(max_length=256)
+    email = models.EmailField(max_length=256, null=True)
     working_email = models.EmailField(max_length=256)
     slogan = models.TextField(blank=True, null=True)
     social_media_links = models.JSONField(blank=True, null=True)
@@ -467,3 +478,110 @@ class UserLanguage(BaseWithoutID):
     class Meta:
         db_table = f"{settings.DB_PREFIX}_user_languages"  # define table name for database
         ordering = ['-id']  # define default order as id in descending
+
+
+class PromoCode(BaseWithoutID):
+    FLAT = "flat"
+    PERCENTAGE = "percentage"
+    TYPE_CHOICES = (
+        (FLAT, "flat"),
+        (PERCENTAGE, "percentage")
+    )
+
+    name = models.CharField(
+        max_length=100, unique=True, validators=[promo_code_validator])
+    promo_type = models.CharField(max_length=100, choices=TYPE_CHOICES)
+    max_uses_limit = models.PositiveIntegerField(default=1)
+    max_limit_per_user = models.PositiveIntegerField(default=1)
+    value = models.PositiveIntegerField()
+    min_amount = models.PositiveIntegerField()
+    max_amount = models.PositiveIntegerField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_promo_codes"
+
+    @classmethod
+    def get_active_promo_filter(cls):
+        today = timezone.now().date()
+        filter_q = models.Q(is_active=True, start_date__lte=today, end_date__gte=today)
+        return filter_q
+
+    @classmethod
+    def get_active_promo_codes_for_user(cls, user, promo_code):
+        now = timezone.now()
+        today = timezone.now().date()
+        promo_delta_time = timezone.now() - datetime.timedelta(minutes=settings.PROMO_DELTA_MINUTES)
+        # filter_q = models.Q(is_payment_success=True) | models.Q(is_payment_success=False,
+        #                                                         created_on__range=(promo_delta_time, now))
+        filter_q = models.Q(created_on__range=(promo_delta_time, now))
+        used_count = user.used_promo_codes.filter(
+            promo_code__name=promo_code).filter(filter_q).count()
+        total_count = UserPromoCode.objects.filter(promo_code__name=promo_code).filter(filter_q).count()
+        return cls.objects.filter(
+            is_active=True,
+            start_date__lte=today,
+            end_date__gte=today,
+            max_limit_per_user__gt=used_count,
+            max_uses_limit__gt=total_count
+        ).get(name=promo_code)
+
+    @classmethod
+    def get_promo_and_apply(cls, user, promo_code, price):
+        if not promo_code:
+            return None, None, price
+        try:
+            promo_obj = cls.get_active_promo_codes_for_user(user, promo_code)
+            price = decimal.Decimal(price)
+            if promo_obj.min_amount > price:
+                raise ValidationError(f"Min amount to apply this promo code is {promo_obj.min_amount}.")
+            if promo_obj.max_amount and price > promo_obj.max_amount:
+                raise ValidationError(
+                    f"Max amount for which this promo code can be applied is {promo_obj.max_amount}.")
+
+            return promo_obj, *promo_obj.get_discounted_price(price)
+        except cls.DoesNotExist:
+            raise ValidationError(settings.PROMO_CODE_ERROR_MESSAGE)
+        except ValidationError as e:
+            raise e
+
+    def get_discounted_price(self, price):
+        price = decimal.Decimal(price)
+        if self.promo_type == self.FLAT:
+            amount_discounted = self.value if self.value < price else price
+        else:
+            amount_discounted = round((price * decimal.Decimal(self.value / 100)), 2)
+        return amount_discounted, price - amount_discounted
+
+    def __str__(self):
+        return f"{self.name} : {self.promo_type} - {self.value}"
+
+
+class UserPromoCode(BaseWithoutID):
+    promo_code = models.ForeignKey(PromoCode, on_delete=models.DO_NOTHING)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.DO_NOTHING,
+        related_name="used_promo_codes"
+    )
+    discounted_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    is_payment_success = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_user_promo_codes"
+
+
+class Agreement(BaseWithoutID):
+    data = models.TextField(
+        blank=True
+    )
+    type_of = models.CharField(
+        max_length=20,
+        choices=AgreementChoices.choices,
+        unique=True
+    )
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_agreements"

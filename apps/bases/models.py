@@ -4,6 +4,7 @@ import uuid
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class BaseModel(models.Model):
@@ -71,6 +72,7 @@ class BasePriceModel(models.Model):
         default=50
     )
     price_with_tax = models.DecimalField(
+        _("Final price"),
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0)],

@@ -7,6 +7,7 @@ from .models import (
     FAQ,
     FAQCategory,
     FollowUs,
+    Language,
     Partner,
     SupportedBrand,
     TypeOfAddress,
@@ -28,6 +29,20 @@ class TypeOfAddressFilter(BaseFilterOrderBy):
             'id',
             'name',
             'is_active'
+        ]
+
+
+class LanguageFilter(BaseFilterOrderBy):
+    name = django_filters.CharFilter(
+        field_name="name",
+        lookup_expr="icontains"
+    )
+
+    class Meta:
+        model = Language
+        fields = [
+            'id',
+            'name',
         ]
 
 

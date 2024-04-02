@@ -3,14 +3,14 @@ import graphene
 from graphene_django.debug import DjangoDebug
 
 import apps.core.schema as core_schema
+import apps.scm.schema as scm_schema
 
-# import apps.scm.schema as scm_schema
 # import apps.users.schema as user_schema
 
 
 class Query(
     core_schema.Query,
-    # scm_schema.Query,
+    scm_schema.Query,
     # user_schema.Query,
     graphene.ObjectType
 ):

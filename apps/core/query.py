@@ -7,6 +7,7 @@ from .models import (
     FAQ,
     FAQCategory,
     FollowUs,
+    Language,
     Partner,
     SupportedBrand,
     TypeOfAddress,
@@ -17,6 +18,7 @@ from .object_types import (
     FAQCategoryType,
     FAQType,
     FollowUsType,
+    LanguageType,
     PartnerType,
     SupportedBrandType,
     TypeOfAddressType,
@@ -31,6 +33,8 @@ class Query(graphene.ObjectType):
     """
         define all queries together
     """
+    languages = DjangoFilterConnectionField(LanguageType)
+    language = graphene.Field(LanguageType, id=graphene.ID())
     FAQ_categories = DjangoFilterConnectionField(FAQCategoryType)
     FAQ_category = graphene.Field(FAQCategoryType, id=graphene.ID())
     FAQ_list = DjangoFilterConnectionField(FAQType, max_limit=None)
@@ -60,6 +64,12 @@ class Query(graphene.ObjectType):
         if user and user.is_admin:
             return TypeOfAddress.objects.filter(id=id).last()
         return TypeOfAddress.objects.filter(id=id, is_active=True).last()
+
+    def resolve_languages(self, info, **kwargs):
+        return Language.objects.all()
+
+    def resolve_language(self, info, id, **kwargs):
+        return Language.objects.filter(id=id).last()
 
     def resolve_FAQ_categories(self, info, **kwargs):
         return FAQCategory.objects.all()

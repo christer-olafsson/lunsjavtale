@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     # project apps
     'apps.core',
     'apps.users',
+    'apps.scm',
 ]
 
 MIDDLEWARE = [
