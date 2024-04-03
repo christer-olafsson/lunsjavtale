@@ -55,7 +55,8 @@ class Product(BaseWithoutID, BasePriceModel):
     """
         product posting minimum required fields will define here
     """
-    name = models.CharField(max_length=100)  # name of the product
+    name = models.CharField(max_length=128)  # name of the product
+    title = models.CharField(max_length=128, blank=True, null=True)  # name of the product
     description = models.TextField()  # some details about the product
     photo_url = models.TextField(
         blank=True, null=True
