@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_on', models.DateTimeField(auto_now_add=True)),
                 ('updated_on', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(max_length=100, unique=True, validators=[apps.bases.utils.promo_code_validator])),
+                ('name', models.CharField(max_length=100, unique=True, validators=[apps.bases.utils.coupon_validator])),
                 ('promo_type', models.CharField(choices=[('flat', 'flat'), ('percentage', 'percentage')], max_length=100)),
                 ('max_uses_limit', models.PositiveIntegerField(default=1)),
                 ('max_limit_per_user', models.PositiveIntegerField(default=1)),

@@ -9,19 +9,21 @@ from backend.permissions import is_admin_user, is_authenticated
 
 from .choices import AgreementChoices, GenderChoices, RoleTypeChoices
 from .models import (
+    Address,
     Agreement,
     ClientDetails,
     Company,
-    PromoCode,
+    Coupon,
     TrackUserLogin,
     UnitOfHistory,
 )
 from .object_types import (
+    AddressType,
     AgreementType,
     ClientDetailsType,
     CompanyType,
+    CouponType,
     LogType,
-    PromoCodeType,
     TrackUserLoginType,
     UserType,
 )
@@ -44,11 +46,12 @@ class Query(graphene.ObjectType):
     companies = DjangoFilterConnectionField(CompanyType)
     company = graphene.Field(CompanyType, id=graphene.ID())
     client_details = graphene.Field(ClientDetailsType)
-    promo_codes = DjangoFilterConnectionField(PromoCodeType)
-    promo_code = graphene.Field(PromoCodeType, id=graphene.ID())
+    coupons = DjangoFilterConnectionField(CouponType)
+    coupon = graphene.Field(CouponType, id=graphene.ID())
     agreements = DjangoFilterConnectionField(AgreementType)
     agreement = graphene.Field(AgreementType, type_of=graphene.String())
     all_gender_choices = graphene.JSONString()
+    addresses = DjangoFilterConnectionField(AddressType)
 
     @is_authenticated
     def resolve_me(self, info) -> object:
@@ -61,19 +64,19 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_company_staffs(self, info, **kwargs) -> object:
         user = info.context.user
-        if user.role == RoleTypeChoices.OWNER and user.company:
+        if user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and user.company:
             return User.objects.filter(company=user.company)
-        return User.objects.filter(id=None)
+        return User.objects.filter(id=user.id)
 
     @is_authenticated
     def resolve_user(self, info, id, **kwargs) -> object:
         user = info.context.user
         if user.is_admin:
             users = User.objects.all()
-        elif user.role == RoleTypeChoices.OWNER and user.company:
+        elif user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and user.company:
             users = User.objects.filter(company=user.company)
         else:
-            users = User.objects.filter(id=None)
+            users = User.objects.filter(id=user.id)
         return users.filter(id=id).last()
 
     @is_admin_user
@@ -98,9 +101,11 @@ class Query(graphene.ObjectType):
             return TrackUserLogin.objects.filter(id=id).last()
         return TrackUserLogin.objects.filter(user=user, id=id).last()
 
+    @is_authenticated
     def resolve_companies(self, info, **kwargs):
         return Company.objects.all()
 
+    @is_authenticated
     def resolve_company(self, info, id, **kwargs):
         obj = Company.objects.fiter(id=id).last()
         return obj
@@ -122,9 +127,16 @@ class Query(graphene.ObjectType):
         return agreement
 
     @is_admin_user
-    def resolve_promo_codes(self, info, **kwargs) -> object:
-        return PromoCode.objects.all()
+    def resolve_coupons(self, info, **kwargs) -> object:
+        return Coupon.objects.all()
 
-    @is_admin_user
-    def resolve_promo_code(self, info, id, **kwargs) -> object:
-        return PromoCode.objects.filter(id=id).last()
+    @is_authenticated
+    def resolve_coupon(self, info, id, **kwargs) -> object:
+        return Coupon.objects.filter(id=id).last()
+
+    @is_authenticated
+    def resolve_addresses(self, info, id, **kwargs) -> object:
+        user = info.context.user
+        if user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and user.company:
+            return Address.objects.filter(company=user.company)
+        return Address.objects.filter(id=None)

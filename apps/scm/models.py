@@ -58,9 +58,6 @@ class Product(BaseWithoutID, BasePriceModel):
     name = models.CharField(max_length=128)  # name of the product
     title = models.CharField(max_length=128, blank=True, null=True)  # name of the product
     description = models.TextField()  # some details about the product
-    photo_url = models.TextField(
-        blank=True, null=True
-    )
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, related_name='products', null=True
     )  # define the category of the product
@@ -68,7 +65,9 @@ class Product(BaseWithoutID, BasePriceModel):
     ingredients = models.ManyToManyField(to=Ingredient, blank=True)
     availability = models.BooleanField(default=True)  # if it is available or not
     # slug = models.SlugField(blank=True, null=True, unique=True, max_length=128)
+    stock = models.PositiveIntegerField(default=0)  # store product stock
     visitor_count = models.PositiveIntegerField(default=0, null=True)  # store product visits
+    is_adjustable_for_single_staff = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 
     class Meta:
@@ -84,3 +83,21 @@ class Product(BaseWithoutID, BasePriceModel):
     @classmethod
     def queryset(cls):
         return cls.objects.filter(is_deleted=False)
+
+
+class ProductAttachment(models.Model):
+    product = models.ForeignKey(to=Product, on_delete=models.CASCADE, related_name='attachments')
+    file_url = models.TextField()
+    is_cover = models.BooleanField(default=False)
+    created_on = models.DateTimeField(
+        auto_now_add=True
+    )  # object creation time. will automatically generate
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_product_attachments"  # define table name for database
+        ordering = ['-id']
+
+    def save(self, *args, **kwargs):
+        if self.is_cover:
+            self.product.attachments.exclude(id=self.pk).update(is_cover=False)
+        super(ProductAttachment, self).save(*args, **kwargs)

@@ -4,10 +4,15 @@ import graphene
 from graphene_django import DjangoObjectType
 
 # local imports
-from apps.scm.filters import CategoryFilters, IngredientFilters, ProductFilters
+from apps.scm.filters import (
+    CategoryFilters,
+    IngredientFilters,
+    ProductAttachmentFilters,
+    ProductFilters,
+)
 from backend.count_connection import CountConnection
 
-from .models import Category, Ingredient, Product
+from .models import Category, Ingredient, Product, ProductAttachment
 
 
 class CategoryType(DjangoObjectType):
@@ -62,6 +67,21 @@ class IngredientType(DjangoObjectType):
     class Meta:
         model = Ingredient
         filterset_class = IngredientFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
+class ProductAttachmentType(DjangoObjectType):
+    """
+        define django object type for ProductAttachment model with filter-set
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = ProductAttachment
+        filterset_class = ProductAttachmentFilters
+        exclude = ['product']
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection

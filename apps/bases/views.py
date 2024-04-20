@@ -1,6 +1,7 @@
 
-from app.bases.utils import get_file_contents
 from django.http import HttpResponse
+
+from apps.bases.utils import get_file_contents
 
 
 def terms(request):

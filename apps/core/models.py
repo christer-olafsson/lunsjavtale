@@ -9,6 +9,7 @@ class ValidArea(BaseWithoutID):
         max_length=128, blank=True, null=True
     )
     post_code = models.PositiveIntegerField()
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_valid_areas"  # define table name for database
@@ -52,7 +53,7 @@ class FAQCategory(models.Model):
 
 class FAQ(BaseWithoutID):
     category = models.ForeignKey(
-        FAQCategory, on_delete=models.DO_NOTHING, related_name='faqs'
+        FAQCategory, on_delete=models.DO_NOTHING, related_name='faqs', blank=True, null=True
     )
     question = models.CharField(
         max_length=500
@@ -97,12 +98,15 @@ class Partner(BaseWithoutID):
 
 class FollowUs(BaseWithoutID):
     title = models.CharField(
-        max_length=32, blank=True, null=True
+        max_length=32, null=True
     )
     link_type = models.CharField(
-        max_length=32, blank=True, null=True
+        max_length=32, null=True
     )
     link = models.TextField()
+    photo_url = models.TextField(
+        blank=True, null=True
+    )
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_follow_us"  # define table name for database
@@ -110,12 +114,54 @@ class FollowUs(BaseWithoutID):
         verbose_name_plural = "Follow Us"
 
 
-class WhoUAre(BaseWithoutID):
-    role = models.CharField(
+class Promotion(BaseWithoutID):
+    title = models.CharField(
+        max_length=32, null=True
+    )
+    description = models.TextField()
+    photo_url = models.TextField(
+        blank=True, null=True
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_promotion"  # define table name for database
+        ordering = ['-id']  # define default order as id in descending
+        verbose_name_plural = "Promotion"
+
+
+class ContactUs(BaseWithoutID):
+    company_name = models.CharField(
         max_length=32, blank=True, null=True
     )
-    title = models.CharField(
+    name = models.CharField(
         max_length=32, blank=True, null=True
+    )
+    email = models.EmailField(
+        max_length=32, blank=True, null=True
+    )
+    contact = models.CharField(
+        max_length=32, blank=True, null=True
+    )
+    number_of_employees = models.PositiveIntegerField(default=1)
+    post_code = models.PositiveIntegerField(default=1)
+    message = models.CharField(
+        max_length=32, blank=True, null=True
+    )
+    agree_to_privacy_policy = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_contact_us"  # define table name for database
+        ordering = ['-id']  # define default order as id in descending
+        verbose_name_plural = "Contact Us"
+
+
+class WhoUAre(BaseWithoutID):
+    role = models.CharField(
+        max_length=32, null=True
+    )
+    title = models.CharField(
+        max_length=32, null=True
     )
     description = models.CharField(
         max_length=32, blank=True, null=True

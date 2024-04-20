@@ -5,21 +5,25 @@ from graphene_django.filter.fields import DjangoFilterConnectionField
 
 from .models import (
     FAQ,
+    ContactUs,
     FAQCategory,
     FollowUs,
     Language,
     Partner,
+    Promotion,
     SupportedBrand,
     TypeOfAddress,
     ValidArea,
     WhoUAre,
 )
 from .object_types import (
+    ContactUsType,
     FAQCategoryType,
     FAQType,
     FollowUsType,
     LanguageType,
     PartnerType,
+    PromotionType,
     SupportedBrandType,
     TypeOfAddressType,
     ValidAreaType,
@@ -51,7 +55,10 @@ class Query(graphene.ObjectType):
     follow_us_object = graphene.Field(FollowUsType, id=graphene.ID())
     who_u_are_list = DjangoFilterConnectionField(WhoUAreType)
     who_u_are_object = graphene.Field(WhoUAreType, id=graphene.ID())
+    contact_us_list = DjangoFilterConnectionField(ContactUsType)
     check_post_code = graphene.Boolean(post_code=graphene.Int())
+    promotions = DjangoFilterConnectionField(PromotionType)
+    promotion = graphene.Field(PromotionType, id=graphene.ID())
 
     def resolve_address_types(self, info, **kwargs):
         user = info.context.user
@@ -125,3 +132,15 @@ class Query(graphene.ObjectType):
     def resolve_who_u_are_object(self, info, id, **kwargs):
         obj = WhoUAre.objects.filter(id=id).last()
         return obj
+
+    def resolve_promotions(self, info, **kwargs):
+        user = info.context.user
+        if user and user.is_admin:
+            return Promotion.objects.all()
+        return Promotion.objects.filter(is_active=True)
+
+    def resolve_promotion(self, info, id, **kwargs):
+        return Promotion.objects.filter(id=id).last()
+
+    def resolve_contact_us_list(self, info, **kwargs):
+        return ContactUs.objects.all()

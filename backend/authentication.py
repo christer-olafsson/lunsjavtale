@@ -105,7 +105,7 @@ class AuthenticationOld:
 
     @staticmethod
     def get_user(user_id):
-        from app.users.models import User
+        from apps.users.models import User
 
         try:
             user = User.objects.get(id=user_id)
@@ -188,7 +188,7 @@ class Authentication:
 
     @staticmethod
     def get_user(token):
-        from app.users.models import AccessToken
+        from apps.users.models import AccessToken
         try:
             access = AccessToken.objects.filter(token=token).last()
             user = access.user

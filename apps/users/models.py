@@ -7,17 +7,16 @@ from django.contrib.auth.models import PermissionsMixin
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.bases.models import BaseWithoutID
+from apps.bases.models import BaseWithoutID, SoftDeletion
 from apps.bases.utils import (
-    build_absolute_uri,
-    create_token,
+    coupon_validator,
+    create_password,
     email_validator,
-    promo_code_validator,
     username_validator,
 )
 from apps.users.choices import (
@@ -28,7 +27,6 @@ from apps.users.choices import (
 )
 from apps.users.managers import (
     UserAccessTokenManager,
-    UserDeviceTokenManager,
     UserManager,
     UserPasswordResetManager,
 )
@@ -59,12 +57,17 @@ class ClientDetails(models.Model):
         return str(self.name)
 
 
-class Company(BaseWithoutID):
-    name = models.CharField(max_length=256)
+class Company(BaseWithoutID, SoftDeletion):
+    name = models.CharField(max_length=256, unique=True)
     email = models.EmailField(max_length=256, null=True)
-    working_email = models.EmailField(max_length=256)
-    slogan = models.TextField(blank=True, null=True)
-    social_media_links = models.JSONField(blank=True, null=True)
+    working_email = models.EmailField(max_length=256, unique=True)
+    contact = models.CharField(max_length=15, null=True)
+    post_code = models.PositiveIntegerField(
+        null=True
+    )
+    allowance_percentage = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])
+    is_contacted = models.BooleanField(default=False)
+    note = models.TextField(blank=True, null=True)
     logo_url = models.TextField(
         blank=True,
         null=True
@@ -73,9 +76,10 @@ class Company(BaseWithoutID):
         blank=True,
         null=True
     )
+    slogan = models.TextField(blank=True, null=True)
+    social_media_links = models.JSONField(blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     formation_date = models.DateField(blank=True, null=True)
-    contact = models.CharField(max_length=15, blank=True, null=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_company"  # define table name for database
@@ -85,7 +89,7 @@ class Company(BaseWithoutID):
         return str(self.name)
 
 
-class User(BaseWithoutID, AbstractBaseUser, PermissionsMixin):
+class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
     """Store custom user information.
     all fields are common for all users."""
     username = models.CharField(
@@ -146,19 +150,6 @@ class User(BaseWithoutID, AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(
         default=False
     )  # main man of this application.
-    is_deleted = models.BooleanField(
-        default=False
-    )
-    deleted_on = models.DateTimeField(
-        null=True,
-        blank=True
-    )
-    deleted_phone = models.CharField(
-        max_length=15,
-        unique=True,
-        blank=True,
-        null=True
-    )
 
     # details
     last_active_on = models.DateTimeField(
@@ -210,7 +201,19 @@ class User(BaseWithoutID, AbstractBaseUser, PermissionsMixin):
         choices=RoleTypeChoices.choices,
         default=RoleTypeChoices.USER
     )
+    job_title = models.CharField(
+        max_length=64,
+        blank=True, null=True
+    )
     date_of_birth = models.DateField(
+        blank=True,
+        null=True
+    )
+    address = models.TextField(
+        blank=True,
+        null=True
+    )
+    about = models.TextField(
         blank=True,
         null=True
     )
@@ -223,6 +226,8 @@ class User(BaseWithoutID, AbstractBaseUser, PermissionsMixin):
         blank=True,
         null=True
     )
+    allergies = models.ManyToManyField(to='scm.Ingredient', blank=True)
+    languages = models.ManyToManyField(to='core.Language', blank=True)
 
     # last login will provide by django abstract_base_user.
     # password also provide by django abstract_base_user.
@@ -242,16 +247,18 @@ class User(BaseWithoutID, AbstractBaseUser, PermissionsMixin):
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
 
-    def send_email_verification(self, host):
-        self.activation_token = create_token()
-        self.is_email_verified = False
+    def send_email_verified(self):
+        password = create_password()
+        self.set_password(password)
+        self.is_verified = True
+        self.is_email_verified = True
         self.save()
         context = {
             'username': self.username,
             'email': self.email,
-            'url': build_absolute_uri(f"email-verification/?token={self.activation_token}", host),
+            'password': password
         }
-        template = 'emails/sing_up_email.html'
+        template = 'emails/verification.html'
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 
@@ -378,7 +385,6 @@ class UserDeviceToken(BaseWithoutID):
     )
     mac_address = models.CharField(max_length=48, null=True)
     is_current = models.BooleanField(default=False)
-    objects = UserDeviceTokenManager()
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_user_device_tokens"
@@ -428,22 +434,19 @@ class AccessToken(BaseWithoutID):
         ordering = ['-created_on']  # define default order as created in descending
 
 
-class Address(BaseWithoutID):
+class Address(BaseWithoutID, SoftDeletion):
     """
-        User address information will be stored here by address type.
+        company address information will be stored here by address type.
     """
 
-    user = models.ForeignKey(
-        User,
+    company = models.ForeignKey(
+        Company,
         on_delete=models.CASCADE,
         related_name="addresses"
     )
     address_type = models.ForeignKey('core.TypeOfAddress', on_delete=models.DO_NOTHING)
     address = models.TextField()
     post_code = models.PositiveIntegerField()
-    # city = models.ForeignKey('core.City', on_delete=models.SET_NULL, blank=True, null=True)
-    # state = models.ForeignKey('core.Region', on_delete=models.SET_NULL, blank=True, null=True)
-    # country = models.ForeignKey('core.Country', on_delete=models.SET_NULL, blank=True, null=True)
     city = models.CharField(max_length=128, blank=True, null=True)
     state = models.CharField(max_length=128, blank=True, null=True)
     country = models.CharField(max_length=128, blank=True, null=True)
@@ -451,7 +454,6 @@ class Address(BaseWithoutID):
     phone = models.CharField(max_length=15, null=True, blank=True)
     instruction = models.TextField(blank=True, null=True)
     default = models.BooleanField(default=False)
-    is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
         return self.address
@@ -463,24 +465,7 @@ class Address(BaseWithoutID):
         # unique_together = ('user', 'address_type', 'is_deleted')
 
 
-class UserLanguage(BaseWithoutID):
-    """
-        User language information will be stored here by address type.
-    """
-
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="languages"
-    )
-    language = models.ForeignKey(to='core.Language', on_delete=models.CASCADE, related_name='users')
-
-    class Meta:
-        db_table = f"{settings.DB_PREFIX}_user_languages"  # define table name for database
-        ordering = ['-id']  # define default order as id in descending
-
-
-class PromoCode(BaseWithoutID):
+class Coupon(BaseWithoutID, SoftDeletion):
     FLAT = "flat"
     PERCENTAGE = "percentage"
     TYPE_CHOICES = (
@@ -489,7 +474,7 @@ class PromoCode(BaseWithoutID):
     )
 
     name = models.CharField(
-        max_length=100, unique=True, validators=[promo_code_validator])
+        max_length=100, unique=True, validators=[coupon_validator])
     promo_type = models.CharField(max_length=100, choices=TYPE_CHOICES)
     max_uses_limit = models.PositiveIntegerField(default=1)
     max_limit_per_user = models.PositiveIntegerField(default=1)
@@ -510,30 +495,30 @@ class PromoCode(BaseWithoutID):
         return filter_q
 
     @classmethod
-    def get_active_promo_codes_for_user(cls, user, promo_code):
+    def get_active_coupons_for_user(cls, user, coupon):
         now = timezone.now()
         today = timezone.now().date()
         promo_delta_time = timezone.now() - datetime.timedelta(minutes=settings.PROMO_DELTA_MINUTES)
         # filter_q = models.Q(is_payment_success=True) | models.Q(is_payment_success=False,
         #                                                         created_on__range=(promo_delta_time, now))
         filter_q = models.Q(created_on__range=(promo_delta_time, now))
-        used_count = user.used_promo_codes.filter(
-            promo_code__name=promo_code).filter(filter_q).count()
-        total_count = UserPromoCode.objects.filter(promo_code__name=promo_code).filter(filter_q).count()
+        used_count = user.used_coupons.filter(
+            coupon__name=coupon).filter(filter_q).count()
+        total_count = UserCoupon.objects.filter(coupon__name=coupon).filter(filter_q).count()
         return cls.objects.filter(
             is_active=True,
             start_date__lte=today,
             end_date__gte=today,
             max_limit_per_user__gt=used_count,
             max_uses_limit__gt=total_count
-        ).get(name=promo_code)
+        ).get(name=coupon)
 
     @classmethod
-    def get_promo_and_apply(cls, user, promo_code, price):
-        if not promo_code:
+    def get_promo_and_apply(cls, user, coupon, price):
+        if not coupon:
             return None, None, price
         try:
-            promo_obj = cls.get_active_promo_codes_for_user(user, promo_code)
+            promo_obj = cls.get_active_coupons_for_user(user, coupon)
             price = decimal.Decimal(price)
             if promo_obj.min_amount > price:
                 raise ValidationError(f"Min amount to apply this promo code is {promo_obj.min_amount}.")
@@ -543,7 +528,7 @@ class PromoCode(BaseWithoutID):
 
             return promo_obj, *promo_obj.get_discounted_price(price)
         except cls.DoesNotExist:
-            raise ValidationError(settings.PROMO_CODE_ERROR_MESSAGE)
+            raise ValidationError(settings.COUPON_ERROR_MESSAGE)
         except ValidationError as e:
             raise e
 
@@ -559,12 +544,12 @@ class PromoCode(BaseWithoutID):
         return f"{self.name} : {self.promo_type} - {self.value}"
 
 
-class UserPromoCode(BaseWithoutID):
-    promo_code = models.ForeignKey(PromoCode, on_delete=models.DO_NOTHING)
+class UserCoupon(BaseWithoutID):
+    coupon = models.ForeignKey(Coupon, on_delete=models.DO_NOTHING)
     user = models.ForeignKey(
         User,
         on_delete=models.DO_NOTHING,
-        related_name="used_promo_codes"
+        related_name="used_coupons"
     )
     discounted_amount = models.DecimalField(max_digits=10, decimal_places=2)
     is_payment_success = models.BooleanField(default=False)

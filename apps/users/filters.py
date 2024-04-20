@@ -5,13 +5,14 @@ from django.db.models import Q
 from apps.bases.filters import BaseFilterOrderBy
 
 from .models import (
+    Address,
     ClientDetails,
     Company,
-    PromoCode,
+    Coupon,
     TrackUserLogin,
     UnitOfHistory,
     User,
-    UserPromoCode,
+    UserCoupon,
 )
 
 
@@ -190,7 +191,7 @@ class TrackUserLoginFilters(BaseFilterOrderBy):
         ]
 
 
-class PromoCodeFilters(BaseFilterOrderBy):
+class CouponFilters(BaseFilterOrderBy):
     id = django_filters.CharFilter(
         field_name='id',
         lookup_expr='exact'
@@ -201,24 +202,37 @@ class PromoCodeFilters(BaseFilterOrderBy):
     )
 
     class Meta:
-        model = PromoCode
+        model = Coupon
         fields = [
             'id',
         ]
 
 
-class UserPromoCodeFilters(BaseFilterOrderBy):
+class UserCouponFilters(BaseFilterOrderBy):
     id = django_filters.CharFilter(
         field_name='id',
         lookup_expr='exact'
     )
-    promo_code = django_filters.CharFilter(
-        field_name='promo_code__id',
+    coupon = django_filters.CharFilter(
+        field_name='coupon__id',
         lookup_expr='icontains'
     )
 
     class Meta:
-        model = UserPromoCode
+        model = UserCoupon
+        fields = [
+            'id',
+        ]
+
+
+class AddressFilters(BaseFilterOrderBy):
+    id = django_filters.CharFilter(
+        field_name='id',
+        lookup_expr='exact'
+    )
+
+    class Meta:
+        model = Address
         fields = [
             'id',
         ]

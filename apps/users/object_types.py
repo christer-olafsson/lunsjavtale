@@ -8,23 +8,25 @@ from graphene_django import DjangoObjectType
 from backend.count_connection import CountConnection
 
 from .filters import (
+    AddressFilters,
     ClientDetailsFilters,
     CompanyFilters,
+    CouponFilters,
     LogsFilters,
-    PromoCodeFilters,
     TrackUserLoginFilters,
+    UserCouponFilters,
     UserFilters,
-    UserPromoCodeFilters,
 )
 from .models import (
+    Address,
     Agreement,
     ClientDetails,
     Company,
-    PromoCode,
+    Coupon,
     TrackUserLogin,
     UnitOfHistory,
+    UserCoupon,
     UserDeviceToken,
-    UserPromoCode,
 )
 
 User = get_user_model()  # variable taken for User model
@@ -54,7 +56,7 @@ class UserType(DjangoObjectType):
     class Meta:
         model = User
         exclude = (
-            'notification_set', 'user_notifications_viewed', 'performer', 'perform_for'
+            'performer', 'perform_for'
         )
         filterset_class = UserFilters
         interfaces = (graphene.relay.Node,)
@@ -110,22 +112,22 @@ class TrackUserLoginType(DjangoObjectType):
         connection_class = CountConnection
 
 
-class PromoCodeType(DjangoObjectType):
+class CouponType(DjangoObjectType):
     id = graphene.ID(required=True)
 
     class Meta:
-        model = PromoCode
-        filterset_class = PromoCodeFilters
+        model = Coupon
+        filterset_class = CouponFilters
         interfaces = (graphene.relay.Node, )
         connection_class = CountConnection
 
 
-class UserPromoCodeType(DjangoObjectType):
+class UserCouponType(DjangoObjectType):
     id = graphene.ID(required=True)
 
     class Meta:
-        model = UserPromoCode
-        filterset_class = UserPromoCodeFilters
+        model = UserCoupon
+        filterset_class = UserCouponFilters
         interfaces = (graphene.relay.Node, )
         connection_class = CountConnection
 
@@ -147,3 +149,23 @@ class AgreementType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection
+
+
+class AddressType(DjangoObjectType):
+    """
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = Address
+        filterset_class = AddressFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
+class AppliedCouponType(graphene.ObjectType):
+    actual_price = graphene.Float()
+    amount_discounted = graphene.Float()
+    discounted_price = graphene.Float()
+    discounted_value = graphene.String()

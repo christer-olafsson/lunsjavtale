@@ -2,30 +2,26 @@ from django.db import models
 
 
 class PaymentTypeChoices(models.TextChoices):
-    CASH_ON_DELIVERY = 'cash-on-delivery'
     ONLINE = 'online'
     PAY_BY_INVOICE = 'pay-by-invoice'
+    CASH_ON_DELIVERY = 'cash-on-delivery'
 
 
 class InvoiceStatusChoices(models.TextChoices):
     """
         define selection fields for status choice
     """
-    PROCESSING = 'Processing'
     PLACED = 'Placed'
-    PENDING = 'Pending'
-    SHIPPED = 'Shipped'
-    COMPLETE = 'Complete'
+    CONFIRMED = 'Confirmed'
+    PARTIALLY_PAID = 'Partially-paid'
+    PAYMENT_COMPLETED = 'Payment-completed'
     CANCELLED = 'Cancelled'
-    ERRORED = 'Errored'
 
 
 STATUS_MAPPING = {
-    '0': InvoiceStatusChoices.PROCESSING,
-    '1': InvoiceStatusChoices.PLACED,
-    '2': InvoiceStatusChoices.PENDING,
-    '3': InvoiceStatusChoices.SHIPPED,
-    '4': InvoiceStatusChoices.COMPLETE,
-    '5': InvoiceStatusChoices.CANCELLED,
-    '6': InvoiceStatusChoices.ERRORED,
+    '0': InvoiceStatusChoices.PLACED,
+    '1': InvoiceStatusChoices.CONFIRMED,
+    '2': InvoiceStatusChoices.PARTIALLY_PAID,
+    '3': InvoiceStatusChoices.PAYMENT_COMPLETED,
+    '4': InvoiceStatusChoices.CANCELLED,
 }

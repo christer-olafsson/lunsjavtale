@@ -40,6 +40,18 @@ class BaseWithoutID(models.Model):
         abstract = True  # define this table/model is abstract
 
 
+class SoftDeletion(models.Model):
+    """Define all common fields for all table."""
+    is_deleted = models.BooleanField(default=False)
+    deleted_on = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        abstract = True  # define this table/model is abstract
+
+
 class BasePriceModel(models.Model):
     actual_price = models.DecimalField(
         max_digits=10,

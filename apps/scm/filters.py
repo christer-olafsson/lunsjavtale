@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from apps.bases.filters import BaseFilterOrderBy
 
-from .models import Category, Ingredient, Product
+from .models import Category, Ingredient, Product, ProductAttachment
 
 
 class CategoryFilters(BaseFilterOrderBy):
@@ -96,4 +96,14 @@ class IngredientFilters(BaseFilterOrderBy):
         fields = [
             'id',
             'is_deleted',
+        ]
+
+
+class ProductAttachmentFilters(BaseFilterOrderBy):
+
+    class Meta:
+        model = ProductAttachment
+        fields = [
+            'id',
+            'is_cover',
         ]

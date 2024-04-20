@@ -94,56 +94,6 @@ class UserPasswordResetManager(BaseUserManager):
             return self.create(user=user, token=token)
 
 
-class UserSocialAccountManager(BaseUserManager):
-
-    def checkSocialAccount(self, social_id, social_type, email):
-        """
-            check for social user account if exists
-        """
-        if not social_id or not social_type:
-            return False
-        try:
-            if social_type in ['apple', 'facebook']:
-                row = self.filter(social_id=social_id, social_type=social_type).latest('updated_on')
-            else:
-                row = self.get(social_id=social_id, social_type=social_type, user__email=email)
-            return row.user
-        except self.model.DoesNotExist:
-            return False
-
-    def create_or_update(self, user, social_type, social_id):
-        """
-            update or create new user social account
-        """
-        try:
-            row = self.get(user=user, social_id=social_id)
-            row.social_id = social_id
-            row.save()
-            return row
-        except self.model.DoesNotExist:
-            return self.create(user=user, social_type=social_type, social_id=social_id)
-
-
-class UserDeviceTokenManager(BaseUserManager):  # no need to use as django provide update_or_create
-
-    def create_or_update(self, user, device_type, device_token):
-        """
-            update or create new device token user account
-        """
-        try:
-            raw = self.get(user=user)
-            raw.device_token = device_token
-            raw.device_type = device_type
-            raw.save()
-            return raw
-        except self.model.DoesNotExist:
-            return self.create(
-                user=user,
-                device_type=device_type,
-                device_token=device_token
-            )
-
-
 class UserAccessTokenManager(BaseUserManager):  # no need to use as django provide update_or_create
 
     def create_or_update(self, user, token, mac_address=""):

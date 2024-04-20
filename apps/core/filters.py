@@ -5,10 +5,12 @@ from apps.bases.filters import BaseFilterOrderBy
 
 from .models import (
     FAQ,
+    ContactUs,
     FAQCategory,
     FollowUs,
     Language,
     Partner,
+    Promotion,
     SupportedBrand,
     TypeOfAddress,
     ValidArea,
@@ -141,6 +143,21 @@ class FollowUsFilters(BaseFilterOrderBy):
         ]
 
 
+class PromotionFilters(BaseFilterOrderBy):
+    """
+        Promotion filters will be defined here
+    """
+    title = django_filters.CharFilter(
+        field_name='title', lookup_expr='icontains'
+    )
+
+    class Meta:
+        model = Promotion
+        fields = [
+            'id',
+        ]
+
+
 class WhoUAreFilters(BaseFilterOrderBy):
     """
         WhoUAre filters will be defined here
@@ -167,4 +184,29 @@ class WhoUAreAttachmentFilters(BaseFilterOrderBy):
         fields = [
             'id',
             'is_cover',
+        ]
+
+
+class ContactUsFilters(BaseFilterOrderBy):
+    """
+        ContactUs filters will be defined here
+    """
+    company_name = django_filters.CharFilter(
+        field_name="name", lookup_expr="icontains"
+    )
+    name = django_filters.CharFilter(
+        field_name="name", lookup_expr="icontains"
+    )
+    email = django_filters.CharFilter(
+        field_name="name", lookup_expr="icontains"
+    )
+    contact = django_filters.CharFilter(
+        field_name="name", lookup_expr="icontains"
+    )
+
+    class Meta:
+        model = ContactUs
+        fields = [
+            'id',
+            'agree_to_privacy_policy',
         ]

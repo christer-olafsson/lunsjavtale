@@ -7,8 +7,6 @@ import uuid
 from math import atan2, cos, radians, sin, sqrt
 from typing import Type
 
-import requests
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import model_to_dict
 from django.utils.text import slugify
@@ -35,11 +33,27 @@ def get_json_data(serializers_data) -> object:
     return data
 
 
+def get_headers(request) -> object:
+    """
+    """
+    try:
+        data = {i[0]: i[1] for i in request.META.items() if i[0].startswith('HTTP_')}
+    except BaseException:
+        data = None
+    return data
+
+
 def create_token() -> str:
     """
         get an uuid string and return
     """
     return uuid.uuid4()
+
+
+def create_password(size=8, chars=string.ascii_letters + string.digits):
+    """
+    """
+    return ''.join(random.choice(chars) for _ in range(size))
 
 
 def email_validator(email):
@@ -84,7 +98,7 @@ def username_validator(value):
         raise ValidationError(_("username length should not less than 5 and greater than 30 characters."))
 
 
-def promo_code_validator(value):
+def coupon_validator(value):
     """
         Validate a username with a default expression format
         and raise error if not matched.
@@ -104,99 +118,6 @@ def promo_code_validator(value):
             "promo-code should be uppercase and alphanumeric, may include underscore, hyphen and start with a letter."))
     elif length < 6 or length > 100:
         raise ValidationError(_("promo-code length should not less than 6 and greater than 100 characters."))
-
-
-def generate_chat_token(user):
-    """
-        Generate a chat token by requesting in the chat-server
-        and return the token
-    """
-    chat_client_id = settings.CHAT_CLIENT_ID
-    query = """
-         mutation CreateChatToken($clientId: String, $deviceToken: String, $deviceType: String, $userId: String, $username: String){
-             createChatToken(clientId:$clientId, deviceToken:$deviceToken, deviceType:$deviceType, userId:$userId, username:$username){
-                     token
-                     success
-             }
-         }
-    """
-    user_device = getattr(user, 'userdevicetoken', None)
-    response = requests.post(settings.CHAT_SERVER_URL, json={
-        'query': query,
-        'variables': {
-            "clientId": chat_client_id,
-            "username": user.username,
-            "userId": str(user.id),
-            "deviceToken": getattr(user_device, "device_token", ""),
-            "deviceType": getattr(user_device, "device_type", "")
-        }
-    })
-    token = response.json().get("data", {}).get("createChatToken", {}).get("token")
-    return token
-
-
-def start_conversation(info, user, advertise):
-    """
-        Create a conversation by requesting in the chat-server
-        and return the conversation-id
-    """
-    query = """
-         mutation StartConversationV2($friendlyName: String, $identifierId: String, $userPhoto: String, $oppositeUserId: String!, $oppositeUsername: String!, $oppositeUserPhoto: String, $additionalInfo: JSONString){
-             startConversationV2(friendlyName:$friendlyName, identifierId:$identifierId, userPhoto:$userPhoto, oppositeUserId:$oppositeUserId, oppositeUsername:$oppositeUsername, oppositeUserPhoto:$oppositeUserPhoto, additionalInfo:$additionalInfo){
-                     success
-                     conversation{
-                        objectId
-                     }
-             }
-         }
-    """
-    token = generate_chat_token(user)
-    photos = advertise.advertise_attachments.all()
-    cover = photos.filter(is_cover=True).last() if photos.filter(is_cover=True) else photos.last()
-    price = f"{advertise.price}" if advertise.price else ""
-    additional_info = json.dumps({
-        'text1': advertise.title, 'text2': price, 'id': str(advertise.id), 'createdOn': str(advertise.created_on),
-        'photo': get_absolute_path(info, cover.file) if cover else '', 'apiName': 'publicAdvertise'
-    })
-    json_query = {
-        'query': query,
-        'variables': {
-            "friendlyName": advertise.title,
-            "identifierId": str(advertise.id),
-            "userPhoto": str(user.photo.url) if user.photo else "",
-            "oppositeUserId": str(advertise.user.id),
-            "oppositeUsername": advertise.user.username if advertise.user.username else advertise.user.email,
-            "oppositeUserPhoto": get_absolute_path(info, advertise.user.photo) if advertise.user.photo else "",
-            "additionalInfo": str(additional_info)
-        }
-    }
-    response = requests.post(settings.CHAT_SERVER_URL, json=json_query, headers={"Authorization": f"{token}"})
-    chat_id = response.json().get("data", {}).get("startConversationV2", {}).get("conversation", {}).get("objectId")
-    return chat_id
-
-
-def update_chat_photo(info, user, verified=False):
-    """
-        update user-photo by requesting in the chat-server
-        and return the success
-    """
-    query = """
-         mutation UpdatePhoto($photo: String){
-             updatePhoto(photo:$photo){
-                     success
-             }
-         }
-    """
-    token = generate_chat_token(user)
-    json_query = {
-        'query': query,
-        'variables': {
-            "photo": get_absolute_path(info, user.photo) if user.photo and verified else ""
-        }
-    }
-    response = requests.post(settings.CHAT_SERVER_URL, json=json_query, headers={"Authorization": f"{token}"})
-    success = response.json().get("data", {}).get("updatePhoto", {}).get("success", False)
-    return success
 
 
 def random_string_generator(size=8, chars=string.ascii_lowercase + string.digits):

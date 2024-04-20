@@ -6,11 +6,13 @@ from graphene_django import DjangoObjectType
 from backend.count_connection import CountConnection
 
 from .filters import (
+    ContactUsFilters,
     FAQCategoryFilters,
     FAQFilters,
     FollowUsFilters,
     LanguageFilter,
     PartnerFilters,
+    PromotionFilters,
     SupportedBrandFilters,
     TypeOfAddressFilter,
     ValidAreaFilters,
@@ -19,10 +21,12 @@ from .filters import (
 )
 from .models import (
     FAQ,
+    ContactUs,
     FAQCategory,
     FollowUs,
     Language,
     Partner,
+    Promotion,
     SupportedBrand,
     TypeOfAddress,
     ValidArea,
@@ -137,6 +141,20 @@ class FollowUsType(DjangoObjectType):
         connection_class = CountConnection
 
 
+class PromotionType(DjangoObjectType):
+    """
+        define django object type for Promotion model with filter-set
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = Promotion
+        filterset_class = PromotionFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
 class WhoUAreType(DjangoObjectType):
     """
         define django object type for WhoUAre model with filter-set
@@ -161,6 +179,20 @@ class WhoUAreAttachmentType(DjangoObjectType):
         model = WhoUAreAttachment
         exclude = ['who_u_are']
         filterset_class = WhoUAreAttachmentFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
+class ContactUsType(DjangoObjectType):
+    """
+        define django object type for WhoUAreAttachment model with filter-set
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = ContactUs
+        filterset_class = ContactUsFilters
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection

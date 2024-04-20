@@ -198,3 +198,5 @@ EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', cast=int, default=60)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 SERVER_EMAIL = config('SERVER_EMAIL', EMAIL_HOST_USER)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', 'Lunsjavtale <lunsjavtale@gmail.com>')
+
+COUPON_ERROR_MESSAGE = ""
