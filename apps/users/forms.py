@@ -107,6 +107,13 @@ class CompanyForm(forms.ModelForm):
         fields = ("name", "email", "working_email", 'contact', 'post_code')
 
 
+class CompanyUpdateForm(forms.ModelForm):
+
+    class Meta:
+        model = Company
+        exclude = ("is_blocked", "is_contacted", "note")
+
+
 class ValidCompanyForm(forms.ModelForm):
     first_name = forms.CharField()
     password = forms.CharField()

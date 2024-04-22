@@ -66,19 +66,14 @@ class Company(BaseWithoutID, SoftDeletion):
         null=True
     )
     allowance_percentage = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])
+    is_blocked = models.BooleanField(default=False)
     is_contacted = models.BooleanField(default=False)
     note = models.TextField(blank=True, null=True)
     logo_url = models.TextField(
         blank=True,
         null=True
     )
-    cover_photo_url = models.TextField(
-        blank=True,
-        null=True
-    )
-    slogan = models.TextField(blank=True, null=True)
-    social_media_links = models.JSONField(blank=True, null=True)
-    address = models.TextField(blank=True, null=True)
+    no_of_employees = models.PositiveIntegerField(default=1)
     formation_date = models.DateField(blank=True, null=True)
 
     class Meta:

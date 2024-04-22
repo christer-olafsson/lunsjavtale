@@ -27,6 +27,7 @@ from .forms import (
     AdminRegistrationForm,
     AgreementForm,
     CompanyForm,
+    CompanyUpdateForm,
     CouponForm,
     UserAccountForm,
     UserCreationForm,
@@ -66,11 +67,16 @@ class CompanyMutationForAdmin(DjangoFormMutation):
     instance = graphene.Field(CompanyType)
 
     class Meta:
-        form_class = CompanyForm
+        form_class = CompanyUpdateForm
 
-    @is_admin_user
+    @is_authenticated
     def mutate_and_get_payload(self, info, **input):
-        form = CompanyForm(data=input)
+        user = info.context.user
+        if user.is_admin or (user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and user.company.id == input.get('id')):
+            pass
+        else:
+            raise_graphql_error("Not allowed for this operation.")
+        form = CompanyUpdateForm(data=input)
         if form.is_valid():
             obj = form.save()
         else:
@@ -160,6 +166,37 @@ class ValidCompanyMutation(DjangoFormMutation):
         return CompanyMutation(
             success=True, message="Successfully added", instance=obj
         )
+
+
+class CompanyBlockUnBlock(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+        note = graphene.String()
+
+    @is_admin_user
+    def mutate(self, info, id, note=""):
+        try:
+            obj = Company.objects.get(id=id)
+            if obj.is_blocked:
+                obj.is_blocked = False
+                msg = "unblocked"
+            else:
+                obj.is_blocked = True
+                msg = "blocked"
+            obj.note = note
+            obj.save()
+            return CompanyBlockUnBlock(
+                success=True,
+                message=f"Successfully {msg}",
+            )
+        except Company.DoesNotExist:
+            raise_graphql_error("Company not found.", "company_not_exist")
 
 
 class CompanyOwnerRegistration(graphene.Mutation):
@@ -1055,6 +1092,7 @@ class Mutation(graphene.ObjectType):
     company_mutation = CompanyMutationForAdmin.Field()
     create_company = CompanyMutation.Field()
     valid_create_company = ValidCompanyMutation.Field()
+    company_block_unblock = CompanyBlockUnBlock.Field()
     register_company_owner = CompanyOwnerRegistration.Field()
     create_company_staff = UserCreationMutation.Field()
 

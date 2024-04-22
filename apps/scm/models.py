@@ -1,17 +1,17 @@
 from django.conf import settings
 from django.db import models
 
-from apps.bases.models import BasePriceModel, BaseWithoutID
+from apps.bases.models import BasePriceModel, BaseWithoutID, SoftDeletion
 
 
-class Ingredient(BaseWithoutID):
+class Ingredient(BaseWithoutID, SoftDeletion):
     """
     """
     name = models.CharField(max_length=64)  # define ingredient name
     description = models.TextField(
         blank=True, null=True,
     )
-    is_deleted = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_ingredients"  # define table name for database
@@ -22,7 +22,7 @@ class Ingredient(BaseWithoutID):
         return cls.objects.filter(is_deleted=False)
 
 
-class Category(BaseWithoutID):
+class Category(BaseWithoutID, SoftDeletion):
     """
         Store category information by making a hierarchy of category and sub-category
     """
@@ -38,7 +38,7 @@ class Category(BaseWithoutID):
     logo_url = models.TextField(
         blank=True, null=True
     )
-    is_deleted = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_categories"  # define table name for database
@@ -51,7 +51,7 @@ class Category(BaseWithoutID):
         return cls.objects.filter(is_deleted=False)
 
 
-class Product(BaseWithoutID, BasePriceModel):
+class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
     """
         product posting minimum required fields will define here
     """
@@ -64,11 +64,8 @@ class Product(BaseWithoutID, BasePriceModel):
     contains = models.JSONField(blank=True, null=True)
     ingredients = models.ManyToManyField(to=Ingredient, blank=True)
     availability = models.BooleanField(default=True)  # if it is available or not
-    # slug = models.SlugField(blank=True, null=True, unique=True, max_length=128)
-    stock = models.PositiveIntegerField(default=0)  # store product stock
     visitor_count = models.PositiveIntegerField(default=0, null=True)  # store product visits
     is_adjustable_for_single_staff = models.BooleanField(default=False)
-    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_products"  # define table name for database
