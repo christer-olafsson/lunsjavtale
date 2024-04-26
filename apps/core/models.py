@@ -116,7 +116,7 @@ class FollowUs(BaseWithoutID):
 
 class Promotion(BaseWithoutID):
     title = models.CharField(
-        max_length=32, null=True
+        max_length=128, null=True
     )
     description = models.TextField()
     photo_url = models.TextField(

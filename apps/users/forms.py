@@ -22,7 +22,7 @@ class UserForm(forms.ModelForm):
 
 
 class UserCreationForm(forms.ModelForm):
-    # password = forms.CharField(required=False)
+    username = forms.CharField(required=False)
     company = forms.ModelChoiceField(queryset=Company.objects.filter(is_contacted=True, is_deleted=False))
 
     class Meta:
@@ -31,12 +31,12 @@ class UserCreationForm(forms.ModelForm):
             'first_name',
             'last_name',
             'username',
-            # 'password',
             'phone',
             'email',
             'gender',
             'date_of_birth',
             'role',
+            'allergies',
         ]
 
 

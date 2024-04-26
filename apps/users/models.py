@@ -479,6 +479,7 @@ class Coupon(BaseWithoutID, SoftDeletion):
     is_active = models.BooleanField(default=True)
     start_date = models.DateField()
     end_date = models.DateField()
+    added_for = models.ManyToManyField(to=Company, blank=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_promo_codes"

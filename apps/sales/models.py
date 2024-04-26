@@ -27,15 +27,15 @@ class PaymentMethod(BaseWithoutID, SoftDeletion):
 
 
 class SellCart(BaseWithoutID):
+    invoice = models.ForeignKey(
+        to='Order', on_delete=models.DO_NOTHING, related_name='invoice_carts', blank=True, null=True)
+    date = models.DateField()
     added_by = models.ForeignKey(
         to='users.User', on_delete=models.SET_NULL, related_name='user_carts', blank=True, null=True
     )
     added_for = models.ManyToManyField(
         to='users.User', blank=True
     )
-    date = models.DateField()
-    invoice = models.ForeignKey(
-        'Order', on_delete=models.DO_NOTHING, related_name='invoice_carts', blank=True, null=True)
     item = models.ForeignKey(to='scm.Product', on_delete=models.DO_NOTHING, related_name='product_carts')
     quantity = models.PositiveIntegerField(db_index=True, default=1, validators=[MinValueValidator(1)])
     cancelled = models.PositiveIntegerField(default=0)
@@ -104,7 +104,7 @@ class Order(BaseWithoutID, SoftDeletion):
     )
     created_by = models.ForeignKey(to='users.User', on_delete=models.DO_NOTHING, related_name='created_orders')
     note = models.TextField(blank=True, null=True)
-    refunded_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # refunded_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     coupon = models.ForeignKey('users.UserCoupon', on_delete=models.DO_NOTHING, blank=True, null=True)
     payment_type = models.CharField(
         max_length=16, choices=PaymentTypeChoices.choices, default=PaymentTypeChoices.PAY_BY_INVOICE
@@ -117,6 +117,7 @@ class Order(BaseWithoutID, SoftDeletion):
         default=5
     )
     invoice_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    shipping_charge = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     total_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
