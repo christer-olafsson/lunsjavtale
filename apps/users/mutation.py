@@ -3,6 +3,7 @@
 import graphene
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.db import transaction
 from django.utils import timezone
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphql import GraphQLError
@@ -12,7 +13,6 @@ from apps.bases.constant import HistoryActions, VerifyActionChoices
 from apps.bases.utils import (
     camel_case_format,
     create_token,
-    get_headers,
     get_object_by_attrs,
     get_object_by_id,
     get_object_dict,
@@ -32,6 +32,7 @@ from .forms import (
     UserAccountForm,
     UserCreationForm,
     UserForm,
+    UserRegisterForm,
     UserRegistrationForm,
     ValidCompanyForm,
 )
@@ -128,40 +129,38 @@ class ValidCompanyMutation(DjangoFormMutation):
     class Meta:
         form_class = ValidCompanyForm
 
+    @transaction.atomic
     def mutate_and_get_payload(self, info, **input):
         form = ValidCompanyForm(data=input)
-        if form.is_valid():
-            first_name = form.cleaned_data.pop('first_name')
-            password = form.cleaned_data.pop('password')
+        user_input = {
+            'email': input.get('working_email'),
+            'phone': input.get('contact'),
+            'role': RoleTypeChoices.OWNER,
+            'password': input.get('password'),
+            'first_name': input.get('first_name')
+        }
+        error_data = {}
+        user_form = UserRegisterForm(data=user_input)
+        try:
+            validate_password(input.get('password'))
+        except Exception as e:
+            error_data['password'] = list(e)
+        if form.is_valid() and user_form.is_valid() and not error_data:
             obj = form.save()
-            input = {
-                'email': obj.working_email,
-                'phone': obj.contact,
-                'role': RoleTypeChoices.OWNER,
-                'password': password,
-                'first_name': first_name
-            }
-            user_form = UserRegistrationForm(data=input)
-            if user_form.is_valid():
-                user = User.objects.create_user(**input)
-                user.company = obj
-                user.save()
-                # ToDo:: need to verify email
-            else:
-                error_data = {}
-                for error in user_form.errors:
-                    for err in user_form.errors[error]:
-                        error_data[camel_case_format(error)] = err
-                UnitOfHistory.objects.create(
-                    action="Owner-creation-error",
-                    new_meta=error_data,
-                    header=get_headers(info.context)
-                )
+            user = User.objects.create_user(**user_input)
+            user.company = obj
+            user.save()
+            # ToDo:: need to verify email
         else:
-            error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
                     error_data[camel_case_format(error)] = err
+            for error in user_form.errors:
+                for err in user_form.errors[error]:
+                    if error == 'phone':
+                        error_data['contact'] = err
+                    else:
+                        error_data[camel_case_format(error)] = err
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         return CompanyMutation(
             success=True, message="Successfully added", instance=obj

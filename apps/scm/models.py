@@ -98,3 +98,23 @@ class ProductAttachment(models.Model):
         if self.is_cover:
             self.product.attachments.exclude(id=self.pk).update(is_cover=False)
         super(ProductAttachment, self).save(*args, **kwargs)
+
+
+class ProductMeeting(BaseWithoutID, BasePriceModel, SoftDeletion):
+    """
+        product meeting minimum required fields will define here
+    """
+    title = models.CharField(max_length=128, blank=True, null=True)  # name of the meeting
+    description = models.TextField()  # some details about the meeting
+    company = models.ForeignKey(
+        to='users.Company', on_delete=models.SET_NULL, related_name='meetings', null=True, blank=True
+    )  # define the category of the product
+    category = models.ForeignKey(
+        to=Category, on_delete=models.SET_NULL, related_name='meetings', null=True
+    )  # define the category of the product
+    other_info = models.JSONField(blank=True, null=True)
+    is_contacted = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_product_meetings"  # define table name for database
+        ordering = ['-id']  # define default order as created in descending

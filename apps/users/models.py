@@ -170,7 +170,7 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
 
     phone_regex = RegexValidator(
         regex=r"^\+?1?\d{9,15}$",
-        message="Enter Phone number with country code"
+        message="Enter Valid Phone number with country code"
     )  # phone number validator.
     phone = models.CharField(
         _("phone number"),
