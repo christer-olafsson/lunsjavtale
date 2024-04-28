@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.bases.models import BasePriceModel, BaseWithoutID, SoftDeletion
+from apps.scm.choices import MeetingTypeChoices
 
 
 class Ingredient(BaseWithoutID, SoftDeletion):
@@ -100,21 +101,34 @@ class ProductAttachment(models.Model):
         super(ProductAttachment, self).save(*args, **kwargs)
 
 
-class ProductMeeting(BaseWithoutID, BasePriceModel, SoftDeletion):
+class FoodMeeting(BaseWithoutID):
     """
-        product meeting minimum required fields will define here
+        food meeting minimum required fields will define here
     """
-    title = models.CharField(max_length=128, blank=True, null=True)  # name of the meeting
+    title = models.CharField(max_length=128)  # name of the meeting
     description = models.TextField()  # some details about the meeting
+    meeting_type = models.CharField(
+        max_length=32, choices=MeetingTypeChoices.choices, default=MeetingTypeChoices.IN_PERSON
+    )
+    meeting_time = models.DateTimeField()
+    topics = models.ManyToManyField(
+        to=Category, blank=True
+    )  # define the category of the meeting
+    attendees = models.ManyToManyField(
+        to='users.User', blank=True
+    )
+
     company = models.ForeignKey(
         to='users.Company', on_delete=models.SET_NULL, related_name='meetings', null=True, blank=True
     )  # define the category of the product
-    category = models.ForeignKey(
-        to=Category, on_delete=models.SET_NULL, related_name='meetings', null=True
-    )  # define the category of the product
-    other_info = models.JSONField(blank=True, null=True)
+    company_name = models.CharField(max_length=128, blank=True, null=True)
+    first_name = models.CharField(max_length=128, blank=True, null=True)
+    last_name = models.CharField(max_length=128, blank=True, null=True)
+    email = models.EmailField(max_length=128, blank=True, null=True)
+
     is_contacted = models.BooleanField(default=False)
+    note = models.TextField(blank=True, null=True)
 
     class Meta:
-        db_table = f"{settings.DB_PREFIX}_product_meetings"  # define table name for database
+        db_table = f"{settings.DB_PREFIX}_food_meetings"  # define table name for database
         ordering = ['-id']  # define default order as created in descending

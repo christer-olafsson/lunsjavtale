@@ -150,7 +150,7 @@ class ValidCompanyMutation(DjangoFormMutation):
             user = User.objects.create_user(**user_input)
             user.company = obj
             user.save()
-            # ToDo:: need to verify email
+            user.send_email_verification()
         else:
             for error in form.errors:
                 for err in form.errors[error]:
@@ -510,7 +510,33 @@ class PasswordResetMail(graphene.Mutation):
         )
         return PasswordResetMail(
             success=True,
-            message="Password reset mail send successfully"
+            message="Password reset mail was sent successfully"
+        )
+
+
+class EmailVericationMail(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        email = graphene.String(required=True)
+
+    def mutate(self, info, email):
+        user = User.objects.filter(email=email).first()
+        if not user:
+            raise_graphql_error("No user is associated with this email address.", "invalid_email")
+        user.send_email_verification()
+        UnitOfHistory.user_history(
+            action=HistoryActions.RESEND_ACTIVATION,
+            user=user,
+            request=info.context
+        )
+        return EmailVericationMail(
+            success=True,
+            message="Verification mail was sent successfully"
         )
 
 
@@ -1099,6 +1125,7 @@ class Mutation(graphene.ObjectType):
     logout = ExpiredAllToken.Field()
     password_change = PasswordChange.Field()
     password_reset_mail = PasswordResetMail.Field()
+    send_verification_mail = EmailVericationMail.Field()
     reset_password = PasswordReset.Field()
 
     general_profile_update = UserMutation.Field()

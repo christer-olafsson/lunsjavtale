@@ -7,6 +7,7 @@ import uuid
 from math import atan2, cos, radians, sin, sqrt
 from typing import Type
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import model_to_dict
 from django.utils.text import slugify
@@ -21,6 +22,14 @@ def build_absolute_uri(path, host) -> str:
         Find absolute url of a path by including site-url
     """
     url = f"http://{host}/{path}" if re.findall("127.0.0.1", str(host)) else f"https://{host}/{path}"
+    return url
+
+
+def set_absolute_uri(path) -> str:
+    """
+    """
+    site = settings.SITE_URL
+    url = f"{site}/{path}"
     return url
 
 

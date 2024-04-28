@@ -4,8 +4,16 @@ import graphene
 from django.contrib.auth import get_user_model
 from graphene_django.filter.fields import DjangoFilterConnectionField
 
-from .models import Category, Product
-from .object_types import CategoryType, Ingredient, IngredientType, ProductType
+from backend.permissions import is_authenticated
+
+from .models import Category, FoodMeeting, Product
+from .object_types import (
+    CategoryType,
+    FoodMeetingType,
+    Ingredient,
+    IngredientType,
+    ProductType,
+)
 
 # local imports
 
@@ -36,6 +44,8 @@ class Query(CategoryQuery, graphene.ObjectType):
     product = graphene.Field(ProductType, id=graphene.ID())
     ingredients = DjangoFilterConnectionField(IngredientType)
     ingredient = graphene.Field(IngredientType, id=graphene.ID())
+    food_meetings = DjangoFilterConnectionField(FoodMeetingType)
+    food_meeting = graphene.Field(FoodMeetingType, id=graphene.ID())
 
     def resolve_products(self, info, **kwargs):
         user = info.context.user
@@ -67,4 +77,22 @@ class Query(CategoryQuery, graphene.ObjectType):
             qs = Ingredient.objects.filter(id=id)
         else:
             qs = Ingredient.queryset().filter(id=id)
+        return qs.last()
+
+    @is_authenticated
+    def resolve_food_meetings(self, info, **kwargs):
+        user = info.context.user
+        if user.is_admin:
+            qs = FoodMeeting.objects.all()
+        else:
+            qs = FoodMeeting.objects.filter(company=user.company)
+        return qs
+
+    @is_authenticated
+    def resolve_food_meeting(self, info, id, **kwargs):
+        user = info.context.user
+        if user.is_admin:
+            qs = FoodMeeting.objects.filter(id=id)
+        else:
+            qs = FoodMeeting.objects.filter(company=user.company, id=id)
         return qs.last()

@@ -16,7 +16,9 @@ from apps.bases.models import BaseWithoutID, SoftDeletion
 from apps.bases.utils import (
     coupon_validator,
     create_password,
+    create_token,
     email_validator,
+    set_absolute_uri,
     username_validator,
 )
 from apps.users.choices import (
@@ -254,6 +256,18 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
             'password': password
         }
         template = 'emails/verification.html'
+        subject = 'Email Verification'
+        send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
+
+    def send_email_verification(self):
+        token = create_token()
+        self.activation_token = token
+        self.save()
+        link = set_absolute_uri(f"email-verification/{token}/")
+        context = {
+            'link': link
+        }
+        template = 'emails/email_verification.html'
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 

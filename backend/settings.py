@@ -188,6 +188,8 @@ AUTH_USER_MODEL = 'users.User'
 # other variables
 EXPIRY_LIMIT_DAYS = config('EXPIRY_LIMIT_DAYS', default=30, cast=int)
 ACCESS_TOKEN_EXPIRY_LIMIT = config('ACCESS_TOKEN_EXPIRY_LIMIT', default=7, cast=int)
+SITE_URL = config('SITE_URL', 'https://lunsjavtale.no')
+COUPON_ERROR_MESSAGE = "Invalid code"
 
 # Email config
 EMAIL_HOST = config('EMAIL_HOST', 'smtp.gmail.com')
@@ -200,4 +202,17 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 SERVER_EMAIL = config('SERVER_EMAIL', EMAIL_HOST_USER)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', 'Lunsjavtale <lunsjavtale@gmail.com>')
 
-COUPON_ERROR_MESSAGE = "Invalid code"
+# firebase config
+FIREBASE_CONFIG_PATH = config("FIREBASE_CONFIG_PATH", "firebase-admin.json")
+FCM_URL = "https://fcm.googleapis.com/fcm/send"
+FCM_KEY = config("FCM_KEY", "")
+
+# CELERY STUFF
+# Celery Config
+BROKER_URL = 'redis://localhost:6379'
+CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'

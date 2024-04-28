@@ -6,13 +6,14 @@ from graphene_django import DjangoObjectType
 # local imports
 from apps.scm.filters import (
     CategoryFilters,
+    FoodMeetingFilters,
     IngredientFilters,
     ProductAttachmentFilters,
     ProductFilters,
 )
 from backend.count_connection import CountConnection
 
-from .models import Category, Ingredient, Product, ProductAttachment
+from .models import Category, FoodMeeting, Ingredient, Product, ProductAttachment
 
 
 class CategoryType(DjangoObjectType):
@@ -82,6 +83,20 @@ class ProductAttachmentType(DjangoObjectType):
         model = ProductAttachment
         filterset_class = ProductAttachmentFilters
         exclude = ['product']
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
+class FoodMeetingType(DjangoObjectType):
+    """
+        define django object type for FoodMeeting model with filter-set
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = FoodMeeting
+        filterset_class = FoodMeetingFilters
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection

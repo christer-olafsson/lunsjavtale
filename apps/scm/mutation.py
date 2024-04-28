@@ -1,18 +1,18 @@
 import graphene
-from graphene_django.forms.mutation import DjangoFormMutation
+from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphene_django.forms.types import DjangoFormInputObjectType
 from graphql import GraphQLError
 
 # local imports
 from apps.bases.utils import camel_case_format, get_object_by_id
-from backend.permissions import is_admin_user
+from backend.permissions import is_admin_user, is_authenticated
 
-from .forms import CategoryForm, IngredientForm, ProductForm
-from .models import Category, Ingredient, Product, ProductAttachment
-from .object_types import CategoryType, IngredientType, ProductType
+from .forms import CategoryForm, FoodMeetingForm, IngredientForm, ProductForm
+from .models import Category, FoodMeeting, Ingredient, Product, ProductAttachment
+from .object_types import CategoryType, FoodMeetingType, IngredientType, ProductType
 
 
-class CategoryMutation(DjangoFormMutation):
+class CategoryMutation(DjangoModelFormMutation):
     """
         update and create new Category information by some default fields.
     """
@@ -51,7 +51,7 @@ class CategoryMutation(DjangoFormMutation):
         )
 
 
-class IngredientMutation(DjangoFormMutation):
+class IngredientMutation(DjangoModelFormMutation):
     """
         update and create new Ingredient information by some default fields.
     """
@@ -87,6 +87,58 @@ class IngredientMutation(DjangoFormMutation):
             )
         return IngredientMutation(
             success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+        )
+
+
+class FoodMeetingMutation(DjangoFormMutation):
+    """
+        update and create new FoodMeeting information by some default fields.
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(FoodMeetingType)
+
+    class Meta:
+        form_class = FoodMeetingForm
+
+    @is_authenticated
+    def mutate_and_get_payload(self, info, **input):
+        form = FoodMeetingForm(data=input)
+        if form.is_valid():
+            obj = form.save()
+        else:
+            error_data = {}
+            for error in form.errors:
+                for err in form.errors[error]:
+                    error_data[camel_case_format(error)] = err
+            raise GraphQLError(
+                message="Invalid input request.",
+                extensions={
+                    "errors": error_data,
+                    "code": "invalid_input"
+                }
+            )
+        return FoodMeetingMutation(
+            success=True, message="Successfully added", instance=obj
+        )
+
+
+class FoodMeetingResolve(graphene.Mutation):
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+        note = graphene.String()
+
+    @is_admin_user
+    def mutate(self, info, id, note, **kwargs):
+        obj = FoodMeeting.objects.get(id=id)
+        obj.note = note
+        obj.is_contacted = True
+        obj.save()
+        return FoodMeetingResolve(
+            success=True, message="Succesfully resolved"
         )
 
 
@@ -159,3 +211,5 @@ class Mutation(graphene.ObjectType):
     category_mutation = CategoryMutation.Field()
     ingredient_mutation = IngredientMutation.Field()
     product_mutation = ProductMutation.Field()
+    food_meeting_mutation = FoodMeetingMutation.Field()
+    food_meeting_resolve = FoodMeetingResolve.Field()
