@@ -5,6 +5,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
+from apps.sales.choices import InvoiceStatusChoices
+from apps.sales.models import Order
 from apps.users.choices import DeviceTypeChoices
 from apps.users.models import UserDeviceToken
 
@@ -13,8 +15,6 @@ from backend.celery import app
 from backend.fcm import ExFCMNotification
 from backend.mail import send_direct_mail_by_default_bcc
 
-from ..sales.choices import InvoiceStatusChoices
-from ..sales.models import Order
 from .choices import AudienceTypeChoice, NotificationTypeChoice
 from .models import Notification
 

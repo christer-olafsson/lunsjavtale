@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.scm',
     'apps.notifications',
+    'apps.sales',
 ]
 
 MIDDLEWARE = [

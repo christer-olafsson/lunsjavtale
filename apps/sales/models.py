@@ -83,10 +83,10 @@ class AlterCart(BaseWithoutID):
         to=UserCart, on_delete=models.CASCADE, related_name='alter_histories'
     )
     previous_cart = models.ForeignKey(
-        to=SellCart, on_delete=models.DO_NOTHING, related_name='users'
+        to=SellCart, on_delete=models.DO_NOTHING, related_name='previous_used_carts'
     )
     current_cart = models.ForeignKey(
-        to=SellCart, on_delete=models.DO_NOTHING, related_name='users'
+        to=SellCart, on_delete=models.DO_NOTHING, related_name='current_used_carts'
     )
 
     class Meta:
@@ -184,7 +184,7 @@ class OrderPayment(BaseWithoutID):
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     note = models.TextField(blank=True, null=True)
     payment_info = models.JSONField(blank=True, null=True)
-    created_by = models.ForeignKey(to='users.User', on_delete=models.DO_NOTHING, related_name='created_orders')
+    created_by = models.ForeignKey(to='users.User', on_delete=models.DO_NOTHING, related_name='created_payments')
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_order_payments"  # define table name for database
