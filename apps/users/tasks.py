@@ -31,6 +31,7 @@ def send_password_reset_mail(email, token):
     <html>
     <head></head>
     <body>
+      <h1>
       <p>Please check below link to reset your password.</p>
       <p><a href='{0}'>Click here...</a></p>
     </body>

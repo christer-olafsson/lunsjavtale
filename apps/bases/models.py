@@ -60,21 +60,6 @@ class BasePriceModel(models.Model):
         blank=True,
         default=1
     )
-    discount_percent = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        blank=True,
-        null=True,
-    )
-    price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0)],
-        help_text="price after discount",
-        default=1,
-        blank=True
-    )
     tax_percent = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -99,8 +84,8 @@ class BasePriceModel(models.Model):
     def save(self, *args, **kwargs):
         self.tax_percent = settings.TAX_PERCENTAGE if self.tax_percent is None else self.tax_percent
         # price_with_tax = self.actual_price + ((self.vat_percent * self.actual_price) / 100)
-        self.discount_percent = self.discount_percent if self.discount_percent else 0
-        price_after_discount = self.actual_price - ((self.discount_percent * self.actual_price) / 100)
-        self.price = price_after_discount
-        self.price_with_tax = price_after_discount + ((self.tax_percent * price_after_discount) / 100)
+        # self.discount_percent = self.discount_percent if self.discount_percent else 0
+        # price_after_discount = self.actual_price - ((self.discount_percent * self.actual_price) / 100)
+        # self.price = price_after_discount
+        self.price_with_tax = self.actual_price + ((self.tax_percent * self.actual_price) / 100)
         super(BasePriceModel, self).save(*args, **kwargs)

@@ -56,6 +56,10 @@ class SellCart(BaseWithoutID):
     class Meta:
         db_table = f"{settings.DB_PREFIX}_sell_carts"  # define table name for database
 
+    @property
+    def ordered_quantity(self):
+        return self.quantity - self.cancelled
+
 
 class UserCart(BaseWithoutID):
     cart = models.ForeignKey(

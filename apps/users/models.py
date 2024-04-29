@@ -263,7 +263,7 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         token = create_token()
         self.activation_token = token
         self.save()
-        link = set_absolute_uri(f"email-verification/{token}/")
+        link = set_absolute_uri(f"email-verification/?token={token}")
         context = {
             'link': link
         }

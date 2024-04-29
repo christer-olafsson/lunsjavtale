@@ -18,6 +18,7 @@ from apps.bases.utils import (
     get_object_dict,
     raise_graphql_error,
     raise_graphql_error_with_fields,
+    set_absolute_uri,
 )
 from backend.authentication import TokenManager
 from backend.permissions import is_admin_user, is_authenticated, is_super_admin
@@ -54,7 +55,7 @@ from .object_types import (
     CouponType,
     UserType,
 )
-from .tasks import send_account_activation_mail, send_password_reset_mail
+from .tasks import send_account_activation_mail, send_email_on_delay
 
 User = get_user_model()  # variable taken for User model
 
@@ -502,7 +503,14 @@ class PasswordResetMail(graphene.Mutation):
             raise_graphql_error("No user is associated with this email address.", "invalid_email")
         token = create_token()
         ResetPassword.objects.update_or_create(user=user, defaults={"token": token})
-        send_password_reset_mail.delay(email, token)
+
+        link = set_absolute_uri(f"password-reset/?email={email}&token={token}")
+        context = {
+            'link': link
+        }
+        template = 'emails/reset_password.html'
+        subject = 'Password Reset'
+        send_email_on_delay.delay(template, context, subject, email)  # will add later for sending verification
         UnitOfHistory.user_history(
             action=HistoryActions.PASSWORD_RESET_REQUEST,
             user=user,

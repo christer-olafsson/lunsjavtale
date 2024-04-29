@@ -3,7 +3,7 @@ import django_filters
 
 from apps.bases.filters import BaseFilterOrderBy
 
-from .models import PaymentMethod
+from .models import PaymentMethod, SellCart
 
 
 class PaymentMethodFilters(BaseFilterOrderBy):
@@ -17,6 +17,18 @@ class PaymentMethodFilters(BaseFilterOrderBy):
 
     class Meta:
         model = PaymentMethod
+        fields = [
+            'id',
+        ]
+
+
+class SellCartFilters(BaseFilterOrderBy):
+    """
+        SellCart Filters will define here
+    """
+
+    class Meta:
+        model = SellCart
         fields = [
             'id',
         ]

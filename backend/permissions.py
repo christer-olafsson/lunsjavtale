@@ -1,9 +1,25 @@
 from graphql import GraphQLError
 
+from apps.users.choices import RoleTypeChoices
+
 
 def is_authenticated(func):
     def wrapper(cls, info, **kwargs):
         if not info.context.user:
+            raise GraphQLError(
+                message='You are not authorized user.',
+                extensions={
+                    "message": "You are not authorized user.",
+                    "code": "unauthorised"
+                })
+        return func(cls, info, **kwargs)
+    return wrapper
+
+
+def is_company_user(func):
+    def wrapper(cls, info, **kwargs):
+        user = info.context.user
+        if not user or not user.company or user.role not in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER]:
             raise GraphQLError(
                 message='You are not authorized user.',
                 extensions={

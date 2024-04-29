@@ -1,7 +1,7 @@
 import graphene
 
-from apps.scm.mutation import Mutation as appMutations
-from apps.scm.query import Query as appQueries
+from apps.sales.mutation import Mutation as appMutations
+from apps.sales.query import Query as appQueries
 
 
 class Query(appQueries, graphene.ObjectType):
