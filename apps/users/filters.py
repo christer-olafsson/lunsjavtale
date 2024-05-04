@@ -13,6 +13,8 @@ from .models import (
     UnitOfHistory,
     User,
     UserCoupon,
+    Vendor,
+    WithdrawRequest,
 )
 
 
@@ -170,11 +172,26 @@ class CompanyFilters(BaseFilterOrderBy):
         ]
 
 
-class TrackUserLoginFilters(BaseFilterOrderBy):
-    id = django_filters.CharFilter(
-        field_name='id',
-        lookup_expr='exact'
+class VendorFilters(BaseFilterOrderBy):
+    """
+    """
+    name = django_filters.CharFilter(
+        field_name='name',
+        lookup_expr='icontains'
     )
+    email = django_filters.CharFilter(
+        field_name='email',
+        lookup_expr='icontains'
+    )
+
+    class Meta:
+        model = Vendor
+        fields = [
+            'id',
+        ]
+
+
+class TrackUserLoginFilters(BaseFilterOrderBy):
     username = django_filters.CharFilter(
         field_name='username',
         lookup_expr='icontains'
@@ -192,10 +209,6 @@ class TrackUserLoginFilters(BaseFilterOrderBy):
 
 
 class CouponFilters(BaseFilterOrderBy):
-    id = django_filters.CharFilter(
-        field_name='id',
-        lookup_expr='exact'
-    )
     name = django_filters.CharFilter(
         field_name='name',
         lookup_expr='icontains'
@@ -209,10 +222,6 @@ class CouponFilters(BaseFilterOrderBy):
 
 
 class UserCouponFilters(BaseFilterOrderBy):
-    id = django_filters.CharFilter(
-        field_name='id',
-        lookup_expr='exact'
-    )
     coupon = django_filters.CharFilter(
         field_name='coupon__id',
         lookup_expr='icontains'
@@ -226,13 +235,24 @@ class UserCouponFilters(BaseFilterOrderBy):
 
 
 class AddressFilters(BaseFilterOrderBy):
-    id = django_filters.CharFilter(
-        field_name='id',
-        lookup_expr='exact'
-    )
 
     class Meta:
         model = Address
+        fields = [
+            'id',
+        ]
+
+
+class WithdrawRequestFilters(BaseFilterOrderBy):
+    """
+
+    """
+    vendor = django_filters.CharFilter(
+        field_name="vendor__id", lookup_expr="exact"
+    )
+
+    class Meta:
+        model = WithdrawRequest
         fields = [
             'id',
         ]

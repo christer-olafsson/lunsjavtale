@@ -52,8 +52,8 @@ def send_account_activation_mail(email, username):
     <html>
     <head></head>
     <body>
-      <p>What a lovely day to Pepsi-DRC 🤩, We are happy to inform you that your account has been activated successfully 👏 & we Wish you all the best. </p>
-      <p>Welcome to Pepsi-DRC Family 🙏😇</p>
+      <p>What a lovely day to Lunsjavtale 🤩, We are happy to inform you that your account has been activated successfully 👏 & we Wish you all the best. </p>
+      <p>Welcome to Lunsjavtale Family 🙏😇</p>
     </body>
     </html>
     """

@@ -38,6 +38,7 @@ class RoleTypeChoices(models.TextChoices):
     ADMIN = "admin"
     DEVELOPER = "developer"
     USER = "user"
+    VENDOR = "vendor"
     OWNER = "owner"
     MANAGER = "manager"
     EMPLOYEE = "employee"
@@ -48,3 +49,10 @@ class AgreementChoices(models.TextChoices):
     PRIVACY_POLICY = 'privacy-policy'
     INSTRUCTION_URL = 'instruction-url'
     ABOUT_US = 'about-us'
+
+
+class WithdrawRequestChoices(models.TextChoices):
+    PENDING = 'pending'
+    ACCEPTED = 'accepted'
+    CANCELLED = 'cancelled'
+    COMPLETED = 'completed'

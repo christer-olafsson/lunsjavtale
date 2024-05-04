@@ -1,7 +1,7 @@
 from django import forms
 
 # local imports
-from .models import Agreement, Company, Coupon, User
+from .models import Agreement, Company, Coupon, User, Vendor
 
 
 class UserForm(forms.ModelForm):
@@ -22,8 +22,6 @@ class UserForm(forms.ModelForm):
 
 
 class UserCreationForm(forms.ModelForm):
-    username = forms.CharField(required=False)
-    company = forms.ModelChoiceField(queryset=Company.objects.filter(is_contacted=True, is_deleted=False))
 
     class Meta:
         model = User
@@ -36,6 +34,7 @@ class UserCreationForm(forms.ModelForm):
             'gender',
             'date_of_birth',
             'role',
+            'photo_url',
             'allergies',
         ]
 
@@ -128,6 +127,23 @@ class ValidCompanyForm(forms.ModelForm):
     class Meta:
         model = Company
         fields = ("name", "email", "working_email", 'contact', 'post_code')
+
+
+class VendorForm(forms.ModelForm):
+    first_name = forms.CharField()
+    password = forms.CharField()
+
+    class Meta:
+        model = Vendor
+        fields = ("name", "email", 'contact', 'post_code')
+
+
+class VendorUpdateForm(forms.ModelForm):
+    id = forms.CharField(required=True)
+
+    class Meta:
+        model = Vendor
+        fields = ("name", "email", 'contact', 'post_code', 'logo_url', 'formation_date', 'social_media_links')
 
 
 class AgreementForm(forms.ModelForm):

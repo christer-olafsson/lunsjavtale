@@ -16,6 +16,8 @@ from .models import (
     Coupon,
     TrackUserLogin,
     UnitOfHistory,
+    Vendor,
+    WithdrawRequest,
 )
 from .object_types import (
     AddressType,
@@ -26,6 +28,8 @@ from .object_types import (
     LogType,
     TrackUserLoginType,
     UserType,
+    VendorType,
+    WithdrawRequestType,
 )
 
 User = get_user_model()  # variable taken for User model
@@ -45,11 +49,15 @@ class Query(graphene.ObjectType):
     user_login_track = graphene.Field(TrackUserLoginType, id=graphene.ID())
     companies = DjangoFilterConnectionField(CompanyType)
     company = graphene.Field(CompanyType, id=graphene.ID())
+    vendors = DjangoFilterConnectionField(VendorType)
+    vendor = graphene.Field(VendorType, id=graphene.ID())
     client_details = graphene.Field(ClientDetailsType)
     coupons = DjangoFilterConnectionField(CouponType)
     coupon = graphene.Field(CouponType, id=graphene.ID())
     agreements = DjangoFilterConnectionField(AgreementType)
     agreement = graphene.Field(AgreementType, type_of=graphene.String())
+    withdraw_requests = DjangoFilterConnectionField(WithdrawRequestType)
+    withdraw_request = graphene.Field(WithdrawRequestType, type_of=graphene.String())
     all_gender_choices = graphene.JSONString()
     addresses = DjangoFilterConnectionField(AddressType)
 
@@ -110,6 +118,15 @@ class Query(graphene.ObjectType):
         obj = Company.objects.fiter(id=id).last()
         return obj
 
+    @is_authenticated
+    def resolve_vendors(self, info, **kwargs):
+        return Vendor.objects.all()
+
+    @is_authenticated
+    def resolve_vendor(self, info, id, **kwargs):
+        obj = Vendor.objects.fiter(id=id).last()
+        return obj
+
     def resolve_client_details(self, info, **kwargs):
         client = ClientDetails.objects.last()
         return client
@@ -126,13 +143,29 @@ class Query(graphene.ObjectType):
             agreement.save()
         return agreement
 
-    @is_admin_user
+    @is_authenticated
     def resolve_coupons(self, info, **kwargs) -> object:
         return Coupon.objects.all()
 
     @is_authenticated
     def resolve_coupon(self, info, id, **kwargs) -> object:
         return Coupon.objects.filter(id=id).last()
+
+    @is_authenticated
+    def resolve_withdraw_requests(self, info, **kwargs) -> object:
+        user = info.context.user
+        qs = WithdrawRequest.objects.all()
+        if not user.is_admin:
+            qs = qs.filter(vendor=user.vendor)
+        return qs
+
+    @is_authenticated
+    def resolve_withdraw_request(self, info, id, **kwargs) -> object:
+        user = info.context.user
+        qs = WithdrawRequest.objects.filter(id=id)
+        if not user.is_admin:
+            qs = qs.filter(vendor=user.vendor)
+        return qs.last()
 
     @is_authenticated
     def resolve_addresses(self, info, id, **kwargs) -> object:

@@ -56,15 +56,19 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
     """
         product posting minimum required fields will define here
     """
-    name = models.CharField(max_length=128)  # name of the product
+    name = models.CharField(max_length=128, unique=True)  # name of the product
     title = models.CharField(max_length=128, blank=True, null=True)  # name of the product
     description = models.TextField()  # some details about the product
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, related_name='products', null=True
+        to=Category, on_delete=models.SET_NULL, related_name='products', null=True
+    )  # define the category of the product
+    vendor = models.ForeignKey(
+        to='users.Vendor', on_delete=models.SET_NULL, related_name='products', null=True, blank=True
     )  # define the category of the product
     contains = models.JSONField(blank=True, null=True)
     ingredients = models.ManyToManyField(to=Ingredient, blank=True)
     availability = models.BooleanField(default=True)  # if it is available or not
+    discount_availability = models.BooleanField(default=True)  # if discount available or not
     visitor_count = models.PositiveIntegerField(default=0, null=True)  # store product visits
     is_adjustable_for_single_staff = models.BooleanField(default=False)
 

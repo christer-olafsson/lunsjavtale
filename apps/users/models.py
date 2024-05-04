@@ -26,6 +26,7 @@ from apps.users.choices import (
     DeviceTypeChoices,
     GenderChoices,
     RoleTypeChoices,
+    WithdrawRequestChoices,
 )
 from apps.users.managers import (
     UserAccessTokenManager,
@@ -77,6 +78,21 @@ class Company(BaseWithoutID, SoftDeletion):
     )
     no_of_employees = models.PositiveIntegerField(default=1)
     formation_date = models.DateField(blank=True, null=True)
+    ordered_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+    invoice_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+    paid_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_company"  # define table name for database
@@ -84,6 +100,49 @@ class Company(BaseWithoutID, SoftDeletion):
 
     def __str__(self) -> str:
         return str(self.name)
+
+    @property
+    def balance(self):
+        return self.invoice_amount - self.paid_amount
+
+
+class Vendor(BaseWithoutID, SoftDeletion):
+    name = models.CharField(max_length=256, unique=True)
+    email = models.EmailField(max_length=256, null=True, unique=True)
+    contact = models.CharField(max_length=15, null=True)
+    post_code = models.PositiveIntegerField(
+        blank=True, null=True
+    )
+    is_blocked = models.BooleanField(default=False)
+    note = models.TextField(blank=True, null=True)
+    logo_url = models.TextField(
+        blank=True,
+        null=True
+    )
+    formation_date = models.DateField(blank=True, null=True)
+    social_media_links = models.JSONField(
+        blank=True, null=True
+    )
+    sold_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+    withdrawn_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_vendors"  # define table name for database
+
+    def __str__(self) -> str:
+        return str(self.name)
+
+    @property
+    def balance(self):
+        return self.sold_amount - self.withdrawn_amount
 
 
 class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
@@ -109,7 +168,11 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         blank=True
     )
     company = models.ForeignKey(
-        to=Company, on_delete=models.DO_NOTHING, related_name='users',
+        to=Company, on_delete=models.SET_NULL, related_name='users',
+        blank=True, null=True
+    )
+    vendor = models.ForeignKey(
+        to=Vendor, on_delete=models.SET_NULL, related_name='users',
         blank=True, null=True
     )
 
@@ -271,9 +334,26 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 
+    def vendor_email_verification(self, password):
+        self.is_verified = True
+        self.is_email_verified = True
+        self.save()
+        context = {
+            'username': self.username,
+            'email': self.email,
+            'password': password
+        }
+        template = 'emails/verification.html'
+        subject = 'Email Verification'
+        send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
+
     @property
     def is_admin(self) -> bool:
         return self.is_staff or self.is_superuser
+
+    @property
+    def is_vendor(self) -> bool:
+        return True if self.vendor else False
 
 
 class UnitOfHistory(models.Model):
@@ -516,6 +596,7 @@ class Coupon(BaseWithoutID, SoftDeletion):
             coupon__name=coupon).filter(filter_q).count()
         total_count = UserCoupon.objects.filter(coupon__name=coupon).filter(filter_q).count()
         return cls.objects.filter(
+            models.Q(added_for__isnull=True) | models.Q(added_for=user.company),
             is_active=True,
             start_date__lte=today,
             end_date__gte=today,
@@ -580,3 +661,23 @@ class Agreement(BaseWithoutID):
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_agreements"
+
+
+class WithdrawRequest(BaseWithoutID, SoftDeletion):
+    vendor = models.ForeignKey(
+        to=Vendor, on_delete=models.SET_NULL, null=True, related_name='withdraw_requests'
+    )
+    withdraw_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+    status = models.CharField(
+        max_length=32, choices=WithdrawRequestChoices.choices, default=WithdrawRequestChoices.PENDING
+    )
+    note = models.TextField(
+        blank=True, null=True
+    )
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_withdraw_requests"

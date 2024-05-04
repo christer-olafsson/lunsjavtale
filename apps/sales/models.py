@@ -27,20 +27,24 @@ class PaymentMethod(BaseWithoutID, SoftDeletion):
 
 
 class SellCart(BaseWithoutID):
-    invoice = models.ForeignKey(
-        to='Order', on_delete=models.DO_NOTHING, related_name='invoice_carts', blank=True, null=True
+    order = models.ForeignKey(
+        to='Order', on_delete=models.DO_NOTHING, related_name='order_carts', blank=True, null=True
     )
 
     added_by = models.ForeignKey(
-        to='users.User', on_delete=models.SET_NULL, related_name='user_carts', blank=True, null=True
+        to='users.User', on_delete=models.SET_NULL, related_name='added_carts', blank=True, null=True
     )
 
-    item = models.ForeignKey(to='scm.Product', on_delete=models.DO_NOTHING, related_name='product_carts')
+    item = models.ForeignKey(
+        to='scm.Product', on_delete=models.DO_NOTHING, related_name='product_carts'
+    )
     date = models.DateField()
     added_for = models.ManyToManyField(
         to='users.User', blank=True
     )
-    quantity = models.PositiveIntegerField(db_index=True, default=1, validators=[MinValueValidator(1)])
+    quantity = models.PositiveIntegerField(
+        db_index=True, default=1, validators=[MinValueValidator(1)]
+    )
     cancelled = models.PositiveIntegerField(default=0)
     price = models.DecimalField(
         max_digits=10,
@@ -52,9 +56,25 @@ class SellCart(BaseWithoutID):
         decimal_places=2,
         default=0
     )
+    total_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+    total_price_with_tax = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+    ingredients = models.ManyToManyField(to='scm.Ingredient', blank=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_sell_carts"  # define table name for database
+
+    def save(self, *args, **kwargs):
+        self.total_price = self.price * self.ordered_quantity
+        self.total_price_with_tax = self.price_with_tax * self.ordered_quantity
+        super(SellCart, self).save(*args, **kwargs)
 
     @property
     def ordered_quantity(self):
@@ -111,14 +131,9 @@ class Order(BaseWithoutID, SoftDeletion):
         max_length=16, choices=PaymentTypeChoices.choices, default=PaymentTypeChoices.PAY_BY_INVOICE
     )
     delivery_date = models.DateField()
-    vat_percent = models.DecimalField(
-        max_digits=3,
-        decimal_places=2,
+    company_allowance = models.PositiveIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         default=0
-    )
-    discount_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0
     )
     shipping_charge = models.DecimalField(
         max_digits=10, decimal_places=2, default=0
@@ -130,12 +145,24 @@ class Order(BaseWithoutID, SoftDeletion):
         help_text="price adding vat & discount",
         default=0
     )
+    discount_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0
+    )
+    vat_percent = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=0
+    )
     final_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0)],
         help_text="price adding vat & discount",
         default=0
+    )
+    status = models.CharField(
+        max_length=32, choices=InvoiceStatusChoices.choices, default=InvoiceStatusChoices.PLACED
     )
 
     class Meta:
@@ -144,7 +171,7 @@ class Order(BaseWithoutID, SoftDeletion):
 
     def save(self, *args, **kwargs):
         price_after_discount = self.actual_price - self.discount_amount
-        self.final_price = price_after_discount + ((self.tax_percent * price_after_discount) / 100)
+        self.final_price = price_after_discount + ((self.vat_percent * price_after_discount) / 100)
         super(Order, self).save(*args, **kwargs)
 
 
@@ -161,6 +188,11 @@ class OrderStatus(models.Model):
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_order_statuses"  # define table name for database
+
+    def save(self, *args, **kwargs):
+        super(OrderStatus, self).save(*args, **kwargs)
+        self.order.status = self.order.statuses.latest('created_on').status
+        self.order.save()
 
 
 # class UserCartStatus(models.Model):

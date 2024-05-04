@@ -13,7 +13,20 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = "__all__"
+        exclude = ['is_deleted', 'deleted_on', 'visitor_count', 'ingredients', 'price_with_tax']
+
+
+class VendorProductForm(forms.ModelForm):
+    """
+        Product model form will define here
+    """
+
+    class Meta:
+        model = Product
+        exclude = [
+            'is_deleted', 'deleted_on', 'visitor_count', 'vendor', 'availability', 'discount_availability',
+            'ingredients', 'price_with_tax'
+        ]
 
 
 class CategoryForm(forms.ModelForm):

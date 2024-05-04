@@ -36,9 +36,7 @@ class CategoryQuery(graphene.ObjectType):
 
 class Query(CategoryQuery, graphene.ObjectType):
     """
-        query all advertise information.
-        pass category name for category parameter
-        and city id for city parameter
+        query all table information.
     """
     products = DjangoFilterConnectionField(ProductType)
     product = graphene.Field(ProductType, id=graphene.ID())
@@ -51,6 +49,8 @@ class Query(CategoryQuery, graphene.ObjectType):
         user = info.context.user
         if user and user.is_admin:
             qs = Product.objects.all()
+        elif user and user.is_vendor:
+            qs = Product.objects.filter(vendor=user.vendor)
         else:
             qs = Product.queryset()
         return qs
@@ -59,6 +59,8 @@ class Query(CategoryQuery, graphene.ObjectType):
         user = info.context.user
         if user and user.is_admin:
             qs = Product.objects.filter(id=id)
+        elif user and user.is_vendor:
+            qs = Product.objects.filter(vendor=user.vendor, id=id)
         else:
             qs = Product.queryset().filter(id=id)
         return qs.last()

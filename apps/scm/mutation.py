@@ -5,9 +5,15 @@ from graphql import GraphQLError
 
 # local imports
 from apps.bases.utils import camel_case_format, get_object_by_id
-from backend.permissions import is_admin_user, is_authenticated
+from backend.permissions import is_admin_user, is_authenticated, is_vendor_user
 
-from .forms import CategoryForm, FoodMeetingForm, IngredientForm, ProductForm
+from .forms import (
+    CategoryForm,
+    FoodMeetingForm,
+    IngredientForm,
+    ProductForm,
+    VendorProductForm,
+)
 from .models import Category, FoodMeeting, Ingredient, Product, ProductAttachment
 from .object_types import CategoryType, FoodMeetingType, IngredientType, ProductType
 
@@ -169,19 +175,17 @@ class ProductMutation(graphene.Mutation):
     @is_admin_user
     def mutate(self, info, input, ingredients, attachments=[], **kwargs):
         form = ProductForm(data=input)
-        object_id = None
         if form.data.get('id'):
             object_id = form.data['id']
             old_obj = get_object_by_id(Product, object_id)
             form = ProductForm(data=input, instance=old_obj)
-        form_data = form.data
         if form.is_valid():
-            obj, created = Product.objects.update_or_create(id=object_id, defaults=form_data)
+            obj = form.save()
             obj.ingredients.clear()
             for ing in ingredients:
                 obj.ingredients.add(Ingredient.objects.get_or_create(name=ing)[0])
             if attachments:
-                obj.attachments.delete()
+                obj.attachments.all().delete()
                 for attach in attachments:
                     ProductAttachment.objects.create(
                         product=obj, file_url=attach.get('file_url'),
@@ -200,7 +204,65 @@ class ProductMutation(graphene.Mutation):
                 }
             )
         return ProductMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=f"Successfully {'added' if input.get('id') else 'updated'}", instance=obj
+        )
+
+
+class VendorProductInput(DjangoFormInputObjectType):
+
+    class Meta:
+        form_class = VendorProductForm
+
+
+class VendorProductMutation(graphene.Mutation):
+    """
+        update and create new Product information by some default fields.
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(ProductType)
+
+    class Arguments:
+        input = VendorProductInput()
+        ingredients = graphene.List(graphene.String)
+        attachments = graphene.List(ProductAttachmentInput)
+
+    @is_vendor_user
+    def mutate(self, info, input, ingredients, attachments=[], **kwargs):
+        user = info.context.user
+        form = ProductForm(data=input)
+        if form.data.get('id'):
+            object_id = form.data['id']
+            old_obj = get_object_by_id(Product, object_id)
+            form = ProductForm(data=input, instance=old_obj)
+        if form.is_valid():
+            obj = form.save()
+            obj.vendor = user.vendor
+            obj.save()
+            obj.ingredients.clear()
+            for ing in ingredients:
+                obj.ingredients.add(Ingredient.objects.get_or_create(name=ing)[0])
+            if attachments:
+                obj.attachments.all().delete()
+                for attach in attachments:
+                    ProductAttachment.objects.create(
+                        product=obj, file_url=attach.get('file_url'),
+                        is_cover=attach.get('is_cover')
+                    )
+        else:
+            error_data = {}
+            for error in form.errors:
+                for err in form.errors[error]:
+                    error_data[camel_case_format(error)] = err
+            raise GraphQLError(
+                message="Invalid input request.",
+                extensions={
+                    "errors": error_data,
+                    "code": "invalid_input"
+                }
+            )
+        return VendorProductMutation(
+            success=True, message=f"Successfully {'added' if input.get('id') else 'updated'}", instance=obj
         )
 
 
@@ -211,5 +273,6 @@ class Mutation(graphene.ObjectType):
     category_mutation = CategoryMutation.Field()
     ingredient_mutation = IngredientMutation.Field()
     product_mutation = ProductMutation.Field()
+    vendor_product_mutation = VendorProductMutation.Field()
     food_meeting_mutation = FoodMeetingMutation.Field()
     food_meeting_resolve = FoodMeetingResolve.Field()

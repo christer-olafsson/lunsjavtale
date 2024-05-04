@@ -62,6 +62,8 @@ class FAQ(BaseWithoutID):
     view_count = models.PositiveIntegerField(
         default=0
     )
+    is_visible_on_home_page = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_faqs"  # define table name for database
@@ -74,9 +76,13 @@ class SupportedBrand(BaseWithoutID):
     name = models.CharField(
         max_length=32, blank=True, null=True
     )
+    site_url = models.TextField(
+        blank=True, null=True
+    )
     logo_url = models.TextField(
         blank=True, null=True
     )
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_supported_brands"  # define table name for database
@@ -87,9 +93,13 @@ class Partner(BaseWithoutID):
     name = models.CharField(
         max_length=32, blank=True, null=True
     )
+    site_url = models.TextField(
+        blank=True, null=True
+    )
     logo_url = models.TextField(
         blank=True, null=True
     )
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_partners"  # define table name for database
@@ -107,6 +117,7 @@ class FollowUs(BaseWithoutID):
     photo_url = models.TextField(
         blank=True, null=True
     )
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_follow_us"  # define table name for database
@@ -122,6 +133,11 @@ class Promotion(BaseWithoutID):
     photo_url = models.TextField(
         blank=True, null=True
     )
+    product_url = models.TextField(
+        blank=True, null=True
+    )
+    start_date = models.DateField(blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -169,6 +185,7 @@ class WhoUAre(BaseWithoutID):
     additional_info = models.CharField(
         max_length=32, blank=True, null=True
     )
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_who_u_are"  # define table name for database

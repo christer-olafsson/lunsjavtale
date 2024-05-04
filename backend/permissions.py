@@ -30,6 +30,20 @@ def is_company_user(func):
     return wrapper
 
 
+def is_vendor_user(func):
+    def wrapper(cls, info, **kwargs):
+        user = info.context.user
+        if not user or not user.is_vendor:
+            raise GraphQLError(
+                message='You are not authorized user.',
+                extensions={
+                    "message": "You are not authorized user.",
+                    "code": "unauthorised"
+                })
+        return func(cls, info, **kwargs)
+    return wrapper
+
+
 def is_super_admin(func):
     def wrapper(cls, info, **kwargs):
         if not info.context.user:

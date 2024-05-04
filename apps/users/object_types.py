@@ -16,6 +16,8 @@ from .filters import (
     TrackUserLoginFilters,
     UserCouponFilters,
     UserFilters,
+    VendorFilters,
+    WithdrawRequestFilters,
 )
 from .models import (
     Address,
@@ -27,6 +29,8 @@ from .models import (
     UnitOfHistory,
     UserCoupon,
     UserDeviceToken,
+    Vendor,
+    WithdrawRequest,
 )
 
 User = get_user_model()  # variable taken for User model
@@ -83,6 +87,7 @@ class CompanyType(DjangoObjectType):
         Define django object type for user Company model with filter-set and relay node information
     """
     id = graphene.ID(required=True)
+    balance = graphene.Decimal()
 
     class Meta:
         model = Company
@@ -90,6 +95,29 @@ class CompanyType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection
+
+    @staticmethod
+    def resolve_balance(self, info, **kwargs):
+        return self.balance
+
+
+class VendorType(DjangoObjectType):
+    """
+        Define django object type for user Vendor model with filter-set and relay node information
+    """
+    id = graphene.ID(required=True)
+    balance = graphene.Decimal()
+
+    class Meta:
+        model = Vendor
+        filterset_class = VendorFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+    @staticmethod
+    def resolve_balance(self, info, **kwargs):
+        return self.balance
 
 
 class UserDeviceTokenType(DjangoObjectType):
@@ -159,6 +187,19 @@ class AddressType(DjangoObjectType):
     class Meta:
         model = Address
         filterset_class = AddressFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
+class WithdrawRequestType(DjangoObjectType):
+    """
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = WithdrawRequest
+        filterset_class = WithdrawRequestFilters
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection

@@ -4,6 +4,7 @@ import graphene
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphql import GraphQLError
@@ -20,10 +21,11 @@ from apps.bases.utils import (
     raise_graphql_error_with_fields,
     set_absolute_uri,
 )
+from apps.scm.models import Ingredient
 from backend.authentication import TokenManager
 from backend.permissions import is_admin_user, is_authenticated, is_super_admin
 
-from .choices import RoleTypeChoices
+from .choices import RoleTypeChoices, WithdrawRequestChoices
 from .forms import (
     AdminRegistrationForm,
     AgreementForm,
@@ -36,6 +38,8 @@ from .forms import (
     UserRegisterForm,
     UserRegistrationForm,
     ValidCompanyForm,
+    VendorForm,
+    VendorUpdateForm,
 )
 from .login_backends import signup
 from .models import (
@@ -47,6 +51,8 @@ from .models import (
     ResetPassword,
     UnitOfHistory,
     UserDeviceToken,
+    Vendor,
+    WithdrawRequest,
 )
 from .object_types import (
     AgreementType,
@@ -54,6 +60,7 @@ from .object_types import (
     CompanyType,
     CouponType,
     UserType,
+    VendorType,
 )
 from .tasks import send_account_activation_mail, send_email_on_delay
 
@@ -148,6 +155,8 @@ class ValidCompanyMutation(DjangoFormMutation):
             error_data['password'] = list(e)
         if form.is_valid() and user_form.is_valid() and not error_data:
             obj = form.save()
+            obj.is_contacted = True
+            obj.save()
             user = User.objects.create_user(**user_input)
             user.company = obj
             user.save()
@@ -163,8 +172,92 @@ class ValidCompanyMutation(DjangoFormMutation):
                     else:
                         error_data[camel_case_format(error)] = err
             raise_graphql_error_with_fields("Invalid input request.", error_data)
-        return CompanyMutation(
+        return ValidCompanyMutation(
             success=True, message="Successfully added", instance=obj
+        )
+
+
+class VendorMutation(DjangoFormMutation):
+    """
+        Users can create valid Vendor information through a form input.\n
+        and owner account will be created
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(VendorType)
+
+    class Meta:
+        form_class = VendorForm
+
+    @transaction.atomic
+    def mutate_and_get_payload(self, info, **input):
+        form = VendorForm(data=input)
+        password = input.get('password')
+        user_input = {
+            'email': input.get('email'),
+            'phone': input.get('contact'),
+            'role': RoleTypeChoices.VENDOR,
+            'password': password,
+            'first_name': input.get('first_name')
+        }
+        error_data = {}
+        user_form = UserRegisterForm(data=user_input)
+        try:
+            validate_password(input.get('password'))
+        except Exception as e:
+            error_data['password'] = list(e)
+        if form.is_valid() and user_form.is_valid() and not error_data:
+            obj = form.save()
+            user = User.objects.create_user(**user_input)
+            user.vendor = obj
+            user.save()
+            user.vendor_email_verification(password)
+        else:
+            for error in form.errors:
+                for err in form.errors[error]:
+                    error_data[camel_case_format(error)] = err
+            for error in user_form.errors:
+                for err in user_form.errors[error]:
+                    if error == 'phone':
+                        error_data['contact'] = err
+                    else:
+                        error_data[camel_case_format(error)] = err
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
+        return VendorMutation(
+            success=True, message="Successfully added", instance=obj
+        )
+
+
+class VendorUpdateMutation(DjangoModelFormMutation):
+    """
+        Users can create valid Vendor information through a form input.\n
+        and owner account will be created
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(VendorType)
+
+    class Meta:
+        form_class = VendorUpdateForm
+
+    @transaction.atomic
+    def mutate_and_get_payload(self, info, **input):
+        user = info.context.user
+        if user.is_admin:
+            obj = Vendor.objects.get(id=input['id'])
+        else:
+            obj = user.vendor
+        form = VendorForm(data=input, instance=obj)
+        error_data = {}
+        if form.is_valid():
+            obj = form.save()
+        else:
+            for error in form.errors:
+                for err in form.errors[error]:
+                    error_data[camel_case_format(error)] = err
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
+        return VendorUpdateMutation(
+            success=True, message="Successfully updated", instance=obj
         )
 
 
@@ -197,6 +290,81 @@ class CompanyBlockUnBlock(graphene.Mutation):
             )
         except Company.DoesNotExist:
             raise_graphql_error("Company not found.", "company_not_exist")
+
+
+class VendorBlockUnBlock(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+        note = graphene.String()
+
+    @is_admin_user
+    def mutate(self, info, id, note=""):
+        try:
+            obj = Vendor.objects.get(id=id)
+            if obj.is_blocked:
+                obj.is_blocked = False
+                msg = "unblocked"
+            else:
+                obj.is_blocked = True
+                msg = "blocked"
+            obj.note = note
+            obj.save()
+            return VendorBlockUnBlock(
+                success=True,
+                message=f"Successfully {msg}",
+            )
+        except Vendor.DoesNotExist:
+            raise_graphql_error("Vendor not found.", "company_not_exist")
+
+
+class VendorWithdrawRequest(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+        status = graphene.String()
+        withdraw_amount = graphene.Decimal()
+        note = graphene.String()
+
+    @is_authenticated
+    def mutate(self, info, id=None, status="", withdraw_amount=0, note=""):
+        user = info.context.user
+        if user.is_admin:
+            obj = WithdrawRequest.objects.get(id=id)
+            if status not in WithdrawRequestChoices:
+                raise_graphql_error("Status not valid.", field_name="status")
+            obj.status = status
+            obj.note = note
+            if status == WithdrawRequestChoices.ACCEPTED:
+                obj.vendor.withdrawn_amount += obj.withdraw_amount
+                obj.vendor.save()
+            obj.save()
+            msg = 'updated'
+        else:
+            if not user.is_vendor:
+                raise_graphql_error("User not permitted.")
+            vendor = user.vendor
+            pending_withdraw = vendor.withdraw_requests.filter(
+                status=WithdrawRequestChoices.PENDING
+            ).aggregate(tot=Sum('withdraw_amount'))['tot'] or 0
+            if withdraw_amount + pending_withdraw > vendor.sold_amount - vendor.withdrawn_amount:
+                raise_graphql_error("Amount is not available.", field_name="withdraw_amount")
+            WithdrawRequest.objects.create(vendor=vendor, withdraw_amount=withdraw_amount)
+            msg = 'added'
+        return VendorWithdrawRequest(
+            success=True,
+            message=f"Successfully {msg}",
+        )
 
 
 class CompanyOwnerRegistration(graphene.Mutation):
@@ -281,19 +449,25 @@ class UserCreationMutation(DjangoModelFormMutation):
             form = UserCreationForm(data=input, instance=user)
         form_data = form.data
         if form.is_valid() and not error_data:
-            form_data['company'] = company
+            allergies = form_data.pop('allergies')
             if form_data.get('id'):
                 User.objects.filter(id=form_data['id']).update(**form_data)
+                obj = User.objects.get(id=form_data['id'])
             else:
-                user = User.objects.create_user(**form_data)
+                obj = User.objects.create_user(**form_data)
+                obj.company = company
+                obj.save()
                 user.send_email_verified()
+            if allergies:
+                obj.allergies.clear()
+                obj.allergies.add(*Ingredient.objects.filter(id__in=allergies))
         else:
             for error in form.errors:
                 for err in form.errors[error]:
                     error_data[camel_case_format(error)] = err
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         return UserCreationMutation(
-            success=True, message="Successfully added", user=user
+            success=True, message="Successfully added", user=obj
         )
 
 
@@ -579,11 +753,11 @@ class PasswordReset(graphene.Mutation):
         user = User.objects.filter(email=email).first()
         if not user:
             raise_graphql_error("No user is associate with this email.", "invalid_email")
-        if not ResetPassword.objects.checkKey(token, email):
-            raise_graphql_error("Token is not valid or expired!", "invalid_token")
         validate_password(password1)
         if not password1 == password2:
             raise_graphql_error("Password does not match.", "invalid_password")
+        if not ResetPassword.objects.checkKey(token, email):
+            raise_graphql_error("Token is not valid or expired!", "invalid_token")
         user.set_password(password2)
         user.save()
         UnitOfHistory.user_history(
@@ -769,7 +943,7 @@ class EmailVerify(graphene.Mutation):
         if user_exist:
             if user_exist.filter(is_email_verified=True, is_verified=True):
                 raise_graphql_error("User already verified.")
-            user_exist.update(is_email_verified=True, is_verified=True)
+            user_exist.update(is_email_verified=True, is_verified=True, activation_token=None)
             send_account_activation_mail.delay(user_exist.last().email, user_exist.last().username)
         else:
             raise_graphql_error("Invalid token!", "invalid_token")
@@ -1128,6 +1302,10 @@ class Mutation(graphene.ObjectType):
     company_block_unblock = CompanyBlockUnBlock.Field()
     register_company_owner = CompanyOwnerRegistration.Field()
     create_company_staff = UserCreationMutation.Field()
+    vendor_creation = VendorMutation.Field()
+    vendor_update = VendorUpdateMutation.Field()
+    vendor_block_unblock = VendorBlockUnBlock.Field()
+    withdraw_request_mutation = VendorWithdrawRequest.Field()
 
     login_user = LoginUser.Field()
     logout = ExpiredAllToken.Field()
