@@ -495,9 +495,13 @@ class UserMutation(DjangoModelFormMutation):
         old_data = get_object_dict(user, list(UserForm().fields.keys()))
         new_data = None
         if form.is_valid():
+            allergies = form_data.pop('allergies')
             if form_data.get('username'):
                 form_data['username'] = form_data['username'].strip()
             User.objects.filter(id=user.id).update(**form_data)
+            if allergies:
+                user.allergies.clear()
+                user.allergies.add(*Ingredient.objects.filter(id__in=allergies))
             new_data = get_object_dict(User.objects.get(id=user.id), list(UserForm().fields.keys()))
         else:
             error_data = {}
@@ -531,11 +535,18 @@ class UserAccountMutation(DjangoModelFormMutation):
     def mutate_and_get_payload(self, info, **input) -> object:
         user = info.context.user
         form = UserAccountForm(data=input, instance=user)
-        old_data = get_object_dict(user, list(UserForm().fields.keys()))
+        old_data = get_object_dict(user, list(UserAccountForm().fields.keys()))
         new_data = None
         if form.is_valid():
-            form.save()
-            new_data = get_object_dict(User.objects.get(id=user.id), list(UserForm().fields.keys()))
+            current_password = form.cleaned_data.pop('current_password')
+            if not user.check_password(current_password):
+                raise_graphql_error("Wrong password given.", "invalid_password")
+            password = form.cleaned_data.pop('password')
+            validate_password(password)
+            obj = form.save()
+            obj.set_password(password)
+            obj.save()
+            new_data = get_object_dict(User.objects.get(id=user.id), list(UserAccountForm().fields.keys()))
         else:
             error_data = {}
             for error in form.errors:

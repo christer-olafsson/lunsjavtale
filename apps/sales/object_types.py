@@ -11,10 +11,18 @@ from apps.sales.filters import (
     PaymentMethodFilters,
     ProductRatingFilters,
     SellCartFilters,
+    UserCartFilters,
 )
 from backend.count_connection import CountConnection
 
-from .models import Order, OrderPayment, PaymentMethod, ProductRating, SellCart
+from .models import (
+    Order,
+    OrderPayment,
+    PaymentMethod,
+    ProductRating,
+    SellCart,
+    UserCart,
+)
 
 
 class PaymentMethodType(DjangoObjectType):
@@ -47,6 +55,24 @@ class SellCartType(DjangoObjectType):
 
     def resolve_ordered_quantity(self, info, **kwargs):
         return self.ordered_quantity
+
+
+class UserCartType(DjangoObjectType):
+    """
+        define django object type for UserCart model with UserCart filter-set
+    """
+    id = graphene.ID(required=True)
+    is_full_paid = graphene.Boolean()
+
+    class Meta:
+        model = UserCart
+        filterset_class = UserCartFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+    def resolve_is_full_paid(self, info, **kwargs):
+        return self.is_full_paid
 
 
 class OrderType(DjangoObjectType):

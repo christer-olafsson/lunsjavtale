@@ -3,7 +3,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from apps.bases.models import BaseWithoutID, SoftDeletion
-from apps.sales.choices import InvoiceStatusChoices, PaymentTypeChoices
+from apps.sales.choices import DecisionChoices, InvoiceStatusChoices, PaymentTypeChoices
 
 
 class PaymentMethod(BaseWithoutID, SoftDeletion):
@@ -41,6 +41,9 @@ class SellCart(BaseWithoutID):
     date = models.DateField()
     added_for = models.ManyToManyField(
         to='users.User', blank=True
+    )
+    cancelled_by = models.ManyToManyField(
+        to='users.User', blank=True, related_name="cancelled_carts"
     )
     quantity = models.PositiveIntegerField(
         db_index=True, default=1, validators=[MinValueValidator(1)]
@@ -101,6 +104,10 @@ class UserCart(BaseWithoutID):
     class Meta:
         db_table = f"{settings.DB_PREFIX}_user_carts"  # define table name for database
 
+    @property
+    def is_full_paid(self):
+        return self.cart.price_with_tax <= self.paid_amount
+
 
 class AlterCart(BaseWithoutID):
     base = models.ForeignKey(
@@ -109,9 +116,10 @@ class AlterCart(BaseWithoutID):
     previous_cart = models.ForeignKey(
         to=SellCart, on_delete=models.DO_NOTHING, related_name='previous_used_carts'
     )
-    current_cart = models.ForeignKey(
-        to=SellCart, on_delete=models.DO_NOTHING, related_name='current_used_carts'
+    item = models.ForeignKey(
+        to='scm.Product', on_delete=models.DO_NOTHING, related_name='alter_carts'
     )
+    status = models.CharField(max_length=32, choices=DecisionChoices.choices, default=DecisionChoices.PENDING)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_alter_carts"  # define table name for database
@@ -159,6 +167,11 @@ class Order(BaseWithoutID, SoftDeletion):
         decimal_places=2,
         validators=[MinValueValidator(0)],
         help_text="price adding vat & discount",
+        default=0
+    )
+    paid_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
         default=0
     )
     status = models.CharField(

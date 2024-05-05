@@ -16,7 +16,7 @@ from backend.permissions import is_admin_user, is_authenticated, is_company_user
 from ..scm.models import Product
 from .choices import InvoiceStatusChoices, PaymentTypeChoices
 from .forms import PaymentMethodForm, ProductRatingForm
-from .models import Order, OrderStatus, PaymentMethod, SellCart
+from .models import AlterCart, Order, OrderStatus, PaymentMethod, SellCart, UserCart
 from .object_types import OrderType, PaymentMethodType, ProductRatingType
 from .tasks import notify_user_carts
 
@@ -166,6 +166,60 @@ class OrderStatusUpdate(graphene.Mutation):
         )
 
 
+class UserCartUpdate(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+        item = graphene.ID()
+
+    @is_authenticated
+    def mutate(self, info, id, item):
+        user = info.context.user
+        obj = SellCart.objects.get(id=id, added_for=user, order__isnull=False)
+        product = Product.objects.get(id=item, category=obj.item.category)
+        user_cart = UserCart.objects.get(cart=obj, added_for=user)
+        AlterCart.objects.get_or_create(
+            base=user_cart, cart=obj, item=product
+        )
+        return UserCartUpdate(
+            success=True,
+            message="Successfully updated",
+        )
+
+
+class ConfirmUserCartUpdate(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+        status = graphene.ID()
+
+    @is_authenticated
+    def mutate(self, info, id, status):
+        # user = info.context.user
+        # obj = AlterCart.objects.get(
+        #     id=id
+        # )
+        # if status not in [DecisionChoices.ACCEPTED, DecisionChoices.REJECTED]:
+        #     raise_graphql_error("")
+        # obj = SellCart.objects.get(id=id, added_for=user, order__isnull=False)
+        # product = Product.objects.get(id=item, category=obj.item.category)
+        # user_cart = UserCart.objects.get(cart=obj, added_for=user)
+        return ConfirmUserCartUpdate(
+            success=True,
+            message="Successfully updated",
+        )
+
+
 class AddProductRating(DjangoFormMutation):
     """
     """
@@ -209,4 +263,5 @@ class Mutation(graphene.ObjectType):
     add_product_rating = AddProductRating.Field()
 
     add_to_cart = AddToCart.Field()
+    user_cart_update = UserCartUpdate.Field()
     # place_order = OrderCreation.Field()

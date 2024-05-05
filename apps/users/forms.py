@@ -17,7 +17,7 @@ class UserForm(forms.ModelForm):
             'about',
             'photo_url',
             'date_of_birth',
-            'allergies'
+            'allergies',
         ]
 
 
@@ -65,6 +65,7 @@ class UserCreateForm(forms.ModelForm):
 
 
 class UserAccountForm(forms.ModelForm):
+    current_password = forms.CharField(required=False)
     password = forms.CharField(required=False)
 
     class Meta:

@@ -6,6 +6,7 @@ from graphene_django.filter.fields import DjangoFilterConnectionField
 
 from backend.permissions import is_authenticated
 
+from .choices import MeetingTypeChoices
 from .models import Category, FoodMeeting, Product
 from .object_types import (
     CategoryType,
@@ -44,6 +45,7 @@ class Query(CategoryQuery, graphene.ObjectType):
     ingredient = graphene.Field(IngredientType, id=graphene.ID())
     food_meetings = DjangoFilterConnectionField(FoodMeetingType)
     food_meeting = graphene.Field(FoodMeetingType, id=graphene.ID())
+    meeting_type_choices = graphene.JSONString()
 
     def resolve_products(self, info, **kwargs):
         user = info.context.user
@@ -98,3 +100,6 @@ class Query(CategoryQuery, graphene.ObjectType):
         else:
             qs = FoodMeeting.objects.filter(company=user.company, id=id)
         return qs.last()
+
+    def resolve_meeting_type_choices(self, info, **kwargs):
+        return [{'key': c[0], 'display': c[1]} for c in MeetingTypeChoices.choices]

@@ -10,6 +10,7 @@ from .models import (
     PaymentMethod,
     ProductRating,
     SellCart,
+    UserCart,
 )
 
 
@@ -36,6 +37,18 @@ class SellCartFilters(BaseFilterOrderBy):
 
     class Meta:
         model = SellCart
+        fields = [
+            'id',
+        ]
+
+
+class UserCartFilters(BaseFilterOrderBy):
+    """
+        UserCart Filters will define here
+    """
+
+    class Meta:
+        model = UserCart
         fields = [
             'id',
         ]
