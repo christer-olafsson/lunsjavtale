@@ -49,6 +49,7 @@ class HistoryActions(models.TextChoices):
     ACCOUNT_DEACTIVATE = 'account-deactivate'
     USER_BLOCKED = 'user-access-blocked'
     USER_UNBLOCKED = 'user-access-unblocked'
+    USER_DELETED = 'user-deleted'
     COMPANY_ADDED = 'user-company-added'
     COMPANY_UPDATED = 'user-company-updated'
     NEW_ADMIN_ADDED = 'new-admin-added'

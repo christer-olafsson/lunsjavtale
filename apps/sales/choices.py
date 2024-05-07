@@ -12,10 +12,12 @@ class InvoiceStatusChoices(models.TextChoices):
         define selection fields for status choice
     """
     PLACED = 'Placed'
+    UPDATED = 'updated'
+    CANCELLED = 'Cancelled'
     CONFIRMED = 'Confirmed'
     PARTIALLY_PAID = 'Partially-paid'
+    PAYMENT_PENDING = 'Payment-pending'
     PAYMENT_COMPLETED = 'Payment-completed'
-    CANCELLED = 'Cancelled'
 
 
 class DecisionChoices(models.TextChoices):
@@ -29,8 +31,9 @@ class DecisionChoices(models.TextChoices):
 
 STATUS_MAPPING = {
     '0': InvoiceStatusChoices.PLACED,
-    '1': InvoiceStatusChoices.CONFIRMED,
-    '2': InvoiceStatusChoices.PARTIALLY_PAID,
-    '3': InvoiceStatusChoices.PAYMENT_COMPLETED,
-    '4': InvoiceStatusChoices.CANCELLED,
+    '1': InvoiceStatusChoices.UPDATED,
+    '2': InvoiceStatusChoices.CONFIRMED,
+    '3': InvoiceStatusChoices.PARTIALLY_PAID,
+    '4': InvoiceStatusChoices.PAYMENT_COMPLETED,
+    '5': InvoiceStatusChoices.CANCELLED,
 }

@@ -134,7 +134,7 @@ class Order(BaseWithoutID, SoftDeletion):
     )
     created_by = models.ForeignKey(to='users.User', on_delete=models.DO_NOTHING, related_name='created_orders')
     note = models.TextField(blank=True, null=True)
-    coupon = models.ForeignKey('users.UserCoupon', on_delete=models.DO_NOTHING, blank=True, null=True)
+    coupon = models.ForeignKey('users.Coupon', on_delete=models.DO_NOTHING, blank=True, null=True)
     payment_type = models.CharField(
         max_length=16, choices=PaymentTypeChoices.choices, default=PaymentTypeChoices.PAY_BY_INVOICE
     )
@@ -156,12 +156,6 @@ class Order(BaseWithoutID, SoftDeletion):
     discount_amount = models.DecimalField(
         max_digits=10, decimal_places=2, default=0
     )
-    vat_percent = models.DecimalField(
-        max_digits=3,
-        decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-        default=0
-    )
     final_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -177,15 +171,24 @@ class Order(BaseWithoutID, SoftDeletion):
     status = models.CharField(
         max_length=32, choices=InvoiceStatusChoices.choices, default=InvoiceStatusChoices.PLACED
     )
+    is_full_paid = models.BooleanField(default=False)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_orders"  # define table name for database
         ordering = ['-id']  # define default order as id in descending
 
     def save(self, *args, **kwargs):
-        price_after_discount = self.actual_price - self.discount_amount
-        self.final_price = price_after_discount + ((self.vat_percent * price_after_discount) / 100)
+        if self.order_carts.exists():
+            self.actual_price = self.order_carts.aggregate(tot=models.Sum('total_price'))['tot']
+            self.final_price = self.order_carts.aggregate(
+                tot=models.Sum('total_price_with_tax'))['tot'] - self.discount_amount + self.shipping_charge
+        self.is_full_paid = self.get_payment_status(
+            self.final_price, self.company_allowance, self.paid_amount
+        )
         super(Order, self).save(*args, **kwargs)
+
+    def get_payment_status(self, final_price, company_allowance, paid_amount):
+        return (final_price * company_allowance / 100) <= paid_amount
 
 
 class OrderStatus(models.Model):
@@ -224,11 +227,11 @@ class OrderStatus(models.Model):
 
 
 class OrderPayment(BaseWithoutID):
-    order = models.ForeignKey(
-        to=Order, on_delete=models.SET_NULL, related_name='payments', blank=True, null=True
+    orders = models.ManyToManyField(
+        to=Order, blank=True
     )
-    user_cart = models.ForeignKey(
-        to=UserCart, on_delete=models.SET_NULL, related_name='payments', blank=True, null=True
+    user_carts = models.ManyToManyField(
+        to=UserCart, blank=True
     )
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     note = models.TextField(blank=True, null=True)

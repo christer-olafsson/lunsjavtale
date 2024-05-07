@@ -105,6 +105,10 @@ class Company(BaseWithoutID, SoftDeletion):
     def balance(self):
         return self.invoice_amount - self.paid_amount
 
+    @property
+    def total_employee(self):
+        return self.users.count()
+
 
 class Vendor(BaseWithoutID, SoftDeletion):
     name = models.CharField(max_length=256, unique=True)
@@ -244,6 +248,11 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         unique=True,
         null=True,
         # blank=True
+    )
+    deleted_phone = models.CharField(
+        max_length=15,
+        null=True,
+        blank=True
     )
     post_code = models.PositiveIntegerField(
         _("post code"),

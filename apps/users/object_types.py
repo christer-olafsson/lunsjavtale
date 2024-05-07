@@ -88,6 +88,7 @@ class CompanyType(DjangoObjectType):
     """
     id = graphene.ID(required=True)
     balance = graphene.Decimal()
+    total_employee = graphene.Int()
 
     class Meta:
         model = Company
@@ -99,6 +100,10 @@ class CompanyType(DjangoObjectType):
     @staticmethod
     def resolve_balance(self, info, **kwargs):
         return self.balance
+
+    @staticmethod
+    def resolve_total_employee(self, info, **kwargs):
+        return self.total_employee
 
 
 class VendorType(DjangoObjectType):

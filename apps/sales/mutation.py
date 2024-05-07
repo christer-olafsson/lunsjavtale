@@ -1,7 +1,6 @@
 import graphene
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Sum
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphql import GraphQLError
 
@@ -14,7 +13,7 @@ from apps.bases.utils import (
 from backend.permissions import is_admin_user, is_authenticated, is_company_user
 
 from ..scm.models import Product
-from .choices import InvoiceStatusChoices, PaymentTypeChoices
+from .choices import DecisionChoices, InvoiceStatusChoices, PaymentTypeChoices
 from .forms import PaymentMethodForm, ProductRatingForm
 from .models import AlterCart, Order, OrderStatus, PaymentMethod, SellCart, UserCart
 from .object_types import OrderType, PaymentMethodType, ProductRatingType
@@ -101,23 +100,19 @@ class OrderCreation(graphene.Mutation):
     success = graphene.Boolean()
 
     class Arguments:
-        coupon = graphene.String()
         payment_type = graphene.String()
         shipping_address = graphene.ID()
         company_allowance = graphene.Int()
 
     @is_company_user
     @transaction.atomic
-    def mutate(self, info, payment_type, shipping_address, coupon="", company_allowance=0):
+    def mutate(self, info, payment_type, shipping_address, company_allowance=0):
         user = info.context.user
         if payment_type not in PaymentTypeChoices:
             raise_graphql_error("Please select a valid payment-type.")
         carts = user.added_carts.all()
         if not carts.exists():
             raise_graphql_error("Please add carts first.")
-
-        # ToDo:: need discussion for coupon
-
         shipping_address = user.company.addresses.get(id=shipping_address)
         dates = list(carts.values_list('date', flat=True))
         for date in dates:
@@ -129,12 +124,13 @@ class OrderCreation(graphene.Mutation):
             OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PLACED)
             date_carts = carts.filter(date=date)
             date_carts.update(created_by=None, company=user.company)
-            obj.actual_price = date_carts.aggregate(tot=Sum('total_price'))['tot'] or 0
-            obj.final_price = date_carts.aggregate(tot=Sum('total_price_with_tax'))['tot'] or 0
             obj.save()
             user.company.invoice_amount += (obj.final_price * company_allowance) / 100
             user.company.ordered_amount += obj.final_price
             user.company.save()
+            if payment_type == PaymentTypeChoices.ONLINE:
+                OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
+
             notify_user_carts.delay(obj.id)
         return OrderCreation(
             success=True
@@ -180,7 +176,9 @@ class UserCartUpdate(graphene.Mutation):
     @is_authenticated
     def mutate(self, info, id, item):
         user = info.context.user
-        obj = SellCart.objects.get(id=id, added_for=user, order__isnull=False)
+        obj = SellCart.objects.get(
+            id=id, added_for=user, order__status__in=[InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED]
+        )
         product = Product.objects.get(id=item, category=obj.item.category)
         user_cart = UserCart.objects.get(cart=obj, added_for=user)
         AlterCart.objects.get_or_create(
@@ -203,17 +201,30 @@ class ConfirmUserCartUpdate(graphene.Mutation):
         id = graphene.ID()
         status = graphene.ID()
 
-    @is_authenticated
+    @is_company_user
     def mutate(self, info, id, status):
-        # user = info.context.user
-        # obj = AlterCart.objects.get(
-        #     id=id
-        # )
-        # if status not in [DecisionChoices.ACCEPTED, DecisionChoices.REJECTED]:
-        #     raise_graphql_error("")
-        # obj = SellCart.objects.get(id=id, added_for=user, order__isnull=False)
-        # product = Product.objects.get(id=item, category=obj.item.category)
-        # user_cart = UserCart.objects.get(cart=obj, added_for=user)
+        user = info.context.user
+        obj = AlterCart.objects.get(
+            id=id, base__added_for__company=user.company
+        )
+        if status not in [DecisionChoices.ACCEPTED, DecisionChoices.REJECTED]:
+            raise_graphql_error("Invalid action")
+        if status == DecisionChoices.ACCEPTED:
+            cart, c = SellCart.objects.get_or_create(
+                order=obj.previous_cart.order, item=obj.item
+            )
+            if c:
+                cart.price = obj.item.actual_price
+                cart.price_with_tax = obj.item.price_with_tax
+            else:
+                cart.quantity += 1
+            cart.save()
+            cart.added_for.add(obj.base.added_for)
+            obj.previous_cart.added_for.remove(obj.base.added_for)
+            obj.previous_cart.cancelled += 1
+            obj.previous_cart.save()
+            cart.order.save()
+            OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.UPDATED)
         return ConfirmUserCartUpdate(
             success=True,
             message="Successfully updated",
@@ -264,4 +275,5 @@ class Mutation(graphene.ObjectType):
 
     add_to_cart = AddToCart.Field()
     user_cart_update = UserCartUpdate.Field()
-    # place_order = OrderCreation.Field()
+    confirm_user_cart_update = ConfirmUserCartUpdate.Field()
+    place_order = OrderCreation.Field()

@@ -145,7 +145,8 @@ class ValidCompanyMutation(DjangoFormMutation):
             'phone': input.get('contact'),
             'role': RoleTypeChoices.OWNER,
             'password': input.get('password'),
-            'first_name': input.get('first_name')
+            'first_name': input.get('first_name'),
+            'post_code': input.get('post_code')
         }
         error_data = {}
         user_form = UserRegisterForm(data=user_input)
@@ -449,7 +450,7 @@ class UserCreationMutation(DjangoModelFormMutation):
             form = UserCreationForm(data=input, instance=user)
         form_data = form.data
         if form.is_valid() and not error_data:
-            allergies = form_data.pop('allergies')
+            allergies = form_data.pop('allergies', [])
             if form_data.get('id'):
                 User.objects.filter(id=form_data['id']).update(**form_data)
                 obj = User.objects.get(id=form_data['id'])
@@ -458,9 +459,8 @@ class UserCreationMutation(DjangoModelFormMutation):
                 obj.company = company
                 obj.save()
                 user.send_email_verified()
-            if allergies:
-                obj.allergies.clear()
-                obj.allergies.add(*Ingredient.objects.filter(id__in=allergies))
+            obj.allergies.clear()
+            obj.allergies.add(*Ingredient.objects.filter(id__in=allergies))
         else:
             for error in form.errors:
                 for err in form.errors[error]:
@@ -495,13 +495,12 @@ class UserMutation(DjangoModelFormMutation):
         old_data = get_object_dict(user, list(UserForm().fields.keys()))
         new_data = None
         if form.is_valid():
-            allergies = form_data.pop('allergies')
+            allergies = form_data.pop('allergies', [])
             if form_data.get('username'):
                 form_data['username'] = form_data['username'].strip()
             User.objects.filter(id=user.id).update(**form_data)
-            if allergies:
-                user.allergies.clear()
-                user.allergies.add(*Ingredient.objects.filter(id__in=allergies))
+            user.allergies.clear()
+            user.allergies.add(*Ingredient.objects.filter(id__in=allergies))
             new_data = get_object_dict(User.objects.get(id=user.id), list(UserForm().fields.keys()))
         else:
             error_data = {}
@@ -538,14 +537,17 @@ class UserAccountMutation(DjangoModelFormMutation):
         old_data = get_object_dict(user, list(UserAccountForm().fields.keys()))
         new_data = None
         if form.is_valid():
-            current_password = form.cleaned_data.pop('current_password')
-            if not user.check_password(current_password):
-                raise_graphql_error("Wrong password given.", "invalid_password")
-            password = form.cleaned_data.pop('password')
-            validate_password(password)
+            obj = User.objects.get(id=user.id)
+            current_password = form.cleaned_data.pop('current_password', "")
+            if current_password:
+                if not obj.check_password(current_password):
+                    raise_graphql_error("Wrong password given.", "invalid_password")
+                password = form.cleaned_data.get('password')
+                validate_password(password)
             obj = form.save()
-            obj.set_password(password)
-            obj.save()
+            if current_password:
+                obj.set_password(form.cleaned_data["password"])
+                obj.save()
             new_data = get_object_dict(User.objects.get(id=user.id), list(UserAccountForm().fields.keys()))
         else:
             error_data = {}
@@ -561,7 +563,7 @@ class UserAccountMutation(DjangoModelFormMutation):
             request=info.context
         )
         return UserAccountMutation(
-            success=True, user=User.objects.get(id=user.id), message="Successfully updated"
+            success=True, user=obj, message="Successfully updated"
         )
 
 
@@ -1024,6 +1026,55 @@ class UserBlockUnBlock(graphene.Mutation):
             raise_graphql_error("User not found.", "user_not_exist")
 
 
+class UserDelete(graphene.Mutation):
+    """
+    if admin want to control user access.
+    they can block and unblock user.
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+    user = graphene.Field(UserType)
+
+    class Arguments:
+        email = graphene.String(required=True)
+
+    @is_authenticated
+    def mutate(self, info, email):
+        try:
+            logged_in_user = info.context.user
+            if logged_in_user.is_admin:
+                user = User.objects.get(email=email)
+            elif logged_in_user.role in [RoleTypeChoices.OWNER]:
+                user = User.objects.get(email=email, company=logged_in_user.company)
+            else:
+                user = User.objects.get(id=None)
+            user.is_active = False
+            user.is_expired = True
+            user.is_deleted = True
+            user.deleted_on = timezone.now()
+            user.deactivation_reason = None
+            user.email = f"deleted_{email}"
+            user.deleted_phone = user.phone
+            user.phone = None
+            user.save()
+            msg = "deleted"
+            act = HistoryActions.USER_DELETED
+            UnitOfHistory.user_history(
+                action=act,
+                user=info.context.user,
+                request=info.context,
+                perform_for=user
+            )
+            return UserDelete(
+                success=True,
+                message=f"Successfully {msg}",
+                user=user
+            )
+        except User.DoesNotExist:
+            raise_graphql_error("User not found.", "user_not_exist")
+
+
 class VerifyProfilePicture(graphene.Mutation):
     """
         While Verify profile photo Admin have to choose action
@@ -1336,6 +1387,7 @@ class Mutation(graphene.ObjectType):
 
     reset_password_by_admin = PasswordResetAdmin.Field()
     user_block_or_unblock = UserBlockUnBlock.Field()
+    user_delete = UserDelete.Field()
     profile_picture_verification = VerifyProfilePicture.Field()
     add_new_admin = AddNewAdmin.Field()
 

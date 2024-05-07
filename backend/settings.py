@@ -187,6 +187,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 AUTH_USER_MODEL = 'users.User'
 
 # other variables
+TAX_PERCENTAGE = config('TAX_PERCENTAGE', default=15, cast=float)
 EXPIRY_LIMIT_DAYS = config('EXPIRY_LIMIT_DAYS', default=30, cast=int)
 ACCESS_TOKEN_EXPIRY_LIMIT = config('ACCESS_TOKEN_EXPIRY_LIMIT', default=7, cast=int)
 SITE_URL = config('SITE_URL', 'https://lunsjavtale.no')
