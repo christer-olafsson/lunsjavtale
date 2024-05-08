@@ -1,4 +1,5 @@
 import graphene
+from django.utils import timezone
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphene_django.forms.types import DjangoFormInputObjectType
 from graphql import GraphQLError
@@ -54,6 +55,26 @@ class CategoryMutation(DjangoModelFormMutation):
             )
         return CategoryMutation(
             success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+        )
+
+
+class CategoryDeleteMutation(graphene.Mutation):
+    """
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        obj = Category.objects.get(id=id, is_deleted=False)
+        obj.is_deleted = True
+        obj.deleted_on = timezone.now()
+        obj.save()
+        return CategoryDeleteMutation(
+            success=True, message="Successfully deleted"
         )
 
 
@@ -145,6 +166,24 @@ class FoodMeetingResolve(graphene.Mutation):
         obj.save()
         return FoodMeetingResolve(
             success=True, message="Succesfully resolved"
+        )
+
+
+class MeetingDeleteMutation(graphene.Mutation):
+    """
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        obj = FoodMeeting.objects.get(id=id)
+        obj.delete()
+        return MeetingDeleteMutation(
+            success=True, message="Successfully deleted"
         )
 
 
@@ -266,13 +305,36 @@ class VendorProductMutation(graphene.Mutation):
         )
 
 
+class ProductDeleteMutation(graphene.Mutation):
+    """
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        obj = Product.objects.get(id=id, is_deleted=False)
+        obj.is_deleted = True
+        obj.deleted_on = timezone.now()
+        obj.save()
+        return ProductDeleteMutation(
+            success=True, message="Successfully deleted"
+        )
+
+
 class Mutation(graphene.ObjectType):
     """
         define all the mutations by identifier name for query
     """
     category_mutation = CategoryMutation.Field()
+    category_delete = CategoryDeleteMutation.Field()
     ingredient_mutation = IngredientMutation.Field()
     product_mutation = ProductMutation.Field()
+    product_delete = ProductDeleteMutation.Field()
     vendor_product_mutation = VendorProductMutation.Field()
     food_meeting_mutation = FoodMeetingMutation.Field()
     food_meeting_resolve = FoodMeetingResolve.Field()
+    food_meeting_delete = MeetingDeleteMutation.Field()

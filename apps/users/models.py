@@ -62,6 +62,7 @@ class ClientDetails(models.Model):
 
 class Company(BaseWithoutID, SoftDeletion):
     name = models.CharField(max_length=256, unique=True)
+    description = models.TextField(blank=True, null=True)
     email = models.EmailField(max_length=256, null=True)
     working_email = models.EmailField(max_length=256, unique=True)
     contact = models.CharField(max_length=15, null=True)

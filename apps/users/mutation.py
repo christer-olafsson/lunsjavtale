@@ -446,8 +446,8 @@ class UserCreationMutation(DjangoModelFormMutation):
             error_data['role'] = 'Selected role is not valid.'
         form = UserCreationForm(data=input)
         if form.data.get('id'):
-            user = User.objects.get(id=form.data['id'])
-            form = UserCreationForm(data=input, instance=user)
+            obj = User.objects.get(id=form.data['id'])
+            form = UserCreationForm(data=input, instance=obj)
         form_data = form.data
         if form.is_valid() and not error_data:
             allergies = form_data.pop('allergies', [])
@@ -458,7 +458,7 @@ class UserCreationMutation(DjangoModelFormMutation):
                 obj = User.objects.create_user(**form_data)
                 obj.company = company
                 obj.save()
-                user.send_email_verified()
+                obj.send_email_verified()
             obj.allergies.clear()
             obj.allergies.add(*Ingredient.objects.filter(id__in=allergies))
         else:

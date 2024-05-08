@@ -103,7 +103,7 @@ class CompanyForm(forms.ModelForm):
 
     class Meta:
         model = Company
-        fields = ("name", "email", "working_email", 'contact', 'post_code')
+        fields = ("name", "description", "email", "working_email", 'contact', 'post_code')
 
 
 class CompanyUpdateForm(forms.ModelForm):
@@ -119,7 +119,7 @@ class ValidCompanyForm(forms.ModelForm):
 
     class Meta:
         model = Company
-        fields = ("name", "email", "working_email", 'contact', 'post_code')
+        fields = ("name", "description", "email", "working_email", 'contact', 'post_code')
 
 
 class VendorForm(forms.ModelForm):
