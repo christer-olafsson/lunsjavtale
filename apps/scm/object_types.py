@@ -40,8 +40,6 @@ class ProductType(DjangoObjectType):
         define django object type for product model with product filter-set
     """
     id = graphene.ID(required=True)
-    final_price = graphene.Decimal()
-    discount_percent = graphene.Decimal()
 
     class Meta:
         model = Product
@@ -49,14 +47,6 @@ class ProductType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection
-
-    @staticmethod
-    def resolve_final_price(self, info, **kwargs):
-        return self.price_with_tax
-
-    @staticmethod
-    def resolve_discount_percent(self, info, **kwargs):
-        return self.discount_percent or "0.00"
 
 
 class IngredientType(DjangoObjectType):

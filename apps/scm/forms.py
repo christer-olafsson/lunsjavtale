@@ -13,7 +13,7 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        exclude = ['is_deleted', 'deleted_on', 'visitor_count', 'ingredients', 'price_with_tax']
+        exclude = ['is_deleted', 'deleted_on', 'visitor_count', 'ingredients', 'actual_price']
 
 
 class VendorProductForm(forms.ModelForm):
@@ -25,7 +25,7 @@ class VendorProductForm(forms.ModelForm):
         model = Product
         exclude = [
             'is_deleted', 'deleted_on', 'visitor_count', 'vendor', 'availability', 'discount_availability',
-            'ingredients', 'price_with_tax'
+            'ingredients', 'actual_price'
         ]
 
 

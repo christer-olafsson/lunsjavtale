@@ -73,7 +73,7 @@ class BasePriceModel(models.Model):
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0)],
-        help_text="price adding TAX & discount",
+        help_text="price adding TAX",
         blank=True,
         null=True
     )
@@ -83,5 +83,6 @@ class BasePriceModel(models.Model):
 
     def save(self, *args, **kwargs):
         self.tax_percent = self.tax_percent or settings.TAX_PERCENTAGE
-        self.price_with_tax = self.actual_price + ((self.tax_percent * self.actual_price) / 100)
+        # self.price_with_tax = self.actual_price + ((self.tax_percent * self.actual_price) / 100)
+        self.actual_price = self.price_with_tax * 100 / (100 + self.tax_percent)
         super(BasePriceModel, self).save(*args, **kwargs)

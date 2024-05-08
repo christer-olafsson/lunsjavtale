@@ -108,7 +108,7 @@ class Company(BaseWithoutID, SoftDeletion):
 
     @property
     def total_employee(self):
-        return self.users.count()
+        return self.users.filter(is_deleted=False).count()
 
 
 class Vendor(BaseWithoutID, SoftDeletion):
