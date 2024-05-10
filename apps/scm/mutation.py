@@ -66,13 +66,22 @@ class CategoryDeleteMutation(graphene.Mutation):
 
     class Arguments:
         id = graphene.ID()
+        with_all_product = graphene.Boolean()
 
     @is_admin_user
-    def mutate(self, info, id, **kwargs):
+    def mutate(self, info, id, with_all_product=False, **kwargs):
         obj = Category.objects.get(id=id, is_deleted=False)
-        obj.is_deleted = True
-        obj.deleted_on = timezone.now()
-        obj.save()
+        if with_all_product:
+            obj.is_deleted = True
+            obj.deleted_on = timezone.now()
+            obj.save()
+            obj.products.update(is_deleted=True, deleted_on=timezone.now())
+
+        else:
+            obj.is_deleted = True
+            obj.deleted_on = timezone.now()
+            obj.save()
+            obj.products.update(category=None)
         return CategoryDeleteMutation(
             success=True, message="Successfully deleted"
         )
@@ -195,6 +204,7 @@ class ProductInput(DjangoFormInputObjectType):
 
 class ProductAttachmentInput(graphene.InputObjectType):
     file_url = graphene.String()
+    url_field = graphene.String()
     is_cover = graphene.Boolean()
 
 
@@ -227,7 +237,7 @@ class ProductMutation(graphene.Mutation):
                 obj.attachments.all().delete()
                 for attach in attachments:
                     ProductAttachment.objects.create(
-                        product=obj, file_url=attach.get('file_url'),
+                        product=obj, file_url=attach.get('file_url'), url_field=attach.get('url_field'),
                         is_cover=attach.get('is_cover')
                     )
         else:
@@ -285,7 +295,7 @@ class VendorProductMutation(graphene.Mutation):
                 obj.attachments.all().delete()
                 for attach in attachments:
                     ProductAttachment.objects.create(
-                        product=obj, file_url=attach.get('file_url'),
+                        product=obj, file_url=attach.get('file_url'), url_field=attach.get('url_field'),
                         is_cover=attach.get('is_cover')
                     )
         else:

@@ -82,6 +82,9 @@ class SupportedBrand(BaseWithoutID):
     logo_url = models.TextField(
         blank=True, null=True
     )
+    url_field = models.TextField(
+        blank=True, null=True
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -97,6 +100,9 @@ class Partner(BaseWithoutID):
         blank=True, null=True
     )
     logo_url = models.TextField(
+        blank=True, null=True
+    )
+    url_field = models.TextField(
         blank=True, null=True
     )
     is_active = models.BooleanField(default=True)
@@ -117,6 +123,9 @@ class FollowUs(BaseWithoutID):
     photo_url = models.TextField(
         blank=True, null=True
     )
+    url_field = models.TextField(
+        blank=True, null=True
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -131,6 +140,9 @@ class Promotion(BaseWithoutID):
     )
     description = models.TextField()
     photo_url = models.TextField(
+        blank=True, null=True
+    )
+    url_field = models.TextField(
         blank=True, null=True
     )
     product_url = models.TextField(
@@ -196,6 +208,7 @@ class WhoUAre(BaseWithoutID):
 class WhoUAreAttachment(models.Model):
     who_u_are = models.ForeignKey(to=WhoUAre, on_delete=models.CASCADE, related_name='attachments')
     file_url = models.TextField()
+    url_field = models.TextField(null=True)
     is_cover = models.BooleanField(default=False)
     created_on = models.DateTimeField(
         auto_now_add=True

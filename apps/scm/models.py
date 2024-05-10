@@ -39,6 +39,9 @@ class Category(BaseWithoutID, SoftDeletion):
     logo_url = models.TextField(
         blank=True, null=True
     )
+    url_field = models.TextField(
+        blank=True, null=True
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -90,6 +93,7 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
 class ProductAttachment(models.Model):
     product = models.ForeignKey(to=Product, on_delete=models.CASCADE, related_name='attachments')
     file_url = models.TextField()
+    url_field = models.TextField(null=True)
     is_cover = models.BooleanField(default=False)
     created_on = models.DateTimeField(
         auto_now_add=True

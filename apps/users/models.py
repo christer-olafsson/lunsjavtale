@@ -48,6 +48,14 @@ class ClientDetails(models.Model):
         blank=True,
         null=True
     )
+    logo_url_field = models.TextField(
+        blank=True,
+        null=True
+    )
+    cover_photo_url_field = models.TextField(
+        blank=True,
+        null=True
+    )
     address = models.TextField(blank=True, null=True)
     formation_date = models.DateField(blank=True, null=True)
     contact = models.CharField(max_length=15, blank=True, null=True)
@@ -74,6 +82,10 @@ class Company(BaseWithoutID, SoftDeletion):
     is_contacted = models.BooleanField(default=False)
     note = models.TextField(blank=True, null=True)
     logo_url = models.TextField(
+        blank=True,
+        null=True
+    )
+    url_field = models.TextField(
         blank=True,
         null=True
     )
@@ -121,6 +133,10 @@ class Vendor(BaseWithoutID, SoftDeletion):
     is_blocked = models.BooleanField(default=False)
     note = models.TextField(blank=True, null=True)
     logo_url = models.TextField(
+        blank=True,
+        null=True
+    )
+    url_field = models.TextField(
         blank=True,
         null=True
     )
@@ -289,6 +305,10 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
     )
     # Profile Picture
     photo_url = models.TextField(
+        blank=True,
+        null=True
+    )
+    url_field = models.TextField(
         blank=True,
         null=True
     )

@@ -17,6 +17,7 @@ class UserForm(forms.ModelForm):
             'about',
             'post_code',
             'photo_url',
+            'url_field',
             'date_of_birth',
             'allergies',
         ]
@@ -36,6 +37,7 @@ class UserCreationForm(forms.ModelForm):
             'date_of_birth',
             'role',
             'photo_url',
+            'url_field',
             'allergies',
         ]
 
@@ -136,7 +138,9 @@ class VendorUpdateForm(forms.ModelForm):
 
     class Meta:
         model = Vendor
-        fields = ("name", "email", 'contact', 'post_code', 'logo_url', 'formation_date', 'social_media_links')
+        fields = (
+            "name", "email", 'contact', 'post_code', 'logo_url', 'url_field', 'formation_date', 'social_media_links'
+        )
 
 
 class AgreementForm(forms.ModelForm):
