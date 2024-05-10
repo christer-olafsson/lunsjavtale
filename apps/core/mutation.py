@@ -386,7 +386,7 @@ class WhoUAreInputObjectType(DjangoFormInputObjectType):
 
 class WhoUAreAttachmentInput(graphene.InputObjectType):
     file_url = graphene.String()
-    url_field = graphene.String()
+    file_id = graphene.String()
     is_cover = graphene.Boolean()
 
 
@@ -408,7 +408,7 @@ class WhoUAreMutation(graphene.Mutation):
             obj = form.save()
             for attachment in attachments:
                 WhoUAreAttachment.objects.create(
-                    who_u_are=obj, file_url=attachment.get('file_url'), url_field=attachment.get('url_field'),
+                    who_u_are=obj, file_url=attachment.get('file_url'), file_id=attachment.get('file_id'),
                     is_cover=attachment.get('is_cover')
                 )
         else:

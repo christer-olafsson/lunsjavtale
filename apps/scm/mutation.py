@@ -204,7 +204,7 @@ class ProductInput(DjangoFormInputObjectType):
 
 class ProductAttachmentInput(graphene.InputObjectType):
     file_url = graphene.String()
-    url_field = graphene.String()
+    file_id = graphene.String()
     is_cover = graphene.Boolean()
 
 
@@ -237,7 +237,7 @@ class ProductMutation(graphene.Mutation):
                 obj.attachments.all().delete()
                 for attach in attachments:
                     ProductAttachment.objects.create(
-                        product=obj, file_url=attach.get('file_url'), url_field=attach.get('url_field'),
+                        product=obj, file_url=attach.get('file_url'), file_id=attach.get('file_id'),
                         is_cover=attach.get('is_cover')
                     )
         else:
@@ -295,7 +295,7 @@ class VendorProductMutation(graphene.Mutation):
                 obj.attachments.all().delete()
                 for attach in attachments:
                     ProductAttachment.objects.create(
-                        product=obj, file_url=attach.get('file_url'), url_field=attach.get('url_field'),
+                        product=obj, file_url=attach.get('file_url'), file_id=attach.get('file_id'),
                         is_cover=attach.get('is_cover')
                     )
         else:

@@ -48,11 +48,11 @@ class ClientDetails(models.Model):
         blank=True,
         null=True
     )
-    logo_url_field = models.TextField(
+    logo_file_id = models.TextField(
         blank=True,
         null=True
     )
-    cover_photo_url_field = models.TextField(
+    cover_photo_file_id = models.TextField(
         blank=True,
         null=True
     )
@@ -85,7 +85,7 @@ class Company(BaseWithoutID, SoftDeletion):
         blank=True,
         null=True
     )
-    url_field = models.TextField(
+    file_id = models.TextField(
         blank=True,
         null=True
     )
@@ -136,7 +136,7 @@ class Vendor(BaseWithoutID, SoftDeletion):
         blank=True,
         null=True
     )
-    url_field = models.TextField(
+    file_id = models.TextField(
         blank=True,
         null=True
     )
@@ -308,7 +308,7 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         blank=True,
         null=True
     )
-    url_field = models.TextField(
+    file_id = models.TextField(
         blank=True,
         null=True
     )
