@@ -2,6 +2,7 @@
 import graphene
 from graphene_django.debug import DjangoDebug
 
+import apps.analytics.schema as analytics_schema
 import apps.core.schema as core_schema
 import apps.sales.schema as sales_schema
 import apps.scm.schema as scm_schema
@@ -13,6 +14,7 @@ class Query(
     sales_schema.Query,
     scm_schema.Query,
     user_schema.Query,
+    analytics_schema.Query,
     graphene.ObjectType
 ):
     """All query will in include this class"""

@@ -106,6 +106,8 @@ class ProductAttachment(models.Model):
     def save(self, *args, **kwargs):
         if self.is_cover:
             self.product.attachments.exclude(id=self.pk).update(is_cover=False)
+        if not self.product.attachments.filter(is_cover=True).exists():
+            self.is_cover = True
         super(ProductAttachment, self).save(*args, **kwargs)
 
 

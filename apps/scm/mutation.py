@@ -76,7 +76,7 @@ class CategoryDeleteMutation(graphene.Mutation):
             obj.deleted_on = timezone.now()
             obj.save()
             obj.products.update(is_deleted=True, deleted_on=timezone.now())
-
+            ProductAttachment.objects.filter(product__in=obj.products.all())
         else:
             obj.is_deleted = True
             obj.deleted_on = timezone.now()
@@ -219,10 +219,10 @@ class ProductMutation(graphene.Mutation):
     class Arguments:
         input = ProductInput()
         ingredients = graphene.List(graphene.String)
-        attachments = graphene.List(ProductAttachmentInput)
+        attachments = graphene.List(ProductAttachmentInput, required=True)
 
     @is_admin_user
-    def mutate(self, info, input, ingredients, attachments=[], **kwargs):
+    def mutate(self, info, input, ingredients, attachments, **kwargs):
         form = ProductForm(data=input)
         if form.data.get('id'):
             object_id = form.data['id']
@@ -233,13 +233,12 @@ class ProductMutation(graphene.Mutation):
             obj.ingredients.clear()
             for ing in ingredients:
                 obj.ingredients.add(Ingredient.objects.get_or_create(name=ing)[0])
-            if attachments:
-                obj.attachments.all().delete()
-                for attach in attachments:
-                    ProductAttachment.objects.create(
-                        product=obj, file_url=attach.get('file_url'), file_id=attach.get('file_id'),
-                        is_cover=attach.get('is_cover')
-                    )
+            obj.attachments.all().delete()
+            for attach in attachments:
+                ProductAttachment.objects.create(
+                    product=obj, file_url=attach.get('file_url'), file_id=attach.get('file_id'),
+                    is_cover=attach.get('is_cover')
+                )
         else:
             error_data = {}
             for error in form.errors:
@@ -330,6 +329,7 @@ class ProductDeleteMutation(graphene.Mutation):
         obj.is_deleted = True
         obj.deleted_on = timezone.now()
         obj.save()
+        obj.attachments.all().delete()
         return ProductDeleteMutation(
             success=True, message="Successfully deleted"
         )

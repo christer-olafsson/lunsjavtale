@@ -539,15 +539,14 @@ class UserAccountMutation(DjangoModelFormMutation):
         if form.is_valid():
             obj = User.objects.get(id=user.id)
             current_password = form.cleaned_data.pop('current_password', "")
+            password = form.cleaned_data.pop('password', "")
+            obj.username = form.cleaned_data.get('username', user.username)
             if current_password:
                 if not obj.check_password(current_password):
                     raise_graphql_error("Wrong password given.", "invalid_password")
-                password = form.cleaned_data.get('password')
                 validate_password(password)
-            obj = form.save()
-            if current_password:
-                obj.set_password(form.cleaned_data["password"])
-                obj.save()
+                obj.set_password(password)
+            obj.save()
             new_data = get_object_dict(User.objects.get(id=user.id), list(UserAccountForm().fields.keys()))
         else:
             error_data = {}

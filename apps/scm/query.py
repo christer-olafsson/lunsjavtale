@@ -52,7 +52,7 @@ class Query(CategoryQuery, graphene.ObjectType):
         if user and user.is_admin:
             qs = Product.objects.all()
         elif user and user.is_vendor:
-            qs = Product.objects.filter(vendor=user.vendor)
+            qs = Product.queryset().filter(vendor=user.vendor)
         else:
             qs = Product.queryset()
         return qs
