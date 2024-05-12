@@ -50,7 +50,7 @@ class ProductFilters(BaseFilterOrderBy):
         method="title_filter",
     )
     category = django_filters.CharFilter(
-        field_name='category__id', lookup_expr='exact'
+        method='category_filter',
     )
     created_on = django_filters.CharFilter(
         field_name='created_on__date', lookup_expr='exact'
@@ -71,9 +71,16 @@ class ProductFilters(BaseFilterOrderBy):
         field_name='price', lookup_expr='lte'
     )
 
+    def category_filter(self, qs, name, value):
+        if value == '0':
+            qs = qs.filter(category__isnull=True)
+        else:
+            qs = qs.filter(category__id=value)
+        return qs
+
     def title_filter(self, qs, name, value):
         if value:
-            qs = qs.filter(Q(title__icontains=value) | Q(description__icontains=value) | Q(SKU__icontains=value))
+            qs = qs.filter(Q(title__icontains=value) | Q(description__icontains=value) | Q(name__icontains=value))
         return qs
 
     class Meta:

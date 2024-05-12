@@ -9,6 +9,7 @@ from typing import Type
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.serializers import json as s_json
 from django.forms import model_to_dict
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -40,6 +41,18 @@ def get_json_data(serializers_data) -> object:
     data = json.dumps(serializers_data)
     data = json.loads(data)
     return data
+
+
+def get_serialized_data(qs, fields: list = []) -> object:
+    """
+        find json-data from a serialized-data and return
+    """
+    serializer = s_json.Serializer()
+    if fields:
+        data = serializer.serialize(qs, fields=fields)
+    else:
+        data = serializer.serialize(qs)
+    return json.loads(data)
 
 
 def get_headers(request) -> object:

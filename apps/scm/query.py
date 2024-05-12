@@ -25,21 +25,21 @@ class CategoryQuery(graphene.ObjectType):
     """
         query all category information
     """
+    categories = DjangoFilterConnectionField(CategoryType)
     category = graphene.Field(CategoryType, id=graphene.ID())
-    categories = DjangoFilterConnectionField(CategoryType, max_limit=None)
-
-    def resolve_category(self, info, id, **kwargs):
-        return Category.objects.filter(id=id, is_deleted=False).last()
 
     def resolve_categories(self, info, **kwargs):
-        return Category.objects.filter(is_deleted=False)
+        return Category.queryset()
+
+    def resolve_category(self, info, id, **kwargs):
+        return Category.queryset().filter(id=id).last()
 
 
 class Query(CategoryQuery, graphene.ObjectType):
     """
         query all table information.
     """
-    products = DjangoFilterConnectionField(ProductType)
+    products = DjangoFilterConnectionField(ProductType, max_limit=None)
     product = graphene.Field(ProductType, id=graphene.ID())
     ingredients = DjangoFilterConnectionField(IngredientType)
     ingredient = graphene.Field(IngredientType, id=graphene.ID())
@@ -49,23 +49,17 @@ class Query(CategoryQuery, graphene.ObjectType):
 
     def resolve_products(self, info, **kwargs):
         user = info.context.user
-        if user and user.is_admin:
-            qs = Product.objects.all()
-        elif user and user.is_vendor:
-            qs = Product.queryset().filter(vendor=user.vendor)
-        else:
-            qs = Product.queryset()
+        qs = Product.queryset()
+        if user and user.is_vendor:
+            qs = qs.filter(vendor=user.vendor)
         return qs
 
     def resolve_product(self, info, id, **kwargs):
         user = info.context.user
-        if user and user.is_admin:
-            qs = Product.objects.filter(id=id)
-        elif user and user.is_vendor:
-            qs = Product.objects.filter(vendor=user.vendor, id=id)
-        else:
-            qs = Product.queryset().filter(id=id)
-        return qs.last()
+        qs = Product.queryset()
+        if user and user.is_vendor:
+            qs = qs.filter(vendor=user.vendor)
+        return qs.filter(id=id).last()
 
     def resolve_ingredients(self, info, **kwargs):
         user = info.context.user

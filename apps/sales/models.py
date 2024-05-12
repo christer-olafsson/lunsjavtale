@@ -242,6 +242,19 @@ class OrderPayment(BaseWithoutID):
         db_table = f"{settings.DB_PREFIX}_order_payments"  # define table name for database
 
 
+# class OnlinePayment(BaseWithoutID):
+#     order_payment = models.ForeignKey(
+#         to=OrderPayment, on_delete=models.DO_NOTHING
+#     )
+#     request_header = models.JSONField(blank=True, null=True)
+#     request_data = models.JSONField(blank=True, null=True)
+#     response_header = models.JSONField(blank=True, null=True)
+#     response_data = models.JSONField(blank=True, null=True)
+#
+#     class Meta:
+#         db_table = f"{settings.DB_PREFIX}_online_payments"  # define table name for database
+
+
 class ProductRating(BaseWithoutID):
     added_by = models.ForeignKey(
         to='users.User', on_delete=models.DO_NOTHING, related_name='user_ratings'

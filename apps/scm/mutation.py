@@ -8,6 +8,7 @@ from graphql import GraphQLError
 from apps.bases.utils import camel_case_format, get_object_by_id
 from backend.permissions import is_admin_user, is_authenticated, is_vendor_user
 
+from ..sales.models import SellCart
 from .forms import (
     CategoryForm,
     FoodMeetingForm,
@@ -76,7 +77,8 @@ class CategoryDeleteMutation(graphene.Mutation):
             obj.deleted_on = timezone.now()
             obj.save()
             obj.products.update(is_deleted=True, deleted_on=timezone.now())
-            ProductAttachment.objects.filter(product__in=obj.products.all())
+            ProductAttachment.objects.filter(product__in=obj.products.all()).delete()
+            SellCart.objects.filter(order__isnull=True, item__in=obj.products.all()).delete()
         else:
             obj.is_deleted = True
             obj.deleted_on = timezone.now()
