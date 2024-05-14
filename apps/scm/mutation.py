@@ -1,6 +1,6 @@
 import graphene
 from django.utils import timezone
-from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
+from graphene_django.forms.mutation import DjangoModelFormMutation
 from graphene_django.forms.types import DjangoFormInputObjectType
 from graphql import GraphQLError
 
@@ -132,7 +132,7 @@ class IngredientMutation(DjangoModelFormMutation):
         )
 
 
-class FoodMeetingMutation(DjangoFormMutation):
+class FoodMeetingMutation(DjangoModelFormMutation):
     """
         update and create new FoodMeeting information by some default fields.
     """
@@ -146,6 +146,8 @@ class FoodMeetingMutation(DjangoFormMutation):
     @is_authenticated
     def mutate_and_get_payload(self, info, **input):
         form = FoodMeetingForm(data=input)
+        if input.get('id'):
+            form = FoodMeetingForm(data=input, instance=FoodMeeting.objects.get(id=input.get('id')))
         if form.is_valid():
             obj = form.save()
         else:

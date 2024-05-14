@@ -1380,7 +1380,10 @@ class CouponMutation(DjangoModelFormMutation):
         if form.data.get("start_date") >= form.data.get("end_date"):
             errors['startDate'] = "Start-date should be less than end-date."
         if form.is_valid() and not errors:
+            added_for = form.cleaned_data.pop('added_for', [])
             obj, created = Coupon.objects.update_or_create(id=form.data.get('id'), defaults=form.cleaned_data)
+            obj.added_for.clear()
+            obj.added_for.add(*added_for)
         else:
             error_data = errors
             for error in form.errors:

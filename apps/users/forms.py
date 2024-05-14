@@ -158,7 +158,7 @@ class CouponForm(forms.ModelForm):
 
     class Meta:
         model = Coupon
-        fields = '__all__'
+        exclude = ("is_deleted", "deleted_on")
 
 
 class AddressForm(forms.ModelForm):

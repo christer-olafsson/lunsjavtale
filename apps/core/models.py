@@ -74,13 +74,13 @@ class FAQ(BaseWithoutID):
 
 class SupportedBrand(BaseWithoutID):
     name = models.CharField(
-        max_length=32, blank=True, null=True
+        max_length=32, null=True
     )
     site_url = models.TextField(
         blank=True, null=True
     )
     logo_url = models.TextField(
-        blank=True, null=True
+        null=True
     )
     file_id = models.TextField(
         blank=True, null=True
@@ -94,13 +94,13 @@ class SupportedBrand(BaseWithoutID):
 
 class Partner(BaseWithoutID):
     name = models.CharField(
-        max_length=32, blank=True, null=True
+        max_length=32, null=True
     )
     site_url = models.TextField(
         blank=True, null=True
     )
     logo_url = models.TextField(
-        blank=True, null=True
+        null=True
     )
     file_id = models.TextField(
         blank=True, null=True

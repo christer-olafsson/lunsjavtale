@@ -40,6 +40,7 @@ class Query(graphene.ObjectType):
         query users information by all users, single user and logged in user
     """
     users = DjangoFilterConnectionField(UserType)
+    system_users = DjangoFilterConnectionField(UserType)
     company_staffs = DjangoFilterConnectionField(UserType)
     user = graphene.Field(UserType, id=graphene.ID())
     me = graphene.Field(UserType)
@@ -68,6 +69,14 @@ class Query(graphene.ObjectType):
     @is_admin_user
     def resolve_users(self, info, **kwargs) -> object:
         return User.objects.all()
+
+    @is_admin_user
+    def resolve_system_users(self, info, **kwargs) -> object:
+        return User.objects.filter(
+            role_in=[
+                RoleTypeChoices.ADMIN, RoleTypeChoices.DEVELOPER
+            ]
+        )
 
     @is_authenticated
     def resolve_company_staffs(self, info, **kwargs) -> object:
