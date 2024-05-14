@@ -89,6 +89,7 @@ class CompanyType(DjangoObjectType):
     id = graphene.ID(required=True)
     balance = graphene.Decimal()
     total_employee = graphene.Int()
+    is_owner_generated = graphene.Boolean()
     owner = graphene.Field(UserType)
 
     class Meta:

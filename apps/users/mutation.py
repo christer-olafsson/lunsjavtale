@@ -95,12 +95,14 @@ class CompanyMutationForAdmin(DjangoModelFormMutation):
             form = CompanyUpdateForm(data=input, instance=Company.objects.get(id=input.get('id')))
             if form.is_valid():
                 obj = form.save()
+                owner = obj.owner
                 if input.get('first_name'):
-                    obj.owner.first_name = input.get('first_name')
-                    obj.owner.save()
+                    owner.first_name = input.get('first_name')
                 if input.get('contact'):
-                    obj.owner.phone = input.get('contact')
-                    obj.owner.save()
+                    owner.phone = input.get('contact')
+                if input.get('address'):
+                    owner.address = input.get('address')
+                owner.save()
             else:
                 for error in form.errors:
                     for err in form.errors[error]:
@@ -112,6 +114,7 @@ class CompanyMutationForAdmin(DjangoModelFormMutation):
                 'phone': input.get('contact'),
                 'role': RoleTypeChoices.OWNER,
                 'first_name': input.get('first_name'),
+                'address': input.get('address'),
                 'post_code': input.get('post_code')
             }
             user_form = UserRegistrationForm(data=user_input)

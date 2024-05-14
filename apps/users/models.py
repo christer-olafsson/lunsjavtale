@@ -127,6 +127,10 @@ class Company(BaseWithoutID, SoftDeletion):
     def owner(self):
         return self.users.filter(role=RoleTypeChoices.OWNER).last()
 
+    @property
+    def is_owner_generated(self):
+        return self.users.filter(role=RoleTypeChoices.OWNER).exists()
+
 
 class Vendor(BaseWithoutID, SoftDeletion):
     name = models.CharField(max_length=256, unique=True)

@@ -110,6 +110,7 @@ class CompanyForm(forms.ModelForm):
 
 class CompanyUpdateForm(forms.ModelForm):
     first_name = forms.CharField()
+    address = forms.CharField(required=False)
 
     class Meta:
         model = Company

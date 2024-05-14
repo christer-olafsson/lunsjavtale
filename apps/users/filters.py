@@ -4,6 +4,7 @@ from django.db.models import Q
 
 from apps.bases.filters import BaseFilterOrderBy
 
+from .choices import RoleTypeChoices
 from .models import (
     Address,
     ClientDetails,
@@ -164,6 +165,18 @@ class CompanyFilters(BaseFilterOrderBy):
         field_name='working_email',
         lookup_expr='icontains'
     )
+    is_owner_generated = django_filters.BooleanFilter(
+        method='is_owner_generated_filter'
+    )
+
+    def is_owner_generated(self, qs, name, value):
+        owner_companies = User.objects.filter(
+            role=RoleTypeChoices.OWNER).order_by('company_id').values_list('company_id', flat=True).distinct()
+        if value:
+            qs = qs.filter(id__in=owner_companies)
+        else:
+            qs = qs.exclude(id__in=owner_companies)
+        return qs
 
     class Meta:
         model = Company
