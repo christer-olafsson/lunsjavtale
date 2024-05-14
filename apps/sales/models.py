@@ -178,7 +178,7 @@ class Order(BaseWithoutID, SoftDeletion):
         ordering = ['-id']  # define default order as id in descending
 
     def save(self, *args, **kwargs):
-        if self.order_carts.exists():
+        if self.pk and self.order_carts.exists():
             self.actual_price = self.order_carts.aggregate(tot=models.Sum('total_price'))['tot']
             self.final_price = self.order_carts.aggregate(
                 tot=models.Sum('total_price_with_tax'))['tot'] - self.discount_amount + self.shipping_charge

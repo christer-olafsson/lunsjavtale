@@ -70,7 +70,7 @@ from .tasks import send_account_activation_mail, send_email_on_delay
 User = get_user_model()  # variable taken for User model
 
 
-class CompanyMutationForAdmin(DjangoFormMutation):
+class CompanyMutationForAdmin(DjangoModelFormMutation):
     """
         admin can create and update Company information through a form input.
     """
@@ -95,6 +95,12 @@ class CompanyMutationForAdmin(DjangoFormMutation):
             form = CompanyUpdateForm(data=input, instance=Company.objects.get(id=input.get('id')))
             if form.is_valid():
                 obj = form.save()
+                if input.get('first_name'):
+                    obj.owner.first_name = input.get('first_name')
+                    obj.owner.save()
+                if input.get('contact'):
+                    obj.owner.phone = input.get('contact')
+                    obj.owner.save()
             else:
                 for error in form.errors:
                     for err in form.errors[error]:
@@ -105,6 +111,7 @@ class CompanyMutationForAdmin(DjangoFormMutation):
                 'email': input.get('working_email'),
                 'phone': input.get('contact'),
                 'role': RoleTypeChoices.OWNER,
+                'first_name': input.get('first_name'),
                 'post_code': input.get('post_code')
             }
             user_form = UserRegistrationForm(data=user_input)

@@ -123,6 +123,10 @@ class Company(BaseWithoutID, SoftDeletion):
     def total_employee(self):
         return self.users.filter(is_deleted=False).count()
 
+    @property
+    def owner(self):
+        return self.users.filter(role=RoleTypeChoices.OWNER).last()
+
 
 class Vendor(BaseWithoutID, SoftDeletion):
     name = models.CharField(max_length=256, unique=True)

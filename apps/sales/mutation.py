@@ -140,17 +140,17 @@ class OrderCreation(graphene.Mutation):
         dates = set(list(carts.values_list('date', flat=True)))
         print(dates)
         for date in dates:
+            print(user.company, user, payment_type, company_allowance, shipping_address, date)
             obj = Order.objects.create(
                 company=user.company, created_by=user, payment_type=payment_type,
                 company_allowance=company_allowance, shipping_address=shipping_address,
                 delivery_date=date
             )
-            print(obj.id)
             billing_form_data['order'] = obj
             BillingAddress.objects.create(**billing_form_data)
             OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PLACED)
-            # date_carts = carts.filter(date=date)
-            # date_carts.update(added_by=None, company=user.company)
+            date_carts = carts.filter(date=date)
+            date_carts.update(added_by=None, order=obj)
             obj.save()
             user.company.invoice_amount += (obj.final_price * company_allowance) / 100
             user.company.ordered_amount += obj.final_price
