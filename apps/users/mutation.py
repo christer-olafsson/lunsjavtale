@@ -27,6 +27,7 @@ from backend.permissions import is_admin_user, is_authenticated, is_super_admin
 
 from .choices import RoleTypeChoices, WithdrawRequestChoices
 from .forms import (
+    AddressForm,
     AdminRegistrationForm,
     AgreementForm,
     CompanyForm,
@@ -44,6 +45,7 @@ from .forms import (
 from .login_backends import signup
 from .models import (
     AccessToken,
+    Address,
     Agreement,
     ClientDetails,
     Company,
@@ -55,6 +57,7 @@ from .models import (
     WithdrawRequest,
 )
 from .object_types import (
+    AddressType,
     AgreementType,
     AppliedCouponType,
     CompanyType,
@@ -80,20 +83,51 @@ class CompanyMutationForAdmin(DjangoFormMutation):
 
     @is_authenticated
     def mutate_and_get_payload(self, info, **input):
-        user = info.context.user
-        if user.is_admin or (user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and user.company.id == input.get('id')):
+        logged_user = info.context.user
+        if logged_user.is_admin or (
+                logged_user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and logged_user.company.id == input.get('id')):
             pass
         else:
             raise_graphql_error("Not allowed for this operation.")
         form = CompanyUpdateForm(data=input)
-        if form.is_valid():
-            obj = form.save()
+        error_data = {}
+        if input.get('id'):
+            form = CompanyUpdateForm(data=input, instance=Company.objects.get(id=input.get('id')))
+            if form.is_valid():
+                obj = form.save()
+            else:
+                for error in form.errors:
+                    for err in form.errors[error]:
+                        error_data[camel_case_format(error)] = err
+                raise_graphql_error_with_fields("Invalid input request.", error_data)
         else:
-            error_data = {}
-            for error in form.errors:
-                for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+            user_input = {
+                'email': input.get('working_email'),
+                'phone': input.get('contact'),
+                'role': RoleTypeChoices.OWNER,
+                'post_code': input.get('post_code')
+            }
+            user_form = UserRegistrationForm(data=user_input)
+
+            if form.is_valid() and user_form.is_valid():
+                obj = form.save()
+                obj.is_contacted = True
+                obj.save()
+                user = User.objects.create_user(**user_input)
+                user.company = obj
+                user.save()
+                user.send_email_verified()
+            else:
+                for error in form.errors:
+                    for err in form.errors[error]:
+                        error_data[camel_case_format(error)] = err
+                for error in user_form.errors:
+                    for err in user_form.errors[error]:
+                        if error == 'phone':
+                            error_data['contact'] = err
+                        else:
+                            error_data[camel_case_format(error)] = err
+                raise_graphql_error_with_fields("Invalid input request.", error_data)
         return CompanyMutationForAdmin(
             success=True, message="Successfully added", instance=obj
         )
@@ -468,6 +502,48 @@ class UserCreationMutation(DjangoModelFormMutation):
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         return UserCreationMutation(
             success=True, message="Successfully added", user=obj
+        )
+
+
+class AddressMutation(DjangoModelFormMutation):
+    """
+    """
+    instance = graphene.Field(AddressType)
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Meta:
+        form_class = AddressForm
+
+    @is_authenticated
+    def mutate_and_get_payload(self, info, **input) -> object:
+        user = info.context.user
+        error_data = {}
+        if user.is_admin:
+            try:
+                Company.objects.get(id=input.get('company'))
+            except Exception:
+                error_data['company'] = "This field is required."
+        elif user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER]:
+            input['company'] = user.company.id
+        else:
+            raise_graphql_error("User not permitted.")
+        form = AddressForm(data=input)
+        if input.get('id'):
+            if user.is_admin:
+                form = AddressForm(data=input, instance=Address.objects.get(id=input.get('id')))
+            else:
+                form = AddressForm(
+                    data=input, instance=Address.objects.get(id=input.get('id'), company=user.company))
+        if not error_data and form.is_valid():
+            obj = form.save()
+        else:
+            for error in form.errors:
+                for err in form.errors[error]:
+                    error_data[camel_case_format(error)] = err
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
+        return AddressMutation(
+            success=True, instance=obj, message="Successfully updated"
         )
 
 
@@ -1363,6 +1439,7 @@ class Mutation(graphene.ObjectType):
     company_block_unblock = CompanyBlockUnBlock.Field()
     register_company_owner = CompanyOwnerRegistration.Field()
     create_company_staff = UserCreationMutation.Field()
+    address_mutation = AddressMutation.Field()
     vendor_creation = VendorMutation.Field()
     vendor_update = VendorUpdateMutation.Field()
     vendor_block_unblock = VendorBlockUnBlock.Field()

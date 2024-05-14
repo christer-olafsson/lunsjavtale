@@ -1,7 +1,7 @@
 from django import forms
 
 # local imports
-from .models import Agreement, Company, Coupon, User, Vendor
+from .models import Address, Agreement, Company, Coupon, User, Vendor
 
 
 class UserForm(forms.ModelForm):
@@ -112,7 +112,10 @@ class CompanyUpdateForm(forms.ModelForm):
 
     class Meta:
         model = Company
-        exclude = ("is_blocked", "is_contacted", "note")
+        exclude = (
+            "is_contacted", "note", "is_deleted", "deleted_on", "ordered_amount",
+            "invoice_amount", "paid_amount"
+        )
 
 
 class ValidCompanyForm(forms.ModelForm):
@@ -156,3 +159,11 @@ class CouponForm(forms.ModelForm):
     class Meta:
         model = Coupon
         fields = '__all__'
+
+
+class AddressForm(forms.ModelForm):
+    company = forms.ModelChoiceField(queryset=Company.objects.all(), required=False)
+
+    class Meta:
+        model = Address
+        exclude = ("is_deleted", "deleted_on")

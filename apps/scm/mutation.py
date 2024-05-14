@@ -42,6 +42,10 @@ class CategoryMutation(DjangoModelFormMutation):
         form_data = form.data
         if form.is_valid():
             obj, created = Category.objects.update_or_create(id=object_id, defaults=form_data)
+            if obj.is_active:
+                obj.products.update(discount_availability=True)
+            else:
+                obj.products.update(discount_availability=False)
         else:
             error_data = {}
             for error in form.errors:

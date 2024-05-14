@@ -4,6 +4,7 @@ import django_filters
 from apps.bases.filters import BaseFilterOrderBy
 
 from .models import (
+    BillingAddress,
     Order,
     OrderPayment,
     OrderStatus,
@@ -70,9 +71,21 @@ class OrderFilters(BaseFilterOrderBy):
         ]
 
 
+class BillingAddressFilters(BaseFilterOrderBy):
+    """
+        BillingAddress Filters will define here
+    """
+
+    class Meta:
+        model = BillingAddress
+        fields = [
+            'id',
+        ]
+
+
 class OrderStatusFilters(BaseFilterOrderBy):
     """
-        Order Filters will define here
+        Order status Filters will define here
     """
     order = django_filters.CharFilter(
         field_name="order__id", lookup_expr="exact"

@@ -77,7 +77,8 @@ class Company(BaseWithoutID, SoftDeletion):
     post_code = models.PositiveIntegerField(
         null=True
     )
-    allowance_percentage = models.PositiveIntegerField(default=0, validators=[MaxValueValidator(100)])
+    allowance_percentage = models.PositiveIntegerField(
+        default=0, validators=[MaxValueValidator(100)], blank=True)
     is_blocked = models.BooleanField(default=False)
     is_contacted = models.BooleanField(default=False)
     note = models.TextField(blank=True, null=True)
@@ -89,7 +90,7 @@ class Company(BaseWithoutID, SoftDeletion):
         blank=True,
         null=True
     )
-    no_of_employees = models.PositiveIntegerField(default=1)
+    no_of_employees = models.PositiveIntegerField(default=1, blank=True)
     formation_date = models.DateField(blank=True, null=True)
     ordered_amount = models.DecimalField(
         max_digits=12,
@@ -581,7 +582,6 @@ class Address(BaseWithoutID, SoftDeletion):
         db_table = f"{settings.DB_PREFIX}_user_addresses"  # define table name for database
         ordering = ['-id']  # define default order as id in descending
         verbose_name_plural = "Addresses"
-        # unique_together = ('user', 'address_type', 'is_deleted')
 
 
 class Coupon(BaseWithoutID, SoftDeletion):

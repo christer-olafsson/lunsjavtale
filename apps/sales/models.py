@@ -191,6 +191,27 @@ class Order(BaseWithoutID, SoftDeletion):
         return (final_price * company_allowance / 100) <= paid_amount
 
 
+class BillingAddress(BaseWithoutID):
+    """
+        billing address information will be stored here by address type.
+    """
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="billing_address"
+    )
+    first_name = models.CharField(max_length=128, null=True, blank=True)
+    last_name = models.CharField(max_length=128, null=True, blank=True)
+    address = models.TextField()
+    sector = models.CharField(max_length=128, blank=True, null=True)
+    country = models.CharField(max_length=128, blank=True, null=True)
+    phone = models.CharField(max_length=15, null=True, blank=True)
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_billing_addresses"  # define table name for database
+        verbose_name_plural = "Billing addresses"
+
+
 class OrderStatus(models.Model):
     order = models.ForeignKey(
         to=Order, on_delete=models.SET_NULL, related_name='statuses', blank=True, null=True
@@ -242,17 +263,17 @@ class OrderPayment(BaseWithoutID):
         db_table = f"{settings.DB_PREFIX}_order_payments"  # define table name for database
 
 
-# class OnlinePayment(BaseWithoutID):
-#     order_payment = models.ForeignKey(
-#         to=OrderPayment, on_delete=models.DO_NOTHING
-#     )
-#     request_header = models.JSONField(blank=True, null=True)
-#     request_data = models.JSONField(blank=True, null=True)
-#     response_header = models.JSONField(blank=True, null=True)
-#     response_data = models.JSONField(blank=True, null=True)
-#
-#     class Meta:
-#         db_table = f"{settings.DB_PREFIX}_online_payments"  # define table name for database
+class OnlinePayment(BaseWithoutID):
+    order_payment = models.ForeignKey(
+        to=OrderPayment, on_delete=models.DO_NOTHING
+    )
+    request_header = models.JSONField(blank=True, null=True)
+    request_data = models.JSONField(blank=True, null=True)
+    response_header = models.JSONField(blank=True, null=True)
+    response_data = models.JSONField(blank=True, null=True)
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_online_payments"  # define table name for database
 
 
 class ProductRating(BaseWithoutID):

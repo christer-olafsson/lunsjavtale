@@ -6,6 +6,7 @@ from graphene_django.filter import DjangoFilterConnectionField
 
 # local imports
 from apps.sales.filters import (
+    BillingAddressFilters,
     OrderFilters,
     OrderPaymentFilters,
     PaymentMethodFilters,
@@ -16,6 +17,7 @@ from apps.sales.filters import (
 from backend.count_connection import CountConnection
 
 from .models import (
+    BillingAddress,
     Order,
     OrderPayment,
     PaymentMethod,
@@ -84,6 +86,20 @@ class OrderType(DjangoObjectType):
     class Meta:
         model = Order
         filterset_class = OrderFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
+class BillingAddressType(DjangoObjectType):
+    """
+        define django object type for Order model with Order filter-set
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = BillingAddress
+        filterset_class = BillingAddressFilters
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection
