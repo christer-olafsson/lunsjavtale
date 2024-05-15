@@ -120,11 +120,11 @@ class Query(graphene.ObjectType):
 
     @is_authenticated
     def resolve_companies(self, info, **kwargs):
-        return Company.objects.all()
+        return Company.objects.filter(is_deleted=False)
 
     @is_authenticated
     def resolve_company(self, info, id, **kwargs):
-        obj = Company.objects.fiter(id=id).last()
+        obj = Company.objects.fiter(is_deleted=False, id=id).last()
         return obj
 
     @is_authenticated

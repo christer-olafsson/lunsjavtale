@@ -337,6 +337,43 @@ class CompanyBlockUnBlock(graphene.Mutation):
             raise_graphql_error("Company not found.", "company_not_exist")
 
 
+class CompanyDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+        note = graphene.String()
+
+    @is_admin_user
+    def mutate(self, info, id, note=""):
+        try:
+            obj = Company.objects.get(id=id, is_deleted=False)
+            obj.working_email = f"deleted_{obj.working_email}"
+            obj.is_deleted = True
+            obj.deleted_on = timezone.now()
+            obj.save()
+            for user in obj.users.all():
+                user.is_active = False
+                user.is_expired = True
+                user.is_deleted = True
+                user.deleted_on = timezone.now()
+                user.deactivation_reason = None
+                user.email = f"deleted_{user.email}"
+                user.deleted_phone = user.phone
+                user.phone = None
+                user.save()
+            return CompanyDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except Company.DoesNotExist:
+            raise_graphql_error("Company not found.", "company_not_exist")
+
+
 class VendorBlockUnBlock(graphene.Mutation):
     """
     """
@@ -1450,6 +1487,7 @@ class Mutation(graphene.ObjectType):
     create_company = CompanyMutation.Field()
     valid_create_company = ValidCompanyMutation.Field()
     company_block_unblock = CompanyBlockUnBlock.Field()
+    company_delete = CompanyDelete.Field()
     register_company_owner = CompanyOwnerRegistration.Field()
     create_company_staff = UserCreationMutation.Field()
     address_mutation = AddressMutation.Field()

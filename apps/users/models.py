@@ -112,6 +112,7 @@ class Company(BaseWithoutID, SoftDeletion):
     class Meta:
         db_table = f"{settings.DB_PREFIX}_company"  # define table name for database
         verbose_name_plural = 'Companies'
+        ordering = ['-created_on']  # define default filter as created in descending
 
     def __str__(self) -> str:
         return str(self.name)

@@ -103,7 +103,7 @@ class Query(graphene.ObjectType):
         return obj
 
     def resolve_check_post_code(self, info, post_code, **kwargs):
-        return ValidArea.objects.filter(post_code=post_code).exists()
+        return ValidArea.objects.filter(post_code=post_code, is_active=True).exists()
 
     def resolve_supported_brands(self, info, **kwargs):
         return SupportedBrand.objects.all()
