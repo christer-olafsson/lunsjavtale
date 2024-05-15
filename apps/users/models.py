@@ -578,7 +578,10 @@ class Address(BaseWithoutID, SoftDeletion):
         on_delete=models.CASCADE,
         related_name="addresses"
     )
-    address_type = models.ForeignKey('core.TypeOfAddress', on_delete=models.DO_NOTHING)
+    address_type = models.ForeignKey(
+        to='core.TypeOfAddress', on_delete=models.DO_NOTHING,
+        related_name="addresses"
+    )
     address = models.TextField()
     post_code = models.PositiveIntegerField()
     city = models.CharField(max_length=128, blank=True, null=True)

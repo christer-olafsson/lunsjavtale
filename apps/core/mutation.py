@@ -7,6 +7,7 @@ from graphql import GraphQLError
 from apps.bases.utils import (
     camel_case_format,
     get_object_by_id,
+    raise_graphql_error,
     raise_graphql_error_with_fields,
 )
 from backend.permissions import is_admin_user, is_authenticated
@@ -83,6 +84,29 @@ class ValidAreaMutation(DjangoModelFormMutation):
         )
 
 
+class ValidAreaDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = ValidArea.objects.get(id=id)
+            obj.delete()
+            return ValidAreaDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except ValidArea.DoesNotExist:
+            raise_graphql_error("Valid Area not found.", "valid_area_not_exist")
+
+
 class AddressTypeMutation(DjangoModelFormMutation):
     """
         Admins can create and update Address Type information through a form input.
@@ -113,6 +137,32 @@ class AddressTypeMutation(DjangoModelFormMutation):
         )
 
 
+class AddressTypeDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = TypeOfAddress.objects.get(id=id)
+            if obj.addresses.exists():
+                raise_graphql_error("Already in use.")
+            else:
+                obj.delete()
+            return AddressTypeDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except TypeOfAddress.DoesNotExist:
+            raise_graphql_error("Address Type not found.", "address_type_not_exist")
+
+
 class LanguageMutation(DjangoModelFormMutation):
     """
         Admins can create and update Language information through a form input.
@@ -141,6 +191,29 @@ class LanguageMutation(DjangoModelFormMutation):
         return LanguageMutation(
             success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
         )
+
+
+class LanguageDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = Language.objects.get(id=id)
+            obj.delete()
+            return LanguageDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except Language.DoesNotExist:
+            raise_graphql_error("Language not found.", "language_not_exist")
 
 
 class FAQCategoryMutation(DjangoModelFormMutation):
@@ -179,6 +252,29 @@ class FAQCategoryMutation(DjangoModelFormMutation):
         )
 
 
+class FAQCategoryDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = FAQCategory.objects.get(id=id)
+            obj.delete()
+            return FAQCategoryDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except FAQCategory.DoesNotExist:
+            raise_graphql_error("FAQ Category not found.", "FAQ_category_not_exist")
+
+
 class FAQMutation(DjangoModelFormMutation):
     """
         update and create new FAQ information by some default fields.
@@ -215,6 +311,29 @@ class FAQMutation(DjangoModelFormMutation):
         )
 
 
+class FAQDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = FAQ.objects.get(id=id)
+            obj.delete()
+            return FAQDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except FAQ.DoesNotExist:
+            raise_graphql_error("FAQ not found.", "FAQ_not_exist")
+
+
 class SupportedBrandMutation(DjangoModelFormMutation):
     """
         update and create new SupportedBrand information by some default fields.
@@ -246,6 +365,29 @@ class SupportedBrandMutation(DjangoModelFormMutation):
         return SupportedBrandMutation(
             success=True, message="Successfully added", instance=obj
         )
+
+
+class SupportedBrandDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = SupportedBrand.objects.get(id=id)
+            obj.delete()
+            return SupportedBrandDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except SupportedBrand.DoesNotExist:
+            raise_graphql_error("SupportedBrand not found.", "supported_brand_not_exist")
 
 
 class PartnerMutation(DjangoModelFormMutation):
@@ -281,6 +423,29 @@ class PartnerMutation(DjangoModelFormMutation):
         )
 
 
+class PartnerDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = Partner.objects.get(id=id)
+            obj.delete()
+            return PartnerDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except Partner.DoesNotExist:
+            raise_graphql_error("Partner not found.", "partner_not_exist")
+
+
 class FollowUsMutation(DjangoModelFormMutation):
     """
         update and create new FollowUs information by some default fields.
@@ -314,6 +479,29 @@ class FollowUsMutation(DjangoModelFormMutation):
         )
 
 
+class FollowUsDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = FollowUs.objects.get(id=id)
+            obj.delete()
+            return FollowUsDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except FollowUs.DoesNotExist:
+            raise_graphql_error("Follow Us not found.", "follow_us_not_exist")
+
+
 class PromotionMutation(DjangoModelFormMutation):
     """
         update and create new Promotion information by some default fields.
@@ -344,6 +532,29 @@ class PromotionMutation(DjangoModelFormMutation):
         return PromotionMutation(
             success=True, message="Successfully added", instance=obj
         )
+
+
+class PromotionDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = Promotion.objects.get(id=id)
+            obj.delete()
+            return PromotionDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except Promotion.DoesNotExist:
+            raise_graphql_error("Promotion not found.", "promotion_not_exist")
 
 
 class ContactUsMutation(DjangoModelFormMutation):
@@ -428,18 +639,52 @@ class WhoUAreMutation(graphene.Mutation):
         )
 
 
+class WhoUAreDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        try:
+            obj = WhoUAre.objects.get(id=id)
+            WhoUAreAttachment.objects.filter(who_u_are=obj).delete()
+            obj.delete()
+            return WhoUAreDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except WhoUAre.DoesNotExist:
+            raise_graphql_error("Who U Are not found.", "who_u_are_not_exist")
+
+
 class Mutation(graphene.ObjectType):
     """
         define all the mutations by identifier name for query
     """
     valid_area_mutation = ValidAreaMutation.Field()
+    valid_area_delete = ValidAreaDelete.Field()
     address_type_mutation = AddressTypeMutation.Field()
+    address_type_delete = AddressTypeDelete.Field()
     language_mutation = LanguageMutation.Field()
+    language_delete = LanguageDelete.Field()
     FAQ_category_mutation = FAQCategoryMutation.Field()
+    FAQ_category_delete = FAQCategoryDelete.Field()
     FAQ_mutation = FAQMutation.Field()
+    FAQ_delete = FAQDelete.Field()
     supported_brand_mutation = SupportedBrandMutation.Field()
+    supported_brand_delete = SupportedBrandDelete.Field()
     partner_mutation = PartnerMutation.Field()
+    partner_delete = PartnerDelete.Field()
     follow_us_mutation = FollowUsMutation.Field()
+    follow_us_delete = FollowUsDelete.Field()
     promotion_mutation = PromotionMutation.Field()
+    promotion_delete = PromotionDelete.Field()
     contact_us_mutation = ContactUsMutation.Field()
     who_u_are_mutation = WhoUAreMutation.Field()
+    who_u_are_delete = WhoUAreDelete.Field()
