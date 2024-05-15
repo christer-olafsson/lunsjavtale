@@ -4,6 +4,7 @@ from django.db.models import Q
 
 from apps.bases.filters import BaseFilterOrderBy
 
+from ..core.models import ValidArea
 from .choices import RoleTypeChoices
 from .models import (
     Address,
@@ -168,14 +169,26 @@ class CompanyFilters(BaseFilterOrderBy):
     is_owner_generated = django_filters.BooleanFilter(
         method='is_owner_generated_filter'
     )
+    is_valid = django_filters.BooleanFilter(
+        method='is_valid_filter'
+    )
 
-    def is_owner_generated(self, qs, name, value):
+    def is_owner_generated_filter(self, qs, name, value):
         owner_companies = User.objects.filter(
             role=RoleTypeChoices.OWNER).order_by('company_id').values_list('company_id', flat=True).distinct()
         if value:
             qs = qs.filter(id__in=owner_companies)
         else:
             qs = qs.exclude(id__in=owner_companies)
+        return qs
+
+    def is_valid_filter(self, qs, name, value):
+        if value:
+            qs = qs.filter(post_code__in=ValidArea.objects.filter(
+                post_code=self.post_code, is_active=True).values_list('post_code', flat=True))
+        else:
+            qs = qs.exclude(post_code__in=ValidArea.objects.filter(
+                post_code=self.post_code, is_active=True).values_list('post_code', flat=True))
         return qs
 
     class Meta:

@@ -8,12 +8,15 @@ class ValidArea(BaseWithoutID):
     name = models.CharField(
         max_length=128, blank=True, null=True
     )
-    post_code = models.PositiveIntegerField()
+    post_code = models.PositiveIntegerField(unique=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_valid_areas"  # define table name for database
         ordering = ['-id']  # define default order as id in descending
+
+    def __str__(self):
+        return f"{self.post_code}"
 
 
 class TypeOfAddress(BaseWithoutID):

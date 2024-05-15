@@ -21,6 +21,7 @@ from apps.bases.utils import (
     set_absolute_uri,
     username_validator,
 )
+from apps.core.models import ValidArea
 from apps.users.choices import (
     AgreementChoices,
     DeviceTypeChoices,
@@ -130,6 +131,10 @@ class Company(BaseWithoutID, SoftDeletion):
     @property
     def is_owner_generated(self):
         return self.users.filter(role=RoleTypeChoices.OWNER).exists()
+
+    @property
+    def is_valid(self):
+        return ValidArea.objects.filter(post_code=self.post_code, is_active=True).exists()
 
 
 class Vendor(BaseWithoutID, SoftDeletion):
