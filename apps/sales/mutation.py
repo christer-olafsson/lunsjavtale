@@ -104,6 +104,29 @@ class AddToCart(graphene.Mutation):
         )
 
 
+class RemoveCart(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(OrderType)
+
+    class Arguments:
+        id = graphene.ID()
+
+    @is_company_user
+    def mutate(self, info, id, **kwargs):
+        user = info.context.user
+        carts = user.added_carts.all()
+        obj = carts.objects.get(id=id)
+        obj.delete()
+        return RemoveCart(
+            success=True,
+            message="Successfully removed",
+        )
+
+
 class BillingAddressInput(DjangoFormInputObjectType):
     class Meta:
         form_class = BillingAddressForm
@@ -325,6 +348,7 @@ class Mutation(graphene.ObjectType):
     add_product_rating = AddProductRating.Field()
 
     add_to_cart = AddToCart.Field()
+    remove_cart = RemoveCart.Field()
     user_cart_update = UserCartUpdate.Field()
     user_cart_ingredients_update = UserCartIngredientUpdate.Field()
     confirm_user_cart_update = ConfirmUserCartUpdate.Field()

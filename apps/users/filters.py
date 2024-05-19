@@ -194,7 +194,7 @@ class CompanyFilters(BaseFilterOrderBy):
                 post_code=self.post_code, is_active=True).values_list('post_code', flat=True))
         return qs
 
-    def name_email(self, qs, name, value):
+    def name_email_filter(self, qs, name, value):
         return qs.filter(
             Q(name__icontains=value) | Q(email__icontains=value) | Q(working_email__icontains=value) | Q(contact__icontains=value))
 
