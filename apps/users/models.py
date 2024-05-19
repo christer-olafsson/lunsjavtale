@@ -24,6 +24,7 @@ from apps.bases.utils import (
 from apps.core.models import ValidArea
 from apps.users.choices import (
     AgreementChoices,
+    CompanyStatusChoices,
     DeviceTypeChoices,
     GenderChoices,
     RoleTypeChoices,
@@ -81,7 +82,10 @@ class Company(BaseWithoutID, SoftDeletion):
     allowance_percentage = models.PositiveIntegerField(
         default=0, validators=[MaxValueValidator(100)], blank=True)
     is_blocked = models.BooleanField(default=False)
-    is_contacted = models.BooleanField(default=False)
+    is_checked = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=32, choices=CompanyStatusChoices.choices, default=CompanyStatusChoices.PENDING
+    )
     note = models.TextField(blank=True, null=True)
     logo_url = models.TextField(
         blank=True,

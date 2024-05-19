@@ -6,7 +6,7 @@ from graphql import GraphQLError
 
 # local imports
 from apps.bases.utils import camel_case_format, get_object_by_id
-from backend.permissions import is_admin_user, is_authenticated, is_vendor_user
+from backend.permissions import is_admin_user, is_vendor_user
 
 from ..sales.models import SellCart
 from .forms import (
@@ -143,10 +143,10 @@ class FoodMeetingMutation(DjangoModelFormMutation):
     class Meta:
         form_class = FoodMeetingForm
 
-    @is_authenticated
+    # @is_authenticated
     def mutate_and_get_payload(self, info, **input):
         form = FoodMeetingForm(data=input)
-        if input.get('id'):
+        if input.get('id') and info.context.user.is_admin:
             form = FoodMeetingForm(data=input, instance=FoodMeeting.objects.get(id=input.get('id')))
         if form.is_valid():
             obj = form.save()

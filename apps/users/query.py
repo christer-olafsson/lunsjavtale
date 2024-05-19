@@ -125,6 +125,9 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_company(self, info, id, **kwargs):
         obj = Company.objects.fiter(is_deleted=False, id=id).last()
+        if info.context.user.is_admin:
+            obj.is_checked = True
+            obj.save()
         return obj
 
     @is_authenticated
@@ -154,11 +157,11 @@ class Query(graphene.ObjectType):
 
     @is_authenticated
     def resolve_coupons(self, info, **kwargs) -> object:
-        return Coupon.objects.all()
+        return Coupon.objects.filter(is_deleted=False)
 
     @is_authenticated
     def resolve_coupon(self, info, id, **kwargs) -> object:
-        return Coupon.objects.filter(id=id).last()
+        return Coupon.objects.filter(id=id, is_deleted=False).last()
 
     @is_authenticated
     def resolve_withdraw_requests(self, info, **kwargs) -> object:

@@ -121,8 +121,6 @@ class CompanyMutationForAdmin(DjangoModelFormMutation):
 
             if form.is_valid() and user_form.is_valid():
                 obj = form.save()
-                obj.is_contacted = True
-                obj.save()
                 user = User.objects.create_user(**user_input)
                 user.company = obj
                 user.save()
@@ -200,8 +198,6 @@ class ValidCompanyMutation(DjangoFormMutation):
             error_data['password'] = list(e)
         if form.is_valid() and user_form.is_valid() and not error_data:
             obj = form.save()
-            obj.is_contacted = True
-            obj.save()
             user = User.objects.create_user(**user_input)
             user.company = obj
             user.save()
@@ -346,10 +342,9 @@ class CompanyDelete(graphene.Mutation):
 
     class Arguments:
         id = graphene.ID(required=True)
-        note = graphene.String()
 
     @is_admin_user
-    def mutate(self, info, id, note=""):
+    def mutate(self, info, id):
         try:
             obj = Company.objects.get(id=id, is_deleted=False)
             obj.working_email = f"deleted_{obj.working_email}"
@@ -369,6 +364,33 @@ class CompanyDelete(graphene.Mutation):
             return CompanyDelete(
                 success=True,
                 message="Successfully deleted",
+            )
+        except Company.DoesNotExist:
+            raise_graphql_error("Company not found.", "company_not_exist")
+
+
+class ChangeCompanyStatus(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+        status = graphene.String(required=True)
+        note = graphene.String()
+
+    @is_admin_user
+    def mutate(self, info, id, status, note=""):
+        try:
+            obj = Company.objects.get(id=id, is_deleted=False)
+            obj.status = status
+            obj.note = note
+            obj.save()
+            return ChangeCompanyStatus(
+                success=True,
+                message="Successfully updated",
             )
         except Company.DoesNotExist:
             raise_graphql_error("Company not found.", "company_not_exist")
@@ -449,6 +471,54 @@ class VendorWithdrawRequest(graphene.Mutation):
         )
 
 
+# class CompanyOwnerRegistration(graphene.Mutation):
+#     """
+#     """
+#
+#     success = graphene.Boolean()
+#     message = graphene.String()
+#     user = graphene.Field(UserType)
+#
+#     class Arguments:
+#         company = graphene.ID()
+#         note = graphene.String()
+#
+#     @is_admin_user
+#     def mutate(
+#             self,
+#             info,
+#             company,
+#             note,
+#             **kwargs
+#     ) -> object:
+#         company = Company.objects.get(id=company)
+#         errors = {}
+#         input = {
+#             'email': company.working_email,
+#             'phone': company.contact,
+#             'role': RoleTypeChoices.OWNER
+#         }
+#         form = UserRegistrationForm(data=input)
+#         if form.is_valid() and not errors:
+#             company.note = note
+#             company.save()
+#             user = User.objects.create_user(**input)
+#             user.company = company
+#             user.save()
+#             user.send_email_verified()
+#         else:
+#             error_data = errors
+#             for error in form.errors:
+#                 for err in form.errors[error]:
+#                     error_data[camel_case_format(error)] = err
+#             raise_graphql_error_with_fields("Invalid input request.", error_data)
+#         return CompanyOwnerRegistration(
+#             success=True,
+#             message="User registration was successful.",
+#             user=user
+#         )
+
+
 class CompanyOwnerRegistration(graphene.Mutation):
     """
     """
@@ -459,14 +529,12 @@ class CompanyOwnerRegistration(graphene.Mutation):
 
     class Arguments:
         company = graphene.ID()
-        note = graphene.String()
 
     @is_admin_user
     def mutate(
             self,
             info,
             company,
-            note,
             **kwargs
     ) -> object:
         company = Company.objects.get(id=company)
@@ -474,12 +542,11 @@ class CompanyOwnerRegistration(graphene.Mutation):
         input = {
             'email': company.working_email,
             'phone': company.contact,
+            'post_code': company.post_code,
             'role': RoleTypeChoices.OWNER
         }
         form = UserRegistrationForm(data=input)
         if form.is_valid() and not errors:
-            company.note = note
-            company.is_contacted = True
             company.save()
             user = User.objects.create_user(**input)
             user.company = company
@@ -1442,6 +1509,31 @@ class CouponMutation(DjangoModelFormMutation):
         )
 
 
+class CouponDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id):
+        try:
+            obj = Coupon.objects.get(id=id, is_deleted=False)
+            obj.is_deleted = True
+            obj.deleted_on = timezone.now()
+            obj.save()
+            return CouponDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except Coupon.DoesNotExist:
+            raise_graphql_error("Coupon not found.", "coupon_not_exist")
+
+
 class ApplyCouponMutation(graphene.Mutation):
     """
     """
@@ -1488,6 +1580,7 @@ class Mutation(graphene.ObjectType):
     valid_create_company = ValidCompanyMutation.Field()
     company_block_unblock = CompanyBlockUnBlock.Field()
     company_delete = CompanyDelete.Field()
+    company_status_change = ChangeCompanyStatus.Field()
     register_company_owner = CompanyOwnerRegistration.Field()
     create_company_staff = UserCreationMutation.Field()
     address_mutation = AddressMutation.Field()
@@ -1522,4 +1615,5 @@ class Mutation(graphene.ObjectType):
     accept_agreement_mutation = AcceptAgreementMutation.Field()
     default_mutation = DefaultMutation.Field()
     coupon_mutation = CouponMutation.Field()
+    coupon_delete = CouponDelete.Field()
     apply_coupon = ApplyCouponMutation.Field()

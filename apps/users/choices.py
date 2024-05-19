@@ -51,6 +51,12 @@ class AgreementChoices(models.TextChoices):
     ABOUT_US = 'about-us'
 
 
+class CompanyStatusChoices(models.TextChoices):
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+
+
 class WithdrawRequestChoices(models.TextChoices):
     PENDING = 'pending'
     ACCEPTED = 'accepted'

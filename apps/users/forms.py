@@ -115,7 +115,7 @@ class CompanyUpdateForm(forms.ModelForm):
     class Meta:
         model = Company
         exclude = (
-            "is_contacted", "note", "is_deleted", "deleted_on", "ordered_amount",
+            "is_checked", "status", "note", "is_deleted", "deleted_on", "ordered_amount",
             "invoice_amount", "paid_amount"
         )
 

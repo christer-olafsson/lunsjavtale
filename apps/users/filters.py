@@ -166,6 +166,9 @@ class CompanyFilters(BaseFilterOrderBy):
         field_name='working_email',
         lookup_expr='icontains'
     )
+    name_email = django_filters.CharFilter(
+        method='name_email_filter'
+    )
     is_owner_generated = django_filters.BooleanFilter(
         method='is_owner_generated_filter'
     )
@@ -191,10 +194,17 @@ class CompanyFilters(BaseFilterOrderBy):
                 post_code=self.post_code, is_active=True).values_list('post_code', flat=True))
         return qs
 
+    def name_email(self, qs, name, value):
+        return qs.filter(
+            Q(name__icontains=value) | Q(email__icontains=value) | Q(working_email__icontains=value) | Q(contact__icontains=value))
+
     class Meta:
         model = Company
         fields = [
             'id',
+            'status',
+            'is_checked',
+            'is_blocked',
         ]
 
 
