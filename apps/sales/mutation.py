@@ -14,6 +14,7 @@ from apps.bases.utils import (
 from backend.permissions import is_admin_user, is_authenticated, is_company_user
 
 from ..scm.models import Ingredient, Product
+from ..users.choices import RoleTypeChoices
 from .choices import DecisionChoices, InvoiceStatusChoices, PaymentTypeChoices
 from .forms import BillingAddressForm, PaymentMethodForm, ProductRatingForm
 from .models import (
@@ -86,13 +87,15 @@ class AddToCart(graphene.Mutation):
         ingredients = graphene.List(graphene.ID)
         dates = graphene.List(CartInput)
 
-    @is_company_user
+    @is_authenticated
     def mutate(self, info, item, ingredients, dates):
         user = info.context.user
+        if user.role not in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER, RoleTypeChoices.EMPLOYEE]:
+            raise_graphql_error("User not permitted.")
         item = Product.objects.get(id=item)
         for qt in dates:
             cart, created = SellCart.objects.get_or_create(item=item, added_by=user, date=qt['date'])
-            cart.quantity = qt['quantity']
+            cart.quantity = qt['quantity'] if user.role != RoleTypeChoices.EMPLOYEE else 1
             cart.price = item.actual_price
             cart.price_with_tax = item.price_with_tax
             cart.save()
@@ -122,6 +125,36 @@ class RemoveCart(graphene.Mutation):
         obj = carts.objects.get(id=id)
         obj.delete()
         return RemoveCart(
+            success=True,
+            message="Successfully removed",
+        )
+
+
+class ApproveCart(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(OrderType)
+
+    class Arguments:
+        ids = graphene.List(graphene.ID(), required=True)
+
+    @is_company_user
+    def mutate(self, info, ids, **kwargs):
+        user = info.context.user
+        carts = SellCart.objects.filter(add_by__role=RoleTypeChoices.EMPLOYEE, id__in=ids)
+        for qt in carts:
+            cart, created = SellCart.objects.get_or_create(item=qt.item, added_by=user, date=qt.date)
+            cart.quantity = 1 if created else cart.quantity + 1
+            cart.price = qt.item.actual_price
+            cart.price_with_tax = qt.item.price_with_tax
+            cart.save()
+            cart.ingredients.add(*qt.item.ingredients.all())
+            cart.added_for.add(qt.added_by)
+            qt.delete()
+        return ApproveCart(
             success=True,
             message="Successfully removed",
         )
@@ -349,6 +382,7 @@ class Mutation(graphene.ObjectType):
 
     add_to_cart = AddToCart.Field()
     remove_cart = RemoveCart.Field()
+    approve_cart_request = ApproveCart.Field()
     user_cart_update = UserCartUpdate.Field()
     user_cart_ingredients_update = UserCartIngredientUpdate.Field()
     confirm_user_cart_update = ConfirmUserCartUpdate.Field()

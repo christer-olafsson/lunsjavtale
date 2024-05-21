@@ -219,6 +219,14 @@ class VendorFilters(BaseFilterOrderBy):
         field_name='email',
         lookup_expr='icontains'
     )
+    title = django_filters.CharFilter(
+        method="title_filter",
+    )
+
+    def title_filter(self, qs, name, value):
+        if value:
+            qs = qs.filter(Q(email__icontains=value) | Q(name__icontains=value))
+        return qs
 
     class Meta:
         model = Vendor

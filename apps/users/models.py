@@ -184,6 +184,10 @@ class Vendor(BaseWithoutID, SoftDeletion):
     def balance(self):
         return self.sold_amount - self.withdrawn_amount
 
+    @property
+    def owner(self):
+        return self.users.last()
+
 
 class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
     """Store custom user information.

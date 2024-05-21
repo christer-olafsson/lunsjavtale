@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from graphene_django.filter.fields import DjangoFilterConnectionField
 
-from backend.permissions import is_authenticated
+from backend.permissions import is_authenticated, is_company_user
 
 from ..users.choices import RoleTypeChoices
 from .models import Order, OrderPayment, PaymentMethod, ProductRating, SellCart
@@ -29,6 +29,7 @@ class Query(graphene.ObjectType):
     payment_methods = DjangoFilterConnectionField(PaymentMethodType)
     payment_method = graphene.Field(PaymentMethodType, id=graphene.ID())
     added_carts = DjangoFilterConnectionField(SellCartType)
+    added_employee_carts = DjangoFilterConnectionField(SellCartType)
     cart = graphene.Field(SellCartType, id=graphene.ID())
     orders = DjangoFilterConnectionField(OrderType)
     order = graphene.Field(OrderType, id=graphene.ID())
@@ -117,6 +118,12 @@ class Query(graphene.ObjectType):
     def resolve_added_carts(self, info, **kwargs):
         user = info.context.user
         qs = SellCart.objects.filter(added_by=user)
+        return qs
+
+    @is_company_user
+    def resolve_added_employee_carts(self, info, **kwargs):
+        user = info.context.user
+        qs = SellCart.objects.filter(added_by__role=RoleTypeChoices.EMPLOYEE, added_by__company=user.company)
         return qs
 
     @is_authenticated

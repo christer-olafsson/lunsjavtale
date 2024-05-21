@@ -119,9 +119,15 @@ class ProductAttachmentFilters(BaseFilterOrderBy):
 
 
 class FoodMeetingFilters(BaseFilterOrderBy):
+    title = django_filters.CharFilter(
+        field_name="title",
+        lookup_expr="icontains"
+    )
 
     class Meta:
         model = FoodMeeting
         fields = [
             'id',
+            'meeting_type',
+            'is_contacted',
         ]

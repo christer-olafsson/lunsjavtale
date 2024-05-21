@@ -288,7 +288,7 @@ class VendorUpdateMutation(DjangoModelFormMutation):
             obj = Vendor.objects.get(id=input['id'])
         else:
             obj = user.vendor
-        form = VendorForm(data=input, instance=obj)
+        form = VendorUpdateForm(data=input, instance=obj)
         error_data = {}
         if form.is_valid():
             obj = form.save()
@@ -300,6 +300,42 @@ class VendorUpdateMutation(DjangoModelFormMutation):
         return VendorUpdateMutation(
             success=True, message="Successfully updated", instance=obj
         )
+
+
+class VendorDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id):
+        try:
+            obj = Vendor.objects.get(id=id, is_deleted=False)
+            obj.email = f"deleted_{obj.working_email}"
+            obj.is_deleted = True
+            obj.deleted_on = timezone.now()
+            obj.save()
+            for user in obj.users.all():
+                user.is_active = False
+                user.is_expired = True
+                user.is_deleted = True
+                user.deleted_on = timezone.now()
+                user.deactivation_reason = None
+                user.email = f"deleted_{user.email}"
+                user.deleted_phone = user.phone
+                user.phone = None
+                user.save()
+            return VendorDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except Vendor.DoesNotExist:
+            raise_graphql_error("Vendor not found.", "vendor_not_exist")
 
 
 class CompanyBlockUnBlock(graphene.Mutation):
@@ -1587,6 +1623,7 @@ class Mutation(graphene.ObjectType):
     vendor_creation = VendorMutation.Field()
     vendor_update = VendorUpdateMutation.Field()
     vendor_block_unblock = VendorBlockUnBlock.Field()
+    vendor_delete = VendorDelete.Field()
     withdraw_request_mutation = VendorWithdrawRequest.Field()
 
     login_user = LoginUser.Field()

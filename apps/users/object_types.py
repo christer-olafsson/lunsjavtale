@@ -119,6 +119,7 @@ class VendorType(DjangoObjectType):
     """
     id = graphene.ID(required=True)
     balance = graphene.Decimal()
+    owner = graphene.Field(UserType)
 
     class Meta:
         model = Vendor
@@ -130,6 +131,10 @@ class VendorType(DjangoObjectType):
     @staticmethod
     def resolve_balance(self, info, **kwargs):
         return self.balance
+
+    @staticmethod
+    def resolve_owner(self, info, **kwargs):
+        return self.owner
 
 
 class UserDeviceTokenType(DjangoObjectType):
