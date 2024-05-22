@@ -35,11 +35,15 @@ class SellCartFilters(BaseFilterOrderBy):
     """
         SellCart Filters will define here
     """
+    item = django_filters.CharFilter(
+        field_name='item__id', lookup_expr='exact'
+    )
 
     class Meta:
         model = SellCart
         fields = [
             'id',
+            'date',
         ]
 
 

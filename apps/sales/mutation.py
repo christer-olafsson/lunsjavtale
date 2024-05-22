@@ -139,7 +139,7 @@ class ApproveCart(graphene.Mutation):
     instance = graphene.Field(OrderType)
 
     class Arguments:
-        ids = graphene.List(graphene.ID(), required=True)
+        ids = graphene.List(graphene.ID, required=True)
 
     @is_company_user
     def mutate(self, info, ids, **kwargs):

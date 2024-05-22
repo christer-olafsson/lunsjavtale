@@ -7,6 +7,8 @@ from graphene_django.filter.fields import DjangoFilterConnectionField
 
 from backend.permissions import is_authenticated, is_company_user
 
+from ..scm.models import Product
+from ..scm.object_types import ProductType
 from ..users.choices import RoleTypeChoices
 from .models import Order, OrderPayment, PaymentMethod, ProductRating, SellCart
 from .object_types import (
@@ -29,6 +31,7 @@ class Query(graphene.ObjectType):
     payment_methods = DjangoFilterConnectionField(PaymentMethodType)
     payment_method = graphene.Field(PaymentMethodType, id=graphene.ID())
     added_carts = DjangoFilterConnectionField(SellCartType)
+    added_products = DjangoFilterConnectionField(ProductType)
     added_employee_carts = DjangoFilterConnectionField(SellCartType)
     cart = graphene.Field(SellCartType, id=graphene.ID())
     orders = DjangoFilterConnectionField(OrderType)
@@ -119,6 +122,12 @@ class Query(graphene.ObjectType):
         user = info.context.user
         qs = SellCart.objects.filter(added_by=user)
         return qs
+
+    @is_authenticated
+    def resolve_added_products(self, info, **kwargs):
+        user = info.context.user
+        qs = SellCart.objects.filter(added_by=user).order_by('item_id').values_list('item_id', flat=True).distinct()
+        return Product.objects.filter(id__in=qs)
 
     @is_company_user
     def resolve_added_employee_carts(self, info, **kwargs):
