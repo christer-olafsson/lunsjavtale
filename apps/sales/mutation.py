@@ -113,7 +113,6 @@ class RemoveCart(graphene.Mutation):
 
     success = graphene.Boolean()
     message = graphene.String()
-    instance = graphene.Field(OrderType)
 
     class Arguments:
         id = graphene.ID()
@@ -122,9 +121,31 @@ class RemoveCart(graphene.Mutation):
     def mutate(self, info, id, **kwargs):
         user = info.context.user
         carts = user.added_carts.all()
-        obj = carts.objects.get(id=id)
+        obj = carts.get(id=id)
         obj.delete()
         return RemoveCart(
+            success=True,
+            message="Successfully removed",
+        )
+
+
+class RemoveProductCart(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+
+    @is_company_user
+    def mutate(self, info, id, **kwargs):
+        user = info.context.user
+        carts = user.added_carts.all()
+        obj = carts.filter(item__id=id)
+        obj.delete()
+        return RemoveProductCart(
             success=True,
             message="Successfully removed",
         )
@@ -382,6 +403,7 @@ class Mutation(graphene.ObjectType):
 
     add_to_cart = AddToCart.Field()
     remove_cart = RemoveCart.Field()
+    remove_product_cart = RemoveProductCart.Field()
     approve_cart_request = ApproveCart.Field()
     user_cart_update = UserCartUpdate.Field()
     user_cart_ingredients_update = UserCartIngredientUpdate.Field()
