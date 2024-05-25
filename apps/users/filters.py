@@ -10,6 +10,7 @@ from .models import (
     Address,
     ClientDetails,
     Company,
+    CompanyBillingAddress,
     Coupon,
     TrackUserLogin,
     UnitOfHistory,
@@ -282,6 +283,15 @@ class AddressFilters(BaseFilterOrderBy):
 
     class Meta:
         model = Address
+        fields = [
+            'id',
+        ]
+
+
+class CompanyBillingAddressFilters(BaseFilterOrderBy):
+
+    class Meta:
+        model = CompanyBillingAddress
         fields = [
             'id',
         ]

@@ -10,6 +10,7 @@ from backend.count_connection import CountConnection
 from .filters import (
     AddressFilters,
     ClientDetailsFilters,
+    CompanyBillingAddressFilters,
     CompanyFilters,
     CouponFilters,
     LogsFilters,
@@ -24,6 +25,7 @@ from .models import (
     Agreement,
     ClientDetails,
     Company,
+    CompanyBillingAddress,
     Coupon,
     TrackUserLogin,
     UnitOfHistory,
@@ -204,6 +206,19 @@ class AddressType(DjangoObjectType):
     class Meta:
         model = Address
         filterset_class = AddressFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
+class CompanyBillingAddressType(DjangoObjectType):
+    """
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = CompanyBillingAddress
+        filterset_class = CompanyBillingAddressFilters
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection

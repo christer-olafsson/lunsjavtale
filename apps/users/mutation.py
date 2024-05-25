@@ -23,13 +23,19 @@ from apps.bases.utils import (
 )
 from apps.scm.models import Ingredient
 from backend.authentication import TokenManager
-from backend.permissions import is_admin_user, is_authenticated, is_super_admin
+from backend.permissions import (
+    is_admin_user,
+    is_authenticated,
+    is_company_user,
+    is_super_admin,
+)
 
 from .choices import RoleTypeChoices, WithdrawRequestChoices
 from .forms import (
     AddressForm,
     AdminRegistrationForm,
     AgreementForm,
+    CompanyBillingAddressForm,
     CompanyForm,
     CompanyUpdateForm,
     CouponForm,
@@ -49,6 +55,7 @@ from .models import (
     Agreement,
     ClientDetails,
     Company,
+    CompanyBillingAddress,
     Coupon,
     ResetPassword,
     UnitOfHistory,
@@ -60,6 +67,7 @@ from .object_types import (
     AddressType,
     AgreementType,
     AppliedCouponType,
+    CompanyBillingAddressType,
     CompanyType,
     CouponType,
     UserType,
@@ -693,6 +701,38 @@ class AddressMutation(DjangoModelFormMutation):
                     error_data[camel_case_format(error)] = err
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         return AddressMutation(
+            success=True, instance=obj, message="Successfully updated"
+        )
+
+
+class CompanyBillingAddressMutation(DjangoFormMutation):
+    """
+    """
+    instance = graphene.Field(CompanyBillingAddressType)
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Meta:
+        form_class = CompanyBillingAddressForm
+
+    @is_company_user
+    def mutate_and_get_payload(self, info, **input) -> object:
+        user = info.context.user
+        form = CompanyBillingAddressForm(data=input)
+        try:
+            form = CompanyBillingAddressForm(data=input, instance=CompanyBillingAddress.objects.get(company=user.company))
+        except Exception:
+            pass
+        if form.is_valid():
+            form.cleaned_data['company'] = user.company
+            obj = form.save()
+        else:
+            error_data = {}
+            for error in form.errors:
+                for err in form.errors[error]:
+                    error_data[camel_case_format(error)] = err
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
+        return CompanyBillingAddressMutation(
             success=True, instance=obj, message="Successfully updated"
         )
 
@@ -1620,6 +1660,7 @@ class Mutation(graphene.ObjectType):
     register_company_owner = CompanyOwnerRegistration.Field()
     create_company_staff = UserCreationMutation.Field()
     address_mutation = AddressMutation.Field()
+    company_billing_address_mutation = CompanyBillingAddressMutation.Field()
     vendor_creation = VendorMutation.Field()
     vendor_update = VendorUpdateMutation.Field()
     vendor_block_unblock = VendorBlockUnBlock.Field()

@@ -669,8 +669,8 @@ class Mutation(graphene.ObjectType):
     """
     valid_area_mutation = ValidAreaMutation.Field()
     valid_area_delete = ValidAreaDelete.Field()
-    address_type_mutation = AddressTypeMutation.Field()
-    address_type_delete = AddressTypeDelete.Field()
+    # address_type_mutation = AddressTypeMutation.Field()
+    # address_type_delete = AddressTypeDelete.Field()
     language_mutation = LanguageMutation.Field()
     language_delete = LanguageDelete.Field()
     FAQ_category_mutation = FAQCategoryMutation.Field()

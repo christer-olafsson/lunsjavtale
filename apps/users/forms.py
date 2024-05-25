@@ -1,7 +1,15 @@
 from django import forms
 
 # local imports
-from .models import Address, Agreement, Company, Coupon, User, Vendor
+from .models import (
+    Address,
+    Agreement,
+    Company,
+    CompanyBillingAddress,
+    Coupon,
+    User,
+    Vendor,
+)
 
 
 class UserForm(forms.ModelForm):
@@ -169,3 +177,10 @@ class AddressForm(forms.ModelForm):
     class Meta:
         model = Address
         exclude = ("is_deleted", "deleted_on")
+
+
+class CompanyBillingAddressForm(forms.ModelForm):
+
+    class Meta:
+        model = CompanyBillingAddress
+        exclude = ("company",)

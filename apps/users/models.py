@@ -586,9 +586,8 @@ class Address(BaseWithoutID, SoftDeletion):
         on_delete=models.CASCADE,
         related_name="addresses"
     )
-    address_type = models.ForeignKey(
-        to='core.TypeOfAddress', on_delete=models.DO_NOTHING,
-        related_name="addresses"
+    address_type = models.CharField(
+        max_length=64, null=True
     )
     address = models.TextField()
     post_code = models.PositiveIntegerField()
@@ -607,6 +606,27 @@ class Address(BaseWithoutID, SoftDeletion):
         db_table = f"{settings.DB_PREFIX}_user_addresses"  # define table name for database
         ordering = ['-id']  # define default order as id in descending
         verbose_name_plural = "Addresses"
+
+
+class CompanyBillingAddress(BaseWithoutID):
+    """
+        billing address information will be stored here by address type.
+    """
+    company = models.OneToOneField(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="billing_address"
+    )
+    first_name = models.CharField(max_length=128, null=True, blank=True)
+    last_name = models.CharField(max_length=128, null=True, blank=True)
+    address = models.TextField()
+    sector = models.CharField(max_length=128, blank=True, null=True)
+    country = models.CharField(max_length=128, blank=True, null=True)
+    phone = models.CharField(max_length=15, null=True, blank=True)
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_company_billing_addresses"  # define table name for database
+        verbose_name_plural = "Company Billing addresses"
 
 
 class Coupon(BaseWithoutID, SoftDeletion):
