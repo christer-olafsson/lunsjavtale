@@ -705,6 +705,31 @@ class AddressMutation(DjangoModelFormMutation):
         )
 
 
+class AddressDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_company_user
+    def mutate(self, info, id):
+        try:
+            obj = Address.objects.get(id=id, is_deleted=False, company=info.context.user.company)
+            obj.is_deleted = True
+            obj.deleted_on = timezone.now()
+            obj.save()
+            return AddressDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except Address.DoesNotExist:
+            raise_graphql_error("Address not found.", "address_not_exist")
+
+
 class CompanyBillingAddressMutation(DjangoFormMutation):
     """
     """
@@ -1660,6 +1685,7 @@ class Mutation(graphene.ObjectType):
     register_company_owner = CompanyOwnerRegistration.Field()
     create_company_staff = UserCreationMutation.Field()
     address_mutation = AddressMutation.Field()
+    address_delete = AddressDelete.Field()
     company_billing_address_mutation = CompanyBillingAddressMutation.Field()
     vendor_creation = VendorMutation.Field()
     vendor_update = VendorUpdateMutation.Field()

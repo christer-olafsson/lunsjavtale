@@ -180,8 +180,8 @@ class Query(graphene.ObjectType):
         return qs.last()
 
     @is_authenticated
-    def resolve_addresses(self, info, id, **kwargs) -> object:
+    def resolve_addresses(self, info, **kwargs) -> object:
         user = info.context.user
         if user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and user.company:
-            return Address.objects.filter(company=user.company)
+            return Address.objects.filter(company=user.company, is_deleted=False)
         return Address.objects.filter(id=None)

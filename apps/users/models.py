@@ -607,6 +607,13 @@ class Address(BaseWithoutID, SoftDeletion):
         ordering = ['-id']  # define default order as id in descending
         verbose_name_plural = "Addresses"
 
+    def save(self, *args, **kwargs):
+        if self.default:
+            self.company.addresses.exclude(id=self.pk).update(default=False)
+        if not self.company.addresses.filter(default=True).exists():
+            self.default = True
+        super(Address, self).save(*args, **kwargs)
+
 
 class CompanyBillingAddress(BaseWithoutID):
     """
