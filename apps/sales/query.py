@@ -2,7 +2,7 @@
 
 import graphene
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Sum
 from graphene_django.filter.fields import DjangoFilterConnectionField
 
 from backend.permissions import is_authenticated, is_company_user
@@ -12,6 +12,7 @@ from ..scm.object_types import ProductType
 from ..users.choices import RoleTypeChoices
 from .models import Order, OrderPayment, PaymentMethod, ProductRating, SellCart
 from .object_types import (
+    AddedCartsListType,
     OrderPaymentType,
     OrderType,
     PaymentMethodType,
@@ -40,6 +41,7 @@ class Query(graphene.ObjectType):
     order_payment = graphene.Field(OrderPaymentType, id=graphene.ID())
     product_ratings = DjangoFilterConnectionField(ProductRatingType)
     product_rating = graphene.Field(ProductRatingType, id=graphene.ID())
+    added_carts_list = graphene.List(AddedCartsListType)
 
     @is_authenticated
     def resolve_payment_methods(self, info, **kwargs):
@@ -122,6 +124,22 @@ class Query(graphene.ObjectType):
         user = info.context.user
         qs = SellCart.objects.filter(added_by=user)
         return qs
+
+    @is_authenticated
+    def resolve_added_carts_list(self, info, **kwargs):
+        user = info.context.user
+        qs = SellCart.objects.filter(added_by=user)
+        dates = qs.order_by('date').values_list('date', flat=True).distinct()
+        new_qs = []
+        for date in dates:
+            new_qs.append(
+                AddedCartsListType(
+                    date=date,
+                    total_price=qs.filter(date=date).aggregate(t=Sum('total_price_with_tax'))['t'],
+                    carts=qs.filter(date=date)
+                )
+            )
+        return new_qs
 
     @is_authenticated
     def resolve_added_products(self, info, **kwargs):

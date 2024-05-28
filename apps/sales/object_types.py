@@ -140,3 +140,9 @@ class ProductRatingType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection
+
+
+class AddedCartsListType(graphene.ObjectType):
+    date = graphene.Date()
+    total_price = graphene.Decimal()
+    carts = DjangoFilterConnectionField(SellCartType)

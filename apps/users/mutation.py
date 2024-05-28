@@ -749,8 +749,9 @@ class CompanyBillingAddressMutation(DjangoFormMutation):
         except Exception:
             pass
         if form.is_valid():
-            form.cleaned_data['company'] = user.company
-            obj = form.save()
+            obj = form.save(commit=False)
+            obj.company = user.company
+            obj.save()
         else:
             error_data = {}
             for error in form.errors:

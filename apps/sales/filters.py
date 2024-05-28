@@ -38,6 +38,17 @@ class SellCartFilters(BaseFilterOrderBy):
     item = django_filters.CharFilter(
         field_name='item__id', lookup_expr='exact'
     )
+    order = django_filters.CharFilter(
+        field_name='order__id', lookup_expr='exact'
+    )
+    added_for = django_filters.CharFilter(
+        method='added_for_filter'
+    )
+
+    def added_for_filter(self, qs, name, value):
+        carts = UserCart.objects.filter(
+            added_for__id=value).order_by('cart_id').values_list('cart_id', flat=True).distinct()
+        return qs.filter(id__in=carts)
 
     class Meta:
         model = SellCart
@@ -51,6 +62,9 @@ class UserCartFilters(BaseFilterOrderBy):
     """
         UserCart Filters will define here
     """
+    added_for = django_filters.CharFilter(
+        field_name='added_for__id', lookup_expr='exact'
+    )
 
     class Meta:
         model = UserCart

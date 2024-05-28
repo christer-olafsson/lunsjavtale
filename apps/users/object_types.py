@@ -2,6 +2,7 @@
 
 import graphene
 from django.contrib.auth import get_user_model
+from django.db.models import Sum
 from graphene_django import DjangoObjectType
 
 # local imports
@@ -58,6 +59,7 @@ class UserType(DjangoObjectType):
     """
     id = graphene.ID(required=True)
     is_admin = graphene.Boolean()
+    due_amount = graphene.Decimal()
 
     class Meta:
         model = User
@@ -68,6 +70,12 @@ class UserType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection
+
+    @staticmethod
+    def resolve_due_amount(self, info, **kwargs):
+        paid_amount = self.cart_items.aggregate(paid=Sum('paid_amount'))['paid'] or 0
+        order_amount = self.cart_items.aggregate(price=Sum('cart__price_with_tax'))['price'] or 0
+        return order_amount - paid_amount
 
 
 class LogType(DjangoObjectType):
