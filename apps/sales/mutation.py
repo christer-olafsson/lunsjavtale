@@ -1,6 +1,7 @@
 import graphene
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphene_django.forms.types import DjangoFormInputObjectType
 from graphql import GraphQLError
@@ -15,8 +16,18 @@ from backend.permissions import is_admin_user, is_authenticated, is_company_user
 
 from ..scm.models import Ingredient, Product
 from ..users.choices import RoleTypeChoices
-from .choices import DecisionChoices, InvoiceStatusChoices, PaymentTypeChoices
-from .forms import BillingAddressForm, PaymentMethodForm, ProductRatingForm
+from .choices import (
+    DecisionChoices,
+    InvoiceStatusChoices,
+    OrderPaymentTypeChoices,
+    PaymentTypeChoices,
+)
+from .forms import (
+    BillingAddressForm,
+    OrderPaymentForm,
+    PaymentMethodForm,
+    ProductRatingForm,
+)
 from .models import (
     AlterCart,
     BillingAddress,
@@ -26,8 +37,13 @@ from .models import (
     SellCart,
     UserCart,
 )
-from .object_types import OrderType, PaymentMethodType, ProductRatingType
-from .tasks import notify_user_carts
+from .object_types import (
+    OrderPaymentType,
+    OrderType,
+    PaymentMethodType,
+    ProductRatingType,
+)
+from .tasks import add_user_carts, make_previous_payment, notify_user_carts
 
 User = get_user_model()
 
@@ -129,6 +145,41 @@ class RemoveCart(graphene.Mutation):
         )
 
 
+class EditCartMutation(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+        quantity = graphene.Int()
+        added_for = graphene.List(graphene.ID)
+
+    @is_company_user
+    def mutate(self, info, id, quantity, added_for, **kwargs):
+        user = info.context.user
+        carts = user.added_carts.all()
+        obj = carts.get(
+            Q(order__isnull=True) | Q(order_status__in=[
+                InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING
+            ]), id=id
+        )
+        staffs = User.objects.filter(company=user.company, id__in=added_for)
+        if staffs.count() > quantity:
+            raise_graphql_error("Quantity is not valid for the added employees.")
+        obj.quantity = quantity
+        obj.save()
+        obj.added_for.clear()
+        obj.added_for.add(*staffs)
+        add_user_carts.delay(obj.id)
+        return EditCartMutation(
+            success=True,
+            message="Successfully updated",
+        )
+
+
 class RemoveProductCart(graphene.Mutation):
     """
     """
@@ -199,7 +250,7 @@ class OrderCreation(graphene.Mutation):
     @transaction.atomic
     def mutate(self, info, payment_type, shipping_address, billing_address, company_allowance=0):
         user = info.context.user
-        if payment_type not in PaymentTypeChoices:
+        if payment_type not in OrderPaymentTypeChoices:
             raise_graphql_error("Please select a valid payment-type.")
         carts = user.added_carts.all()
         if not carts.exists():
@@ -232,7 +283,7 @@ class OrderCreation(graphene.Mutation):
             user.company.invoice_amount += (obj.final_price * company_allowance) / 100
             user.company.ordered_amount += obj.final_price
             user.company.save()
-            if payment_type == PaymentTypeChoices.ONLINE:
+            if payment_type == OrderPaymentTypeChoices.ONLINE:
                 OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
             notify_user_carts.delay(obj.id)
         return OrderCreation(
@@ -393,6 +444,44 @@ class AddProductRating(DjangoFormMutation):
         )
 
 
+class OrderPaymentMutation(DjangoFormMutation):
+    """
+        update and create new PaymentMethod information by some default fields.
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(OrderPaymentType)
+
+    class Meta:
+        form_class = OrderPaymentForm
+
+    @is_admin_user
+    def mutate_and_get_payload(self, info, **input):
+        user = info.context.user
+        form = OrderPaymentForm(data=input)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.created_by = user
+            obj.payment_type = PaymentTypeChoices.CASH
+            obj.save()
+            make_previous_payment(obj.id)
+        else:
+            error_data = {}
+            for error in form.errors:
+                for err in form.errors[error]:
+                    error_data[camel_case_format(error)] = err
+            raise GraphQLError(
+                message="Invalid input request.",
+                extensions={
+                    "errors": error_data,
+                    "code": "invalid_input"
+                }
+            )
+        return OrderPaymentMutation(
+            success=True, message="Successfully created", instance=obj
+        )
+
+
 class Mutation(graphene.ObjectType):
     """
         define all the mutations by identifier name for query
@@ -403,9 +492,11 @@ class Mutation(graphene.ObjectType):
 
     add_to_cart = AddToCart.Field()
     remove_cart = RemoveCart.Field()
+    cart_update = EditCartMutation.Field()
     remove_product_cart = RemoveProductCart.Field()
     approve_cart_request = ApproveCart.Field()
     user_cart_update = UserCartUpdate.Field()
     user_cart_ingredients_update = UserCartIngredientUpdate.Field()
     confirm_user_cart_update = ConfirmUserCartUpdate.Field()
     place_order = OrderCreation.Field()
+    create_payment = OrderPaymentMutation.Field()

@@ -1,10 +1,15 @@
 from django.db import models
 
 
-class PaymentTypeChoices(models.TextChoices):
+class OrderPaymentTypeChoices(models.TextChoices):
     ONLINE = 'online'
     PAY_BY_INVOICE = 'pay-by-invoice'
     CASH_ON_DELIVERY = 'cash-on-delivery'
+
+
+class PaymentTypeChoices(models.TextChoices):
+    ONLINE = 'online'
+    CASH = 'cash'
 
 
 class InvoiceStatusChoices(models.TextChoices):

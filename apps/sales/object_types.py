@@ -47,6 +47,7 @@ class SellCartType(DjangoObjectType):
     """
     id = graphene.ID(required=True)
     ordered_quantity = graphene.Int()
+    due_amount = graphene.Decimal()
 
     class Meta:
         model = SellCart
@@ -65,6 +66,7 @@ class UserCartType(DjangoObjectType):
     """
     id = graphene.ID(required=True)
     is_full_paid = graphene.Boolean()
+    due_amount = graphene.Decimal()
 
     class Meta:
         model = UserCart
@@ -82,6 +84,7 @@ class OrderType(DjangoObjectType):
         define django object type for Order model with Order filter-set
     """
     id = graphene.ID(required=True)
+    due_amount = graphene.Decimal()
 
     class Meta:
         model = Order

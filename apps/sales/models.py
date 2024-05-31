@@ -3,7 +3,12 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from apps.bases.models import BaseWithoutID, SoftDeletion
-from apps.sales.choices import DecisionChoices, InvoiceStatusChoices, PaymentTypeChoices
+from apps.sales.choices import (
+    DecisionChoices,
+    InvoiceStatusChoices,
+    OrderPaymentTypeChoices,
+    PaymentTypeChoices,
+)
 
 
 class PaymentMethod(BaseWithoutID, SoftDeletion):
@@ -83,6 +88,11 @@ class SellCart(BaseWithoutID):
     def ordered_quantity(self):
         return self.quantity - self.cancelled
 
+    @property
+    def due_amount(self):
+        paid_amount = self.users.aggregate(paid=models.Sum('paid_amount'))['paid'] or 0
+        return self.total_price_with_tax - paid_amount
+
 
 class UserCart(BaseWithoutID):
     cart = models.ForeignKey(
@@ -92,7 +102,7 @@ class UserCart(BaseWithoutID):
         to='users.User', on_delete=models.DO_NOTHING, related_name='cart_items'
     )
     payment_type = models.CharField(
-        max_length=16, choices=PaymentTypeChoices.choices, default=PaymentTypeChoices.PAY_BY_INVOICE
+        max_length=16, choices=OrderPaymentTypeChoices.choices, default=OrderPaymentTypeChoices.PAY_BY_INVOICE
     )
     paid_amount = models.DecimalField(
         max_digits=10,
@@ -107,6 +117,10 @@ class UserCart(BaseWithoutID):
     @property
     def is_full_paid(self):
         return self.cart.price_with_tax <= self.paid_amount
+
+    @property
+    def due_amount(self):
+        return self.cart.price_with_tax - self.paid_amount
 
 
 class AlterCart(BaseWithoutID):
@@ -136,7 +150,7 @@ class Order(BaseWithoutID, SoftDeletion):
     note = models.TextField(blank=True, null=True)
     coupon = models.ForeignKey('users.Coupon', on_delete=models.DO_NOTHING, blank=True, null=True)
     payment_type = models.CharField(
-        max_length=16, choices=PaymentTypeChoices.choices, default=PaymentTypeChoices.PAY_BY_INVOICE
+        max_length=16, choices=OrderPaymentTypeChoices.choices, default=OrderPaymentTypeChoices.PAY_BY_INVOICE
     )
     delivery_date = models.DateField()
     company_allowance = models.PositiveIntegerField(
@@ -186,6 +200,10 @@ class Order(BaseWithoutID, SoftDeletion):
             self.final_price, self.company_allowance, self.paid_amount
         )
         super(Order, self).save(*args, **kwargs)
+
+    @property
+    def due_amount(self):
+        return self.final_price - self.paid_amount
 
     def get_payment_status(self, final_price, company_allowance, paid_amount):
         return (final_price * company_allowance / 100) <= paid_amount
@@ -253,6 +271,15 @@ class OrderPayment(BaseWithoutID):
     )
     user_carts = models.ManyToManyField(
         to=UserCart, blank=True
+    )
+    company = models.ForeignKey(
+        to='users.Company', on_delete=models.SET_NULL, related_name='payments', null=True
+    )
+    payment_for = models.ForeignKey(
+        to='users.User', on_delete=models.SET_NULL, related_name='payments', null=True, blank=True
+    )
+    payment_type = models.CharField(
+        max_length=16, choices=PaymentTypeChoices.choices, default=PaymentTypeChoices.CASH
     )
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     note = models.TextField(blank=True, null=True)

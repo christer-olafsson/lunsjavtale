@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import BillingAddress, PaymentMethod, ProductRating
+from .models import BillingAddress, OrderPayment, PaymentMethod, ProductRating
 
 User = get_user_model()
 
@@ -34,3 +34,13 @@ class BillingAddressForm(forms.ModelForm):
     class Meta:
         model = BillingAddress
         exclude = ['order']
+
+
+class OrderPaymentForm(forms.ModelForm):
+    """
+        BillingAddress model form will define here
+    """
+
+    class Meta:
+        model = OrderPayment
+        exclude = ['created_by', 'payment_info', 'payment_type']

@@ -93,7 +93,7 @@ class CompanyMutationForAdmin(DjangoModelFormMutation):
     def mutate_and_get_payload(self, info, **input):
         logged_user = info.context.user
         if logged_user.is_admin or (
-                logged_user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and logged_user.company.id == input.get('id')):
+                logged_user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and logged_user.company.id == int(input.get('id'))):
             pass
         else:
             raise_graphql_error("Not allowed for this operation.")
@@ -1122,6 +1122,54 @@ class PasswordResetAdmin(graphene.Mutation):
         )
 
 
+class PasswordResetCompany(graphene.Mutation):
+    """
+    Password Rest Mutation::
+    after getting rest mail user will
+    get a link to reset password.
+    To verify Password:
+        1. password length should min 8.
+        2. not similar to username or email.
+        3. password must contain number
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        user = graphene.String(required=True)
+        password1 = graphene.String(required=True)
+        password2 = graphene.String(required=True)
+
+    @is_company_user
+    def mutate(
+            self,
+            info,
+            user,
+            password1,
+            password2
+    ):
+        logged_user = info.context.user
+        user = User.objects.filter(id=user, company=logged_user.company).first()
+        if not user:
+            raise_graphql_error("No user found.")
+        validate_password(password1)
+        if not password1 == password2:
+            raise_graphql_error("Password does not match.", "invalid_password")
+        user.set_password(password2)
+        user.save()
+        UnitOfHistory.user_history(
+            action=HistoryActions.PASSWORD_RESET,
+            user=logged_user,
+            perform_for=user,
+            request=info.context
+        )
+        return PasswordResetCompany(
+            success=True,
+            message="Password reset successful",
+        )
+
+
 class ProfilePictureUpload(graphene.Mutation):
     """
     Upload Profile Picture Mutation::
@@ -1422,7 +1470,7 @@ class VerifyProfilePicture(graphene.Mutation):
             raise_graphql_error("User not found.", "user_not_exist")
 
 
-class AddNewAdmin(DjangoModelFormMutation):
+class AddAdministrator(DjangoModelFormMutation):
     """
         Will take email, username and password as required fields.
         And super_user field to define whether admin super-user or staff user.
@@ -1439,6 +1487,10 @@ class AddNewAdmin(DjangoModelFormMutation):
     def mutate_and_get_payload(self, info, **input):
         form = AdminRegistrationForm(data=input)
         if form.is_valid():
+            if form.cleaned_data.get('role') not in [
+                RoleTypeChoices.ADMIN, RoleTypeChoices.DEVELOPER
+            ]:
+                raise_graphql_error("Select a valid choice.", field_name="role")
             if form.cleaned_data['password'] and validate_password(form.cleaned_data['password']):
                 pass
             super_user = form.cleaned_data['super_user']
@@ -1459,8 +1511,8 @@ class AddNewAdmin(DjangoModelFormMutation):
             perform_for=user,
             request=info.context
         )
-        return AddNewAdmin(
-            message="New admin successfully added.",
+        return AddAdministrator(
+            message="New administrator successfully added.",
             success=True,
             user=user
         )
@@ -1685,6 +1737,7 @@ class Mutation(graphene.ObjectType):
     company_status_change = ChangeCompanyStatus.Field()
     register_company_owner = CompanyOwnerRegistration.Field()
     create_company_staff = UserCreationMutation.Field()
+    reset_password_company_staff = PasswordResetCompany.Field()
     address_mutation = AddressMutation.Field()
     address_delete = AddressDelete.Field()
     company_billing_address_mutation = CompanyBillingAddressMutation.Field()
@@ -1714,7 +1767,7 @@ class Mutation(graphene.ObjectType):
     user_block_or_unblock = UserBlockUnBlock.Field()
     user_delete = UserDelete.Field()
     profile_picture_verification = VerifyProfilePicture.Field()
-    add_new_admin = AddNewAdmin.Field()
+    add_new_administrator = AddAdministrator.Field()
 
     agreement_mutation = AgreementMutation.Field()
     accept_agreement_mutation = AcceptAgreementMutation.Field()
