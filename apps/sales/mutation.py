@@ -14,6 +14,10 @@ from apps.bases.utils import (
 )
 from backend.permissions import is_admin_user, is_authenticated, is_company_user
 
+from ..notifications.tasks import (
+    notify_company_order_update,
+    send_admin_notification_and_save,
+)
 from ..scm.models import Ingredient, Product
 from ..users.choices import RoleTypeChoices
 from .choices import (
@@ -160,7 +164,7 @@ class EditCartMutation(graphene.Mutation):
     @is_company_user
     def mutate(self, info, id, quantity, added_for, **kwargs):
         user = info.context.user
-        carts = user.added_carts.all()
+        carts = SellCart.objects.filter(Q(added_by=user) | Q(order__company=user.company))
         obj = carts.get(
             Q(order__isnull=True) | Q(order__status__in=[
                 InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING
@@ -177,6 +181,26 @@ class EditCartMutation(graphene.Mutation):
         return EditCartMutation(
             success=True,
             message="Successfully updated",
+        )
+
+
+class SendCartRequest(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    @is_authenticated
+    def mutate(self, info, id, quantity, added_for, **kwargs):
+        user = info.context.user
+        carts = user.added_carts.all()
+        if not carts.exists():
+            raise_graphql_error("No item added.")
+        carts.update(is_requested=True)
+        return SendCartRequest(
+            success=True,
+            message="Successfully requested",
         )
 
 
@@ -216,7 +240,10 @@ class ApproveCart(graphene.Mutation):
     @is_company_user
     def mutate(self, info, ids, **kwargs):
         user = info.context.user
-        carts = SellCart.objects.filter(add_by__role=RoleTypeChoices.COMPANY_EMPLOYEE, id__in=ids)
+        carts = SellCart.objects.filter(
+            added_by__role=RoleTypeChoices.COMPANY_EMPLOYEE, added_by__company=user.company, id__in=ids,
+            is_requested=True
+        )
         for qt in carts:
             cart, created = SellCart.objects.get_or_create(item=qt.item, added_by=user, date=qt.date)
             cart.quantity = 1 if created else cart.quantity + 1
@@ -263,12 +290,9 @@ class OrderCreation(graphene.Mutation):
                 for err in billing_form.errors[error]:
                     error_data[camel_case_format(error)] = err
             raise_graphql_error_with_fields("Invalid input request.", error_data)
-        print(billing_form.data)
         billing_form_data = billing_form.data
         dates = set(list(carts.values_list('date', flat=True)))
-        print(dates)
         for date in dates:
-            print(user.company, user, payment_type, company_allowance, shipping_address, date)
             obj = Order.objects.create(
                 company=user.company, created_by=user, payment_type=payment_type,
                 company_allowance=company_allowance, shipping_address=shipping_address,
@@ -286,6 +310,10 @@ class OrderCreation(graphene.Mutation):
             if payment_type == OrderPaymentTypeChoices.ONLINE:
                 OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
             notify_user_carts.delay(obj.id)
+        send_admin_notification_and_save.delay(
+            title="Order placed",
+            message="New orders placed "
+        )
         return OrderCreation(
             success=True
         )
@@ -309,7 +337,7 @@ class OrderStatusUpdate(graphene.Mutation):
         if status not in InvoiceStatusChoices:
             raise_graphql_error("Status not valid.")
         OrderStatus.objects.create(order=obj, status=status)
-        # notify_company()
+        notify_company_order_update.delay(obj.id)
         return OrderStatusUpdate(
             success=True,
             message="Successfully updated",
@@ -331,7 +359,9 @@ class UserCartUpdate(graphene.Mutation):
     def mutate(self, info, id, item):
         user = info.context.user
         obj = SellCart.objects.get(
-            id=id, added_for=user, order__status__in=[InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED]
+            id=id, added_for=user, order__status__in=[
+                InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING
+            ]
         )
         product = Product.objects.get(id=item, category=obj.item.category)
         user_cart = UserCart.objects.get(cart=obj, added_for=user)
@@ -491,6 +521,7 @@ class Mutation(graphene.ObjectType):
     add_product_rating = AddProductRating.Field()
 
     add_to_cart = AddToCart.Field()
+    send_cart_request = SendCartRequest.Field()
     remove_cart = RemoveCart.Field()
     cart_update = EditCartMutation.Field()
     remove_product_cart = RemoveProductCart.Field()

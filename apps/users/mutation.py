@@ -1075,6 +1075,56 @@ class PasswordReset(graphene.Mutation):
         )
 
 
+class UserPasswordReset(graphene.Mutation):
+    """
+    Password Rest Mutation::
+    after getting rest mail user will
+    get a link to reset password.
+    To verify Password:
+        1. password length should min 8.
+        2. not similar to username or email.
+        3. password must contain number
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+        password1 = graphene.String(required=True)
+        password2 = graphene.String(required=True)
+
+    @is_authenticated
+    def mutate(
+            self,
+            info,
+            id,
+            password
+    ):
+        logged_user = info.context.user
+        if logged_user.is_admin:
+            user = User.objects.filter(id=id).first()
+        elif logged_user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
+            user = User.objects.filter(id=id, company=logged_user.company).first()
+        else:
+            user = User.objects.filter(id=None).first()
+        if not user:
+            raise_graphql_error("No user is associate with this email.", "invalid_email")
+        validate_password(password)
+        user.set_password(password)
+        user.save()
+        UnitOfHistory.user_history(
+            action=HistoryActions.PASSWORD_RESET,
+            user=logged_user,
+            perform_for=user,
+            request=info.context
+        )
+        return UserPasswordReset(
+            success=True,
+            message="Password reset successful",
+        )
+
+
 class PasswordResetAdmin(graphene.Mutation):
     """
     Password Rest Mutation::
@@ -1485,19 +1535,29 @@ class AddAdministrator(DjangoModelFormMutation):
 
     @is_super_admin
     def mutate_and_get_payload(self, info, **input):
+        roles = [
+            RoleTypeChoices.SUB_ADMIN, RoleTypeChoices.DEVELOPER, RoleTypeChoices.EDITOR,
+            RoleTypeChoices.SEO_MANAGER, RoleTypeChoices.SYSTEM_MANAGER
+        ]
         form = AdminRegistrationForm(data=input)
+        if input.get('id'):
+            form = AdminRegistrationForm(
+                data=input, instance=User.objects.get(id=input.get('id'), role__in=roles))
         if form.is_valid():
-            if form.cleaned_data.get('role') not in [
-                RoleTypeChoices.ADMIN, RoleTypeChoices.DEVELOPER
-            ]:
+            if form.cleaned_data.get('role') not in roles:
                 raise_graphql_error("Select a valid choice.", field_name="role")
-            if form.cleaned_data['password'] and validate_password(form.cleaned_data['password']):
+            if validate_password(form.cleaned_data['password']):
                 pass
-            super_user = form.cleaned_data['super_user']
-            del form.cleaned_data['super_user']
-            user = User.objects.create_user(**form.cleaned_data)
-            user.is_staff = True
-            user.is_superuser = super_user
+            super_user = form.cleaned_data.pop('super_user', False)
+            if form.cleaned_data.get('id'):
+                user = User.objects.create_user(**form.cleaned_data)
+            else:
+                del form.cleaned_data['password']
+                user = User.objects.get(id=form.cleaned_data.get('id'))
+                User.objects.filter(id=user.id).update(**form.cleaned_data)
+            if super_user:
+                user.is_staff = True
+                user.is_superuser = super_user
             user.save()
         else:
             error_data = {}
@@ -1746,6 +1806,7 @@ class Mutation(graphene.ObjectType):
     vendor_block_unblock = VendorBlockUnBlock.Field()
     vendor_delete = VendorDelete.Field()
     withdraw_request_mutation = VendorWithdrawRequest.Field()
+    user_password_reset = UserPasswordReset.Field()
 
     login_user = LoginUser.Field()
     logout = ExpiredAllToken.Field()

@@ -80,12 +80,19 @@ class OrderFilters(BaseFilterOrderBy):
     company = django_filters.CharFilter(
         field_name="company__id", lookup_expr="exact"
     )
+    delivery_date_start = django_filters.CharFilter(
+        field_name='delivery_date', lookup_expr='gte'
+    )
+    delivery_date_end = django_filters.CharFilter(
+        field_name='delivery_date', lookup_expr='lte'
+    )
 
     class Meta:
         model = Order
         fields = [
             'id',
             'status',
+            'delivery_date',
         ]
 
 

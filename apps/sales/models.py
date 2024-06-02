@@ -75,6 +75,7 @@ class SellCart(BaseWithoutID):
         default=0
     )
     ingredients = models.ManyToManyField(to='scm.Ingredient', blank=True)
+    is_requested = models.BooleanField(default=False)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_sell_carts"  # define table name for database

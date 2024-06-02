@@ -1,4 +1,5 @@
 # at backend/users/schema.py
+import decimal
 
 import graphene
 from django.contrib.auth import get_user_model
@@ -73,8 +74,8 @@ class UserType(DjangoObjectType):
 
     @staticmethod
     def resolve_due_amount(self, info, **kwargs):
-        paid_amount = self.cart_items.aggregate(paid=Sum('paid_amount'))['paid'] or 0
-        order_amount = self.cart_items.aggregate(price=Sum('cart__price_with_tax'))['price'] or 0
+        paid_amount = self.cart_items.aggregate(paid=Sum('paid_amount'))['paid'] or decimal.Decimal(0)
+        order_amount = self.cart_items.aggregate(price=Sum('cart__price_with_tax'))['price'] or decimal.Decimal(0)
         return order_amount - paid_amount
 
 

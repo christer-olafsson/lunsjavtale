@@ -13,7 +13,7 @@ class PaymentMethodForm(forms.ModelForm):
 
     class Meta:
         model = PaymentMethod
-        exclude = ['user']
+        exclude = ['user', 'is_deleted', 'deleted_on']
 
 
 class ProductRatingForm(forms.ModelForm):

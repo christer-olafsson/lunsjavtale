@@ -152,7 +152,8 @@ class VendorUpdateForm(forms.ModelForm):
     class Meta:
         model = Vendor
         fields = (
-            "name", "email", 'contact', 'post_code', 'logo_url', 'file_id', 'formation_date', 'social_media_links'
+            "name", "email", 'contact', 'post_code', 'logo_url', 'file_id', 'formation_date', 'social_media_links',
+            'is_blocked'
         )
 
 

@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.sales.choices import InvoiceStatusChoices
 from apps.sales.models import Order
-from apps.users.choices import DeviceTypeChoices
+from apps.users.choices import DeviceTypeChoices, RoleTypeChoices
 from apps.users.models import UserDeviceToken
 
 # local imports
@@ -19,6 +19,18 @@ from .choices import AudienceTypeChoice, NotificationTypeChoice
 from .models import Notification
 
 User = get_user_model()
+
+
+@app.task
+def notify_company_order_update(id):
+    order = Order.objects.get(id=id)
+    users = list(order.company.users.filter(
+        role__in=[RoleTypeChoices.COMPANY_MANAGER, RoleTypeChoices.COMPANY_OWNER]).values_list('id', flat=True))
+    send_bulk_notification_and_save(
+        user_ids=users,
+        title="Order status update.",
+        message=f"Order status was updated for id -> {id}"
+    )
 
 
 @app.task
@@ -48,6 +60,31 @@ def send_bulk_notification_and_save(user_ids, title, message, n_type=Notificatio
     users = User.objects.filter(id__in=user_ids)
     tokens = list(UserDeviceToken.objects.filter(
         user__in=users).order_by('device_token').values_list('device_token', flat=True).distinct())
+    notification = Notification.objects.create(
+        # user=instance.sender,
+        title=title,
+        message=message,
+        notification_type=n_type,
+        object_id=object_id,
+        audience_type=audience_type
+    )
+    notification.sent_on = timezone.now()
+    notification.save()
+    notification.users.add(*users)
+    if tokens:
+        send_bulk_notification(title, message, tokens, n_type)
+    else:
+        getLogger().error("No user device token found.")
+
+
+@app.task
+def send_admin_notification_and_save(
+        title, message, n_type=NotificationTypeChoice.ALERT, audience_type=AudienceTypeChoice.ADMINS, object_id=None
+):
+    user_tokens = UserDeviceToken.objects.filter(user__is_staff=True, user__is_active=True)
+    tokens = list(set(list(user_tokens.values_list('device_token', flat=True).distinct())))
+    admins = list(set(list(user_tokens.values_list('user__email').distinct())))
+    users = User.objects.filter(email__in=[user[0] for user in admins])
     notification = Notification.objects.create(
         # user=instance.sender,
         title=title,
@@ -190,8 +227,8 @@ def send_admin_notification(instance, created):
     admins = list(set(list(user_tokens.values_list('user__email').distinct())))
     admins = User.objects.filter(email__in=[user[0] for user in admins])
     if admins:
-        title = "New sell-order added" if created else "Sell-order updated",
-        message = "New sell-order added" if created else "Sell-order updated" + " and waiting for approval.",
+        title = "New order added" if created else "Order updated",
+        message = "New order added" if created else "Order updated" + " and waiting for approval.",
         notification_type = NotificationTypeChoice.ORDER_PLACED
         if tokens:
             send_user_bulk_notification(title, message, tokens, notification_type)
@@ -243,7 +280,7 @@ def send_order_creation_mail(order_id):
     <head></head>
     <body>
       <p>Subject: Your Order {0} has been placed successfully</p>
-      <p><b>DUBAI REFRESHMENT</b></p>
+      <p><b>Lunsjavtale</b></p>
       <p>Dear Valued Customer,</p>
       <p>Thank you for your order! We hope you have enjoyed shopping with us.</p>
       <p>Your order will be delivered within 24 to 48 hours.</p>
@@ -254,15 +291,15 @@ def send_order_creation_mail(order_id):
       <p>Shipping address: {4}</p>
       <p>Order status: {5}</p>
       <p>Regards,</p>
-      <p>DUBAI REFRESHMENT PJSC</p>
+      <p>Lunsjavtale</p>
     </body>
     </html>
     """.format(
-        order.sap_order_id if order.sap_order_id else "",
+        order.id,
         order.created_on.strftime('%d/%m/%Y %I:%M %p'),
-        order.b2b_customer.sap_customer_id,
-        order.b2b_customer.name,
-        order.address.address,
+        order.company.id,
+        order.company.name,
+        order.shipping_address.address,
         "Placed",
     )
     send_direct_mail_by_default_bcc(SUBJECT, body, order.b2b_customer.user.email)

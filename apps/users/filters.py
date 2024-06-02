@@ -53,6 +53,10 @@ class UserFilters(BaseFilterOrderBy):
         field_name='email',
         lookup_expr='icontains'
     )
+    company = django_filters.CharFilter(
+        field_name='company__id',
+        lookup_expr='exact'
+    )
     created_on = django_filters.CharFilter(
         field_name='created_on__date', lookup_expr='exact'
     )
@@ -233,6 +237,7 @@ class VendorFilters(BaseFilterOrderBy):
         model = Vendor
         fields = [
             'id',
+            'is_blocked',
         ]
 
 
@@ -263,6 +268,7 @@ class CouponFilters(BaseFilterOrderBy):
         model = Coupon
         fields = [
             'id',
+            'is_active',
         ]
 
 

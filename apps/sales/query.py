@@ -150,7 +150,9 @@ class Query(graphene.ObjectType):
     @is_company_user
     def resolve_added_employee_carts(self, info, **kwargs):
         user = info.context.user
-        qs = SellCart.objects.filter(added_by__role=RoleTypeChoices.COMPANY_EMPLOYEE, added_by__company=user.company)
+        qs = SellCart.objects.filter(
+            added_by__role=RoleTypeChoices.COMPANY_EMPLOYEE, added_by__company=user.company, is_requested=True
+        )
         return qs
 
     @is_authenticated
