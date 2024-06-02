@@ -93,7 +93,7 @@ class CompanyMutationForAdmin(DjangoModelFormMutation):
     def mutate_and_get_payload(self, info, **input):
         logged_user = info.context.user
         if logged_user.is_admin or (
-                logged_user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and logged_user.company.id == int(input.get('id'))):
+                logged_user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER] and logged_user.company.id == int(input.get('id'))):
             pass
         else:
             raise_graphql_error("Not allowed for this operation.")
@@ -120,7 +120,7 @@ class CompanyMutationForAdmin(DjangoModelFormMutation):
             user_input = {
                 'email': input.get('working_email'),
                 'phone': input.get('contact'),
-                'role': RoleTypeChoices.OWNER,
+                'role': RoleTypeChoices.COMPANY_OWNER,
                 'first_name': input.get('first_name'),
                 'address': input.get('address'),
                 'post_code': input.get('post_code')
@@ -193,7 +193,7 @@ class ValidCompanyMutation(DjangoFormMutation):
         user_input = {
             'email': input.get('working_email'),
             'phone': input.get('contact'),
-            'role': RoleTypeChoices.OWNER,
+            'role': RoleTypeChoices.COMPANY_OWNER,
             'password': input.get('password'),
             'first_name': input.get('first_name'),
             'post_code': input.get('post_code')
@@ -540,7 +540,7 @@ class VendorWithdrawRequest(graphene.Mutation):
 #         input = {
 #             'email': company.working_email,
 #             'phone': company.contact,
-#             'role': RoleTypeChoices.OWNER
+#             'role': RoleTypeChoices.COMPANY_OWNER
 #         }
 #         form = UserRegistrationForm(data=input)
 #         if form.is_valid() and not errors:
@@ -587,7 +587,7 @@ class CompanyOwnerRegistration(graphene.Mutation):
             'email': company.working_email,
             'phone': company.contact,
             'post_code': company.post_code,
-            'role': RoleTypeChoices.OWNER
+            'role': RoleTypeChoices.COMPANY_OWNER
         }
         form = UserRegistrationForm(data=input)
         if form.is_valid() and not errors:
@@ -629,12 +629,12 @@ class UserCreationMutation(DjangoModelFormMutation):
     def mutate_and_get_payload(self, info, **input) -> object:
         user = info.context.user
         company = user.company
-        if not user.company or user.role not in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER]:
+        if not user.company or user.role not in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
             raise_graphql_error("User not permitted to this operation.")
         error_data = {}
-        if user.role == RoleTypeChoices.MANAGER and input.get('role') not in [RoleTypeChoices.EMPLOYEE]:
+        if user.role == RoleTypeChoices.COMPANY_MANAGER and input.get('role') not in [RoleTypeChoices.COMPANY_EMPLOYEE]:
             error_data['role'] = 'Selected role is not valid.'
-        elif input.get('role') not in [RoleTypeChoices.EMPLOYEE, RoleTypeChoices.MANAGER]:
+        elif input.get('role') not in [RoleTypeChoices.COMPANY_EMPLOYEE, RoleTypeChoices.COMPANY_MANAGER]:
             error_data['role'] = 'Selected role is not valid.'
         form = UserCreationForm(data=input)
         if form.data.get('id'):
@@ -682,7 +682,7 @@ class AddressMutation(DjangoModelFormMutation):
                 Company.objects.get(id=input.get('company'))
             except Exception:
                 error_data['company'] = "This field is required."
-        elif user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER]:
+        elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
             input['company'] = user.company.id
         else:
             raise_graphql_error("User not permitted.")
@@ -1384,7 +1384,7 @@ class UserDelete(graphene.Mutation):
             logged_in_user = info.context.user
             if logged_in_user.is_admin:
                 user = User.objects.get(email=email)
-            elif logged_in_user.role in [RoleTypeChoices.OWNER]:
+            elif logged_in_user.role in [RoleTypeChoices.COMPANY_OWNER]:
                 user = User.objects.get(email=email, company=logged_in_user.company)
             else:
                 user = User.objects.get(id=None)

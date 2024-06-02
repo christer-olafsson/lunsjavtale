@@ -19,7 +19,7 @@ def is_authenticated(func):
 def is_company_user(func):
     def wrapper(cls, info, **kwargs):
         user = info.context.user
-        if not user or not user.company or user.role not in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER]:
+        if not user or not user.company or user.role not in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
             raise GraphQLError(
                 message='You are not authorized user.',
                 extensions={

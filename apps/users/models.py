@@ -131,11 +131,11 @@ class Company(BaseWithoutID, SoftDeletion):
 
     @property
     def owner(self):
-        return self.users.filter(role=RoleTypeChoices.OWNER).last()
+        return self.users.filter(role=RoleTypeChoices.COMPANY_OWNER).last()
 
     @property
     def is_owner_generated(self):
-        return self.users.filter(role=RoleTypeChoices.OWNER).exists()
+        return self.users.filter(role=RoleTypeChoices.COMPANY_OWNER).exists()
 
     @property
     def is_valid(self):

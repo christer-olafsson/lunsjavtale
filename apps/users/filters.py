@@ -179,7 +179,7 @@ class CompanyFilters(BaseFilterOrderBy):
 
     def is_owner_generated_filter(self, qs, name, value):
         owner_companies = User.objects.filter(
-            role=RoleTypeChoices.OWNER).order_by('company_id').values_list('company_id', flat=True).distinct()
+            role=RoleTypeChoices.COMPANY_OWNER).order_by('company_id').values_list('company_id', flat=True).distinct()
         if value:
             qs = qs.filter(id__in=owner_companies)
         else:

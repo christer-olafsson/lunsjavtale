@@ -84,7 +84,7 @@ class Query(graphene.ObjectType):
         user = info.context.user
         if user.is_admin:
             qs = OrderPayment.objects.all()
-        elif user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER]:
+        elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
             qs = OrderPayment.objects.filter(Q(order__company=user.company) | Q(user_cart__added_for=user))
         else:
             qs = OrderPayment.objects.filter(user_cart__added_for=user)
@@ -95,7 +95,7 @@ class Query(graphene.ObjectType):
         user = info.context.user
         if user.is_admin:
             qs = OrderPayment.objects.filter(id=id)
-        elif user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER]:
+        elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
             qs = OrderPayment.objects.filter(Q(order__company=user.company) | Q(user_cart__added_for=user), id=id)
         else:
             qs = OrderPayment.objects.filter(user_cart__added_for=user, id=id)
@@ -150,7 +150,7 @@ class Query(graphene.ObjectType):
     @is_company_user
     def resolve_added_employee_carts(self, info, **kwargs):
         user = info.context.user
-        qs = SellCart.objects.filter(added_by__role=RoleTypeChoices.EMPLOYEE, added_by__company=user.company)
+        qs = SellCart.objects.filter(added_by__role=RoleTypeChoices.COMPANY_EMPLOYEE, added_by__company=user.company)
         return qs
 
     @is_authenticated

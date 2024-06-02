@@ -106,12 +106,12 @@ class AddToCart(graphene.Mutation):
     @is_authenticated
     def mutate(self, info, item, ingredients, dates):
         user = info.context.user
-        if user.role not in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER, RoleTypeChoices.EMPLOYEE]:
+        if user.role not in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER, RoleTypeChoices.COMPANY_EMPLOYEE]:
             raise_graphql_error("User not permitted.")
         item = Product.objects.get(id=item)
         for qt in dates:
             cart, created = SellCart.objects.get_or_create(item=item, added_by=user, date=qt['date'])
-            cart.quantity = qt['quantity'] if user.role != RoleTypeChoices.EMPLOYEE else 1
+            cart.quantity = qt['quantity'] if user.role != RoleTypeChoices.COMPANY_EMPLOYEE else 1
             cart.price = item.actual_price
             cart.price_with_tax = item.price_with_tax
             cart.save()
@@ -162,7 +162,7 @@ class EditCartMutation(graphene.Mutation):
         user = info.context.user
         carts = user.added_carts.all()
         obj = carts.get(
-            Q(order__isnull=True) | Q(order_status__in=[
+            Q(order__isnull=True) | Q(order__status__in=[
                 InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING
             ]), id=id
         )
@@ -216,7 +216,7 @@ class ApproveCart(graphene.Mutation):
     @is_company_user
     def mutate(self, info, ids, **kwargs):
         user = info.context.user
-        carts = SellCart.objects.filter(add_by__role=RoleTypeChoices.EMPLOYEE, id__in=ids)
+        carts = SellCart.objects.filter(add_by__role=RoleTypeChoices.COMPANY_EMPLOYEE, id__in=ids)
         for qt in carts:
             cart, created = SellCart.objects.get_or_create(item=qt.item, added_by=user, date=qt.date)
             cart.quantity = 1 if created else cart.quantity + 1
@@ -464,7 +464,7 @@ class OrderPaymentMutation(DjangoFormMutation):
             obj.created_by = user
             obj.payment_type = PaymentTypeChoices.CASH
             obj.save()
-            make_previous_payment(obj.id)
+            make_previous_payment.delay(obj.id)
         else:
             error_data = {}
             for error in form.errors:

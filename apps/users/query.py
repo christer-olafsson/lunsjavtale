@@ -81,7 +81,7 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_company_staffs(self, info, **kwargs) -> object:
         user = info.context.user
-        if user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and user.company:
+        if user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER] and user.company:
             return User.objects.filter(company=user.company)
         return User.objects.filter(id=user.id)
 
@@ -90,7 +90,7 @@ class Query(graphene.ObjectType):
         user = info.context.user
         if user.is_admin:
             users = User.objects.all()
-        elif user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and user.company:
+        elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER] and user.company:
             users = User.objects.filter(company=user.company)
         else:
             users = User.objects.filter(id=user.id)
@@ -182,6 +182,6 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_addresses(self, info, **kwargs) -> object:
         user = info.context.user
-        if user.role in [RoleTypeChoices.OWNER, RoleTypeChoices.MANAGER] and user.company:
+        if user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER] and user.company:
             return Address.objects.filter(company=user.company, is_deleted=False)
         return Address.objects.filter(id=None)

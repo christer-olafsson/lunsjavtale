@@ -36,12 +36,16 @@ class RoleTypeChoices(models.TextChoices):
         define selection choices for roles
     """
     ADMIN = "admin"
+    EDITOR = "editor"
     DEVELOPER = "developer"
+    SUB_ADMIN = "sub-admin"
+    SEO_MANAGER = "seo-manager"
+    SYSTEM_MANAGER = "system-manager"
     USER = "user"
     VENDOR = "vendor"
-    OWNER = "owner"
-    MANAGER = "manager"
-    EMPLOYEE = "employee"
+    COMPANY_OWNER = "company-owner"
+    COMPANY_MANAGER = "company-manager"
+    COMPANY_EMPLOYEE = "company-employee"
 
 
 class AgreementChoices(models.TextChoices):
