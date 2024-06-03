@@ -192,7 +192,7 @@ class SendCartRequest(graphene.Mutation):
     message = graphene.String()
 
     @is_authenticated
-    def mutate(self, info, id, quantity, added_for, **kwargs):
+    def mutate(self, info, **kwargs):
         user = info.context.user
         carts = user.added_carts.all()
         if not carts.exists():
@@ -309,7 +309,7 @@ class OrderCreation(graphene.Mutation):
             user.company.save()
             if payment_type == OrderPaymentTypeChoices.ONLINE:
                 OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
-            notify_user_carts.delay(obj.id)
+            notify_user_carts(obj.id)
         send_admin_notification_and_save.delay(
             title="Order placed",
             message="New orders placed "
@@ -433,6 +433,7 @@ class ConfirmUserCartUpdate(graphene.Mutation):
             obj.previous_cart.cancelled += 1
             obj.previous_cart.save()
             cart.order.save()
+            add_user_carts.delay(cart.id)
             OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.UPDATED)
         return ConfirmUserCartUpdate(
             success=True,

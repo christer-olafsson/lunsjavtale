@@ -72,6 +72,9 @@ class UserFilters(BaseFilterOrderBy):
     is_blocked = django_filters.BooleanFilter(
         method='is_blocked_filter'
     )
+    roles = django_filters.CharFilter(
+        method='roles_filter'
+    )
 
     def is_blocked_filter(self, qs, name, value):
         if value:
@@ -82,6 +85,12 @@ class UserFilters(BaseFilterOrderBy):
             qs = qs.exclude(
                 is_active=False, deactivation_reason=''
             )
+        return qs
+
+    def roles_filter(self, qs, name, value):
+        qs = qs.filter(
+            role__in=value.split(',')
+        )
         return qs
 
     class Meta:

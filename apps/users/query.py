@@ -73,8 +73,9 @@ class Query(graphene.ObjectType):
     @is_admin_user
     def resolve_system_users(self, info, **kwargs) -> object:
         return User.objects.filter(
-            role_in=[
-                RoleTypeChoices.ADMIN, RoleTypeChoices.DEVELOPER
+            role__in=[
+                RoleTypeChoices.ADMIN, RoleTypeChoices.DEVELOPER, RoleTypeChoices.SUB_ADMIN, RoleTypeChoices.EDITOR,
+                RoleTypeChoices.SEO_MANAGER, RoleTypeChoices.SYSTEM_MANAGER
             ]
         )
 

@@ -23,6 +23,7 @@ class InvoiceStatusChoices(models.TextChoices):
     PARTIALLY_PAID = 'Partially-paid'
     PAYMENT_PENDING = 'Payment-pending'
     PAYMENT_COMPLETED = 'Payment-completed'
+    DELIVERED = 'Delivered'
 
 
 class DecisionChoices(models.TextChoices):

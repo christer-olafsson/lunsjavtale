@@ -1091,8 +1091,7 @@ class UserPasswordReset(graphene.Mutation):
 
     class Arguments:
         id = graphene.ID(required=True)
-        password1 = graphene.String(required=True)
-        password2 = graphene.String(required=True)
+        password = graphene.String(required=True)
 
     @is_authenticated
     def mutate(
