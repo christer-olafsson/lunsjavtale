@@ -1341,11 +1341,12 @@ class EmailVerify(graphene.Mutation):
 
     def mutate(self, info, token):
         user_exist = User.objects.filter(activation_token=token)
-        if user_exist:
+        if user_exist.exists():
+            user = user_exist.last()
             if user_exist.filter(is_email_verified=True, is_verified=True):
                 raise_graphql_error("User already verified.")
             user_exist.update(is_email_verified=True, is_verified=True, activation_token=None)
-            send_account_activation_mail.delay(user_exist.last().email, user_exist.last().username)
+            send_account_activation_mail.delay(user.email, user.username)
         else:
             raise_graphql_error("Invalid token!", "invalid_token")
         return EmailVerify(

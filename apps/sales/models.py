@@ -121,7 +121,8 @@ class UserCart(BaseWithoutID):
 
     @property
     def due_amount(self):
-        return self.cart.price_with_tax - self.paid_amount
+        item_price = self.cart.price_with_tax - (self.cart.price_with_tax * self.cart.order.company_allowance / 100)
+        return item_price - self.paid_amount
 
 
 class AlterCart(BaseWithoutID):

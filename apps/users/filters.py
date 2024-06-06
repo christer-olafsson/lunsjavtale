@@ -75,6 +75,9 @@ class UserFilters(BaseFilterOrderBy):
     roles = django_filters.CharFilter(
         method='roles_filter'
     )
+    title = django_filters.CharFilter(
+        method='title_filter'
+    )
 
     def is_blocked_filter(self, qs, name, value):
         if value:
@@ -90,6 +93,12 @@ class UserFilters(BaseFilterOrderBy):
     def roles_filter(self, qs, name, value):
         qs = qs.filter(
             role__in=value.split(',')
+        )
+        return qs
+
+    def title_filter(self, qs, name, value):
+        qs = qs.filter(
+            Q(username__icontains=value) | Q(email__icontains=value) | Q(first_name__icontains=value) | Q(last_name__icontains=value)
         )
         return qs
 
