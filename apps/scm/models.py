@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.bases.models import BasePriceModel, BaseWithoutID, SoftDeletion
-from apps.scm.choices import MeetingTypeChoices
+from apps.scm.choices import MeetingStatusChoices, MeetingTypeChoices
 
 
 class Ingredient(BaseWithoutID, SoftDeletion):
@@ -120,6 +120,10 @@ class FoodMeeting(BaseWithoutID):
     meeting_type = models.CharField(
         max_length=32, choices=MeetingTypeChoices.choices, default=MeetingTypeChoices.IN_PERSON
     )
+    status = models.CharField(
+        max_length=32, choices=MeetingStatusChoices.choices, default=MeetingStatusChoices.PENDING
+    )
+    note = models.TextField(blank=True, null=True)
     meeting_time = models.DateTimeField()
     topics = models.ManyToManyField(
         to=Category, blank=True
@@ -136,9 +140,6 @@ class FoodMeeting(BaseWithoutID):
     last_name = models.CharField(max_length=128, blank=True, null=True)
     email = models.EmailField(max_length=128, blank=True, null=True)
     phone = models.CharField(max_length=16, blank=True, null=True)
-
-    is_contacted = models.BooleanField(default=False)
-    note = models.TextField(blank=True, null=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_food_meetings"  # define table name for database

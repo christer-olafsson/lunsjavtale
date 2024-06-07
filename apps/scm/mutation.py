@@ -5,10 +5,11 @@ from graphene_django.forms.types import DjangoFormInputObjectType
 from graphql import GraphQLError
 
 # local imports
-from apps.bases.utils import camel_case_format, get_object_by_id
+from apps.bases.utils import camel_case_format, get_object_by_id, raise_graphql_error
 from backend.permissions import is_admin_user, is_vendor_user
 
 from ..sales.models import SellCart
+from .choices import MeetingStatusChoices
 from .forms import (
     CategoryForm,
     FoodMeetingForm,
@@ -173,13 +174,15 @@ class FoodMeetingResolve(graphene.Mutation):
 
     class Arguments:
         id = graphene.ID()
+        status = graphene.String()
         note = graphene.String()
 
     @is_admin_user
-    def mutate(self, info, id, note, **kwargs):
+    def mutate(self, info, id, status, note, **kwargs):
         obj = FoodMeeting.objects.get(id=id)
+        if status not in [MeetingStatusChoices.ATTENDED, MeetingStatusChoices.POSTPONED]:
+            raise_graphql_error("Please select a valid choice.", field_name='status')
         obj.note = note
-        obj.is_contacted = True
         obj.save()
         return FoodMeetingResolve(
             success=True, message="Succesfully resolved"

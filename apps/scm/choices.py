@@ -6,3 +6,9 @@ class MeetingTypeChoices(models.TextChoices):
     INTERVIEW = 'interview'
     REMOTE = 'remote'
     OTHERS = 'others'
+
+
+class MeetingStatusChoices(models.TextChoices):
+    PENDING = 'pending'
+    ATTENDED = 'attended'
+    POSTPONED = 'postponed'

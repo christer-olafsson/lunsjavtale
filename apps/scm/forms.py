@@ -46,7 +46,7 @@ class FoodMeetingForm(forms.ModelForm):
 
     class Meta:
         model = FoodMeeting
-        exclude = ['is_contacted', 'note']
+        exclude = ['status', 'note']
 
 
 class IngredientForm(forms.ModelForm):
