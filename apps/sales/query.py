@@ -32,6 +32,7 @@ class Query(graphene.ObjectType):
     payment_methods = DjangoFilterConnectionField(PaymentMethodType)
     payment_method = graphene.Field(PaymentMethodType, id=graphene.ID())
     added_carts = DjangoFilterConnectionField(SellCartType)
+    sales_histories = DjangoFilterConnectionField(SellCartType)
     added_products = DjangoFilterConnectionField(ProductType)
     added_employee_carts = DjangoFilterConnectionField(SellCartType)
     cart = graphene.Field(SellCartType, id=graphene.ID())
@@ -123,6 +124,18 @@ class Query(graphene.ObjectType):
     def resolve_added_carts(self, info, **kwargs):
         user = info.context.user
         qs = SellCart.objects.filter(added_by=user)
+        return qs
+
+    @is_authenticated
+    def resolve_sales_histories(self, info, **kwargs):
+        user = info.context.user
+        qs = SellCart.objects.filter(item__vendor__isnull=False, order__isnull=False)
+        if user.is_admin:
+            pass
+        elif user.is_vendor:
+            qs = qs.filter(item__vendor=user.vendor)
+        else:
+            qs = qs.filter(id=None)
         return qs
 
     @is_authenticated

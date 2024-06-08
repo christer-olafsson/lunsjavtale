@@ -324,7 +324,7 @@ class VendorDelete(graphene.Mutation):
     def mutate(self, info, id):
         try:
             obj = Vendor.objects.get(id=id, is_deleted=False)
-            obj.email = f"deleted_{obj.working_email}"
+            obj.email = f"deleted_{obj.id}_{obj.email}"
             obj.is_deleted = True
             obj.deleted_on = timezone.now()
             obj.save()
@@ -334,7 +334,7 @@ class VendorDelete(graphene.Mutation):
                 user.is_deleted = True
                 user.deleted_on = timezone.now()
                 user.deactivation_reason = None
-                user.email = f"deleted_{user.email}"
+                user.email = f"deleted_{user.id}_{user.email}"
                 user.deleted_phone = user.phone
                 user.phone = None
                 user.save()
@@ -391,7 +391,7 @@ class CompanyDelete(graphene.Mutation):
     def mutate(self, info, id):
         try:
             obj = Company.objects.get(id=id, is_deleted=False)
-            obj.working_email = f"deleted_{obj.working_email}"
+            obj.working_email = f"deleted_{obj.id}_{obj.working_email}"
             obj.is_deleted = True
             obj.deleted_on = timezone.now()
             obj.save()
@@ -401,7 +401,7 @@ class CompanyDelete(graphene.Mutation):
                 user.is_deleted = True
                 user.deleted_on = timezone.now()
                 user.deactivation_reason = None
-                user.email = f"deleted_{user.email}"
+                user.email = f"deleted_{user.id}_{user.email}"
                 user.deleted_phone = user.phone
                 user.phone = None
                 user.save()
@@ -1443,7 +1443,7 @@ class UserDelete(graphene.Mutation):
             user.is_deleted = True
             user.deleted_on = timezone.now()
             user.deactivation_reason = None
-            user.email = f"deleted_{email}"
+            user.email = f"deleted_{user.id}_{email}"
             user.deleted_phone = user.phone
             user.phone = None
             user.save()
@@ -1546,8 +1546,10 @@ class AddAdministrator(DjangoModelFormMutation):
         if form.is_valid():
             if form.cleaned_data.get('role') not in roles:
                 raise_graphql_error("Select a valid choice.", field_name="role")
-            if validate_password(form.cleaned_data['password']):
-                pass
+            try:
+                validate_password(form.cleaned_data['password'])
+            except Exception as e:
+                raise_graphql_error(list(e), field_name='password')
             super_user = form.cleaned_data.pop('super_user', False)
             if form.cleaned_data.get('id'):
                 user = User.objects.create_user(**form.cleaned_data)

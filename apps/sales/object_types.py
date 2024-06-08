@@ -16,6 +16,7 @@ from apps.sales.filters import (
 )
 from backend.count_connection import CountConnection
 
+from ..users.object_types import VendorType
 from .models import (
     BillingAddress,
     Order,
@@ -48,6 +49,7 @@ class SellCartType(DjangoObjectType):
     id = graphene.ID(required=True)
     ordered_quantity = graphene.Int()
     due_amount = graphene.Decimal()
+    vendor = graphene.Field(VendorType)
 
     class Meta:
         model = SellCart
@@ -58,6 +60,9 @@ class SellCartType(DjangoObjectType):
 
     def resolve_ordered_quantity(self, info, **kwargs):
         return self.ordered_quantity
+
+    def resolve_vendor(self, info, **kwargs):
+        return self.item.vendor
 
 
 class UserCartType(DjangoObjectType):

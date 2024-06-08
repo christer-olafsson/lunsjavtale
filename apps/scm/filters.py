@@ -129,5 +129,4 @@ class FoodMeetingFilters(BaseFilterOrderBy):
         fields = [
             'id',
             'meeting_type',
-            'is_contacted',
         ]

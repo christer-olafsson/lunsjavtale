@@ -146,8 +146,11 @@ class FoodMeetingMutation(DjangoModelFormMutation):
 
     # @is_authenticated
     def mutate_and_get_payload(self, info, **input):
+        user = info.context.user
         form = FoodMeetingForm(data=input)
-        if input.get('id') and info.context.user.is_admin:
+        if user and not user.is_admin:
+            input['company'] = user.company.id
+        if input.get('id') and user and user.is_admin:
             form = FoodMeetingForm(data=input, instance=FoodMeeting.objects.get(id=input.get('id')))
         if form.is_valid():
             obj = form.save()

@@ -38,6 +38,9 @@ class SellCartFilters(BaseFilterOrderBy):
     item = django_filters.CharFilter(
         field_name='item__id', lookup_expr='exact'
     )
+    vendor = django_filters.CharFilter(
+        field_name='item__vendor__id', lookup_expr='exact'
+    )
     order = django_filters.CharFilter(
         field_name='order__id', lookup_expr='exact'
     )
