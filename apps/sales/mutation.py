@@ -2,6 +2,7 @@ import graphene
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphene_django.forms.types import DjangoFormInputObjectType
 from graphql import GraphQLError
@@ -12,14 +13,14 @@ from apps.bases.utils import (
     raise_graphql_error,
     raise_graphql_error_with_fields,
 )
-from backend.permissions import is_admin_user, is_authenticated, is_company_user
-
-from ..notifications.tasks import (
+from apps.notifications.tasks import (
     notify_company_order_update,
     send_admin_notification_and_save,
 )
-from ..scm.models import Ingredient, Product
-from ..users.choices import RoleTypeChoices
+from apps.scm.models import Ingredient, Product
+from apps.users.choices import RoleTypeChoices
+from backend.permissions import is_admin_user, is_authenticated, is_company_user
+
 from .choices import (
     DecisionChoices,
     InvoiceStatusChoices,
@@ -90,6 +91,26 @@ class PaymentMethodMutation(DjangoModelFormMutation):
             )
         return PaymentMethodMutation(
             success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+        )
+
+
+class PaymentMethodDeleteMutation(graphene.Mutation):
+    """
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        obj = PaymentMethod.objects.get(id=id, is_deleted=False)
+        obj.is_deleted = True
+        obj.deleted_on = timezone.now()
+        obj.save()
+        return PaymentMethodDeleteMutation(
+            success=True, message="Successfully deleted"
         )
 
 

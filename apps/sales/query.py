@@ -86,9 +86,9 @@ class Query(graphene.ObjectType):
         if user.is_admin:
             qs = OrderPayment.objects.all()
         elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
-            qs = OrderPayment.objects.filter(Q(order__company=user.company) | Q(user_cart__added_for=user))
+            qs = OrderPayment.objects.filter(Q(company=user.company) | Q(payment_for=user))
         else:
-            qs = OrderPayment.objects.filter(user_cart__added_for=user)
+            qs = OrderPayment.objects.filter(payment_for=user)
         return qs
 
     @is_authenticated

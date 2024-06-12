@@ -125,7 +125,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = config('LANGUAGE_CODE', 'nb:no')
 
-TIME_ZONE = config('TIME_ZONE', 'Europe/Oslo')
+TIME_ZONE = config('TIME_ZONE', 'UTC')
 
 USE_I18N = True
 

@@ -1,12 +1,14 @@
+import datetime
 
 import graphene
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
 from graphene.types.generic import GenericScalar
 
-from apps.bases.utils import get_serialized_data
-from apps.sales.models import Order, ProductRating
+from apps.bases.utils import get_serialized_data, raise_graphql_error
+from apps.sales.models import Order, ProductRating, SellCart
 from apps.users.choices import RoleTypeChoices
 from apps.users.models import Company
 from backend.permissions import is_admin_user, is_vendor_user
@@ -14,10 +16,27 @@ from backend.permissions import is_admin_user, is_vendor_user
 User = get_user_model()
 
 
+class QueryDateRangeChoices(models.TextChoices):
+    LAST_7_DAYS = 'last-7-days'
+    LAST_30_DAYS = 'last-30-days'
+    LAST_6_MONTHS = 'last-6-months'
+    LAST_12_MONTHS = 'last-12-months'
+
+
+DATE_RANGE = {
+    QueryDateRangeChoices.LAST_7_DAYS: 7,
+    QueryDateRangeChoices.LAST_30_DAYS: 30,
+    QueryDateRangeChoices.LAST_6_MONTHS: 6 * 30 + 3,
+    QueryDateRangeChoices.LAST_12_MONTHS: 365,
+}
+
+
 class AdminDashboard:
 
-    def __init__(self):
-        pass
+    def __init__(self, date_range=""):
+        if date_range and date_range not in QueryDateRangeChoices:
+            raise_graphql_error("Please select a valid choice.", field_name="dateRange")
+        self.date_range = date_range
 
     def get_data(self):
         context = {
@@ -47,7 +66,10 @@ class AdminDashboard:
     def get_users(self):
         return get_serialized_data(
             User.objects.filter(
-                role__in=[RoleTypeChoices.ADMIN, RoleTypeChoices.DEVELOPER]
+                role__in=[
+                    RoleTypeChoices.ADMIN, RoleTypeChoices.DEVELOPER, RoleTypeChoices.SUB_ADMIN, RoleTypeChoices.EDITOR,
+                    RoleTypeChoices.SEO_MANAGER, RoleTypeChoices.SYSTEM_MANAGER
+                ]
             )[:4], fields=['first_name', 'last_name', 'email', 'photo_url', 'role']
         )
 
@@ -58,7 +80,9 @@ class AdminDashboard:
         )
 
     def get_sold_products(self):
-        pass
+        date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
+        carts = SellCart.objects.filter(date__gte=date)
+        return carts
 
     def get_sales_history(self):
         pass
@@ -85,15 +109,15 @@ class Query(graphene.ObjectType):
         define all queries together
     """
     admin_dashboard = graphene.Field(
-        AnalyticsType
+        AnalyticsType, date_range=graphene.String()
     )
     vendor_dashboard = graphene.Field(
         AnalyticsType
     )
 
     @is_admin_user
-    def resolve_admin_dashboard(self, info, **kwargs):
-        data = AdminDashboard().get_data()
+    def resolve_admin_dashboard(self, info, date_range="", **kwargs):
+        data = AdminDashboard(date_range).get_data()
         return AnalyticsType(
             data=data
         )

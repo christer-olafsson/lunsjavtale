@@ -125,7 +125,7 @@ class Query(graphene.ObjectType):
 
     @is_authenticated
     def resolve_company(self, info, id, **kwargs):
-        obj = Company.objects.fiter(is_deleted=False, id=id).last()
+        obj = Company.objects.filter(is_deleted=False, id=id).last()
         if info.context.user.is_admin:
             obj.is_checked = True
             obj.save()
