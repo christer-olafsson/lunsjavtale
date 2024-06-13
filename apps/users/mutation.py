@@ -1546,16 +1546,16 @@ class AddAdministrator(DjangoModelFormMutation):
         if form.is_valid():
             if form.cleaned_data.get('role') not in roles:
                 raise_graphql_error("Select a valid choice.", field_name="role")
-            try:
-                validate_password(form.cleaned_data['password'])
-            except Exception as e:
-                raise_graphql_error(list(e), field_name='password')
             super_user = form.cleaned_data.pop('super_user', False)
-            if form.cleaned_data.get('id'):
+            if not input.get('id'):
+                try:
+                    validate_password(form.cleaned_data['password'])
+                except Exception as e:
+                    raise_graphql_error_with_fields("Invalid request.", errors={'password': list(e)})
                 user = User.objects.create_user(**form.cleaned_data)
             else:
                 del form.cleaned_data['password']
-                user = User.objects.get(id=form.cleaned_data.get('id'))
+                user = User.objects.get(id=input.get('id'))
                 User.objects.filter(id=user.id).update(**form.cleaned_data)
             if super_user:
                 user.is_staff = True
@@ -1799,7 +1799,6 @@ class Mutation(graphene.ObjectType):
     company_status_change = ChangeCompanyStatus.Field()
     register_company_owner = CompanyOwnerRegistration.Field()
     create_company_staff = UserCreationMutation.Field()
-    reset_password_company_staff = PasswordResetCompany.Field()
     address_mutation = AddressMutation.Field()
     address_delete = AddressDelete.Field()
     company_billing_address_mutation = CompanyBillingAddressMutation.Field()
@@ -1809,6 +1808,7 @@ class Mutation(graphene.ObjectType):
     vendor_delete = VendorDelete.Field()
     withdraw_request_mutation = VendorWithdrawRequest.Field()
     user_password_reset = UserPasswordReset.Field()
+    # reset_password_company_staff = PasswordResetCompany.Field()
 
     login_user = LoginUser.Field()
     logout = ExpiredAllToken.Field()

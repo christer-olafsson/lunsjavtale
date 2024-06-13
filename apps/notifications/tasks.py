@@ -37,7 +37,7 @@ def notify_company_order_update(id):
 def notify_vendor_product(id):
     cart = SellCart.objects.get(id=id)
     send_notification_and_save(
-        user_id=cart.item.vendor.user.id,
+        user_id=cart.item.vendor.users.last().id,
         title="Product added",
         message=f"Company '{cart.order.company.name}' ordered your product -> '{cart.item.name}'",
         n_type=NotificationTypeChoice.VENDOR_PRODUCT_ORDERED

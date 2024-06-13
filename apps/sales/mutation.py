@@ -103,9 +103,9 @@ class PaymentMethodDeleteMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID()
 
-    @is_admin_user
+    @is_authenticated
     def mutate(self, info, id, **kwargs):
-        obj = PaymentMethod.objects.get(id=id, is_deleted=False)
+        obj = PaymentMethod.objects.get(id=id, is_deleted=False, user=info.context.user)
         obj.is_deleted = True
         obj.deleted_on = timezone.now()
         obj.save()
@@ -539,6 +539,7 @@ class Mutation(graphene.ObjectType):
         define all the mutations by identifier name for query
     """
     payment_method_mutation = PaymentMethodMutation.Field()
+    delete_payment_method = PaymentMethodDeleteMutation.Field()
     order_status_update = OrderStatusUpdate.Field()
     add_product_rating = AddProductRating.Field()
 

@@ -150,8 +150,11 @@ class FoodMeetingMutation(DjangoModelFormMutation):
         form = FoodMeetingForm(data=input)
         if user and not user.is_admin:
             input['company'] = user.company.id
-        if input.get('id') and user and user.is_admin:
-            form = FoodMeetingForm(data=input, instance=FoodMeeting.objects.get(id=input.get('id')))
+        if input.get('id') and user:
+            if user.is_admin:
+                form = FoodMeetingForm(data=input, instance=FoodMeeting.objects.get(id=input.get('id')))
+            else:
+                form = FoodMeetingForm(data=input, instance=FoodMeeting.objects.get(id=input.get('id'), company=user.company))
         if form.is_valid():
             obj = form.save()
         else:
@@ -185,6 +188,7 @@ class FoodMeetingResolve(graphene.Mutation):
         obj = FoodMeeting.objects.get(id=id)
         if status not in [MeetingStatusChoices.ATTENDED, MeetingStatusChoices.POSTPONED]:
             raise_graphql_error("Please select a valid choice.", field_name='status')
+        obj.status = status
         obj.note = note
         obj.save()
         return FoodMeetingResolve(

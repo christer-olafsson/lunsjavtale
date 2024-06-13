@@ -103,6 +103,7 @@ class UserRegisterForm(forms.ModelForm):
 
 class AdminRegistrationForm(forms.ModelForm):
     super_user = forms.BooleanField(required=False)
+    password = forms.CharField(required=False)
 
     class Meta:
         model = User
