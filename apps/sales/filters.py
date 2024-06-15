@@ -58,6 +58,7 @@ class SellCartFilters(BaseFilterOrderBy):
         fields = [
             'id',
             'date',
+            'request_status',
         ]
 
 

@@ -257,19 +257,25 @@ class ApproveCart(graphene.Mutation):
 
     class Arguments:
         ids = graphene.List(graphene.ID, required=True)
+        request_status = graphene.String()
 
     @is_company_user
-    def mutate(self, info, ids, **kwargs):
+    def mutate(self, info, ids, request_status, **kwargs):
         user = info.context.user
+        if request_status not in [DecisionChoices.ACCEPTED, DecisionChoices.REJECTED]:
+            raise_graphql_error("Please select a valid option.", field_name="requestStatus")
         carts = SellCart.objects.filter(
             added_by__role=RoleTypeChoices.COMPANY_EMPLOYEE, added_by__company=user.company, id__in=ids,
-            is_requested=True
+            is_requested=True, request_status=DecisionChoices.PENDING
         )
+        if not carts:
+            raise_graphql_error("No carts found.", field_name="ids")
         for qt in carts:
             cart, created = SellCart.objects.get_or_create(item=qt.item, added_by=user, date=qt.date)
             cart.quantity = 1 if created else cart.quantity + 1
             cart.price = qt.item.actual_price
             cart.price_with_tax = qt.item.price_with_tax
+            cart.request_status = request_status
             cart.save()
             cart.ingredients.add(*qt.item.ingredients.all())
             cart.added_for.add(qt.added_by)

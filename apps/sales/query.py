@@ -5,11 +5,11 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, Sum
 from graphene_django.filter.fields import DjangoFilterConnectionField
 
-from backend.permissions import is_authenticated, is_company_user
+from apps.scm.models import Product
+from apps.scm.object_types import ProductType
+from apps.users.choices import RoleTypeChoices
+from backend.permissions import is_authenticated
 
-from ..scm.models import Product
-from ..scm.object_types import ProductType
-from ..users.choices import RoleTypeChoices
 from .models import Order, OrderPayment, PaymentMethod, ProductRating, SellCart
 from .object_types import (
     AddedCartsListType,
@@ -160,12 +160,15 @@ class Query(graphene.ObjectType):
         qs = SellCart.objects.filter(added_by=user, is_requested=False).order_by('item_id').values_list('item_id', flat=True).distinct()
         return Product.objects.filter(id__in=qs)
 
-    @is_company_user
+    @is_authenticated
     def resolve_added_employee_carts(self, info, **kwargs):
         user = info.context.user
-        qs = SellCart.objects.filter(
-            added_by__role=RoleTypeChoices.COMPANY_EMPLOYEE, added_by__company=user.company, is_requested=True
-        )
+        if user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
+            qs = SellCart.objects.filter(
+                added_by__role=RoleTypeChoices.COMPANY_EMPLOYEE, added_by__company=user.company, is_requested=True
+            )
+        else:
+            qs = SellCart.objects.filter(added_by=user, is_requested=True)
         return qs
 
     @is_authenticated
