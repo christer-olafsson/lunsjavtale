@@ -64,7 +64,7 @@ class BasePriceModel(models.Model):
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        blank=True,
+        # blank=True,
         null=True,
         default=15
     )
@@ -74,7 +74,7 @@ class BasePriceModel(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(0)],
         help_text="price adding TAX",
-        blank=True,
+        # blank=True,
         null=True
     )
 

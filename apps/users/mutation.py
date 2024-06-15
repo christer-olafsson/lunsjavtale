@@ -48,7 +48,7 @@ from .forms import (
     VendorForm,
     VendorUpdateForm,
 )
-from .login_backends import signup
+from .login_backends import signup, social_signup
 from .models import (
     AccessToken,
     Address,
@@ -896,6 +896,66 @@ class LoginUser(graphene.Mutation):
             AccessToken.objects.create_or_update(user=user, token=access, mac_address=mac_address)
         return LoginUser(
             access=access,
+            user=user,
+            success=True
+        )
+
+
+class SocialLogin(graphene.Mutation):
+    """
+        User will be able to sign in via social accounts like, facebook, google and apple etc.
+        And apple user have to pass id_token.\n
+        And a history will be added for user social login.
+    """
+
+    success = graphene.Boolean()
+    access = graphene.String()
+    refresh = graphene.String()
+    user = graphene.Field(UserType)
+
+    class Arguments:
+        social_type = graphene.String(required=True)
+        social_id = graphene.String(required=True)
+        email = graphene.String()
+        id_token = graphene.String()  # only for apple
+        activate = graphene.Boolean()
+        need_verification = graphene.Boolean()
+
+    def mutate(
+            self,
+            info,
+            social_type,
+            social_id,
+            email,
+            id_token=None,
+            need_verification=False,
+            activate=False
+    ):
+        if not email and id_token and social_type == 'apple':
+            email = TokenManager.get_email(id_token)
+
+        user = social_signup(
+            info.context,
+            social_type,
+            social_id,
+            email,
+            activate,
+            need_verification
+        )
+        mac_address = info.context.headers.get("macaddress", None)
+        access = TokenManager.get_access({"user_id": str(user.id)})
+        refresh = TokenManager.get_refresh({"user_id": str(user.id)})
+        try:
+            access_token = AccessToken.objects.get(user=user, mac_address=mac_address)
+            access_token.token = access
+            access_token.save()
+        except AccessToken.DoesNotExist:
+            access_token = AccessToken.objects.create(user=user, token=access)
+            access_token.mac_address = mac_address
+            access_token.save()
+        return SocialLogin(
+            access=access,
+            refresh=refresh,
             user=user,
             success=True
         )
@@ -1811,6 +1871,7 @@ class Mutation(graphene.ObjectType):
     # reset_password_company_staff = PasswordResetCompany.Field()
 
     login_user = LoginUser.Field()
+    social_login = SocialLogin.Field()
     logout = ExpiredAllToken.Field()
     password_change = PasswordChange.Field()
     password_reset_mail = PasswordResetMail.Field()

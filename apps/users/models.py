@@ -28,12 +28,14 @@ from apps.users.choices import (
     DeviceTypeChoices,
     GenderChoices,
     RoleTypeChoices,
+    SocialAccountTypeChoices,
     WithdrawRequestChoices,
 )
 from apps.users.managers import (
     UserAccessTokenManager,
     UserManager,
     UserPasswordResetManager,
+    UserSocialAccountManager,
 )
 from apps.users.tasks import send_email_on_delay
 
@@ -369,7 +371,8 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         context = {
             'username': self.username,
             'email': self.email,
-            'password': password
+            'password': password,
+            'link': settings.SITE_URL
         }
         template = 'emails/verification.html'
         subject = 'Email Verification'
@@ -407,6 +410,18 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
     @property
     def is_vendor(self) -> bool:
         return True if self.vendor else False
+
+
+class UserSocialAccount(BaseWithoutID):
+    social_id = models.CharField(max_length=100)
+    social_type = models.CharField(max_length=20, choices=SocialAccountTypeChoices.choices)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    objects = UserSocialAccountManager()
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_user_social_accounts"  # define table name for database
+        unique_together = (("user", "social_type"),)
 
 
 class UnitOfHistory(models.Model):

@@ -65,6 +65,30 @@ class UserManager(BaseUserManager):
         )
 
 
+class UserSocialAccountManager(BaseUserManager):
+
+    def checkSocialAccount(self, social_id, social_type, email):
+        if not social_id or not social_type:
+            return False
+        try:
+            if social_type in ['apple', 'facebook']:
+                row = self.filter(social_id=social_id, social_type=social_type).latest('updated')
+            else:
+                row = self.get(social_id=social_id, social_type=social_type, user__email=email)
+            return row.user
+        except self.model.DoesNotExist:
+            return False
+
+    def create_or_update(self, user, social_type, social_id):
+        try:
+            row = self.get(user=user, social_id=social_id)
+            row.social_id = social_id
+            row.save()
+            return row
+        except self.model.DoesNotExist:
+            return self.create(user=user, social_type=social_type, social_id=social_id)
+
+
 class UserPasswordResetManager(BaseUserManager):
 
     def checkKey(self, token, email):

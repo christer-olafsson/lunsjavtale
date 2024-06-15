@@ -328,9 +328,16 @@ class WithdrawRequestFilters(BaseFilterOrderBy):
     vendor = django_filters.CharFilter(
         field_name="vendor__id", lookup_expr="exact"
     )
+    vendor_title = django_filters.CharFilter(
+        method="vendor_title_filter"
+    )
+
+    def vendor_title_filter(self, qs, name, value):
+        return qs.filter(Q(vendor__name__icontains=value) | Q(vendor__email__icontains=value))
 
     class Meta:
         model = WithdrawRequest
         fields = [
             'id',
+            'status',
         ]

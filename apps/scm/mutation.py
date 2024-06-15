@@ -235,7 +235,7 @@ class ProductMutation(graphene.Mutation):
     instance = graphene.Field(ProductType)
 
     class Arguments:
-        input = ProductInput()
+        input = ProductInput(required=True)
         ingredients = graphene.List(graphene.String)
         attachments = graphene.List(ProductAttachmentInput, required=True)
 

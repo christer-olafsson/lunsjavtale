@@ -59,9 +59,10 @@ def send_notification_and_save(user_id, title, message, n_type, object_id=None):
     notification.sent_on = timezone.now()
     notification.save()
     notification.users.add(user)
+    token = token.filter(is_current=True).last()
     if token:
         send_user_notification.delay(
-            token.filter(is_current=True).last().device_token, notification.title, notification.message, notification.notification_type)
+            token.device_token, notification.title, notification.message, notification.notification_type)
     else:
         getLogger().error("No user device token found.")
 

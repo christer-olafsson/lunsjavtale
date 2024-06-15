@@ -9,6 +9,7 @@ from graphene.types.generic import GenericScalar
 
 from apps.bases.utils import get_serialized_data, raise_graphql_error
 from apps.sales.models import Order, ProductRating, SellCart
+from apps.scm.models import Product
 from apps.users.choices import RoleTypeChoices
 from apps.users.models import Company
 from backend.permissions import is_admin_user, is_vendor_user
@@ -50,6 +51,7 @@ class AdminDashboard:
             'recentOrders': self.get_recent_orders(),
             'users': self.get_users(),
             'recentReviews': self.get_recent_ratings(),
+            'soldProducts': self.get_sold_products(),
         }
         return context
 
@@ -80,9 +82,26 @@ class AdminDashboard:
         )
 
     def get_sold_products(self):
-        date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
-        carts = SellCart.objects.filter(date__gte=date)
-        return carts
+        if self.date_range:
+            date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
+            carts = SellCart.objects.filter(date__gte=date, order__isnull=False)
+        else:
+            carts = SellCart.objects.filter(order__isnull=False)
+        products = list(carts.order_by('item_id').values_list('item_id', flat=True).distinct())
+        sold_products = []
+        for product_id in products:
+            product = Product.objects.get(id=product_id)
+            sold_products.append({
+                'id': product_id,
+                'name': product.name,
+                'soldAmount': carts.filter(item=product).aggregate(tot=Sum('total_price_with_tax'))['tot']
+            })
+        sold_products = sorted(sold_products, key=lambda d: d['soldAmount'], reverse=True)[:5]
+        return list(map(lambda i: {
+            'id': i['id'],
+            'name': i['name'],
+            'soldAmount': str(i['soldAmount'])
+        }, sold_products))
 
     def get_sales_history(self):
         pass

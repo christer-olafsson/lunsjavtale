@@ -3,9 +3,9 @@ from django.contrib.auth import authenticate, get_user_model
 from django.utils import timezone
 
 from apps.bases.constant import HistoryActions
-from apps.bases.utils import raise_graphql_error
+from apps.bases.utils import email_checker, raise_graphql_error
 
-from .models import TrackUserLogin, UnitOfHistory
+from .models import TrackUserLogin, UnitOfHistory, UserSocialAccount
 
 User = get_user_model()
 
@@ -66,3 +66,67 @@ def signup(
             return user
     except User.DoesNotExist:
         raise_graphql_error(message="Email is not associated with any existing user.", code="invalid_email")
+
+
+def social_signup(
+    request,
+    social_type,
+    social_id,
+    email,
+    activate=False,
+    verification=False
+):
+    """
+        Check social login for user account by social-id,  social-type and email address.
+        Also check if email address provided or not and email is valid or not.
+        Then check either existence of email address and its verification status also.
+        A new user account will be created if there is no user account for this social account
+        and also update last login time.
+    """
+    user_account = UserSocialAccount.objects.checkSocialAccount(
+        social_id,
+        social_type,
+        email
+    )
+    if user_account:
+        user = UserSocialAccount.objects.get(
+            social_type=social_type,
+            social_id=social_id
+        ).user
+        check_user(user, activate)
+        user.last_login = timezone.now()
+        user.save()
+        UnitOfHistory.user_history(
+            action=HistoryActions.SOCIAL_LOGIN,
+            user=user,
+            request=request
+        )
+        return user
+    if not email:
+        raise_graphql_error("Email is required", "email_not_found")
+    elif not email_checker(email):
+        raise_graphql_error("Invalid email address", "invalid_email")
+    user_exists = User.objects.filter(email=email)
+    if user_exists.exists() and verification:
+        raise_graphql_error("This email is already associated with another user.", "invalid_email")
+    elif user_exists.exists():
+        user = user_exists.last()
+    else:
+        raise_graphql_error("This email is not associated with any user.", "invalid_email")
+    UserSocialAccount.objects.create(
+        user=user,
+        social_id=social_id,
+        social_type=social_type
+    )
+    if verification:
+        user.send_email_verification()
+        raise_graphql_error("Please verify your email", "unverified_email")
+    user.is_email_verified = True
+    user.last_login = timezone.now()
+    user.save()
+    UnitOfHistory.user_history(
+        action=HistoryActions.SOCIAL_SIGNUP,
+        user=user,
+        request=request
+    )
+    return user

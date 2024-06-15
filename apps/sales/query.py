@@ -123,7 +123,7 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_added_carts(self, info, **kwargs):
         user = info.context.user
-        qs = SellCart.objects.filter(added_by=user)
+        qs = SellCart.objects.filter(added_by=user, is_requested=False)
         return qs
 
     @is_authenticated
@@ -141,7 +141,7 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_added_carts_list(self, info, **kwargs):
         user = info.context.user
-        qs = SellCart.objects.filter(added_by=user)
+        qs = SellCart.objects.filter(added_by=user, is_requested=False)
         dates = qs.order_by('date').values_list('date', flat=True).distinct()
         new_qs = []
         for date in dates:
@@ -157,7 +157,7 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_added_products(self, info, **kwargs):
         user = info.context.user
-        qs = SellCart.objects.filter(added_by=user).order_by('item_id').values_list('item_id', flat=True).distinct()
+        qs = SellCart.objects.filter(added_by=user, is_requested=False).order_by('item_id').values_list('item_id', flat=True).distinct()
         return Product.objects.filter(id__in=qs)
 
     @is_company_user

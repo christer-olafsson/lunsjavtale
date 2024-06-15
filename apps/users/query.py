@@ -137,7 +137,7 @@ class Query(graphene.ObjectType):
 
     @is_authenticated
     def resolve_vendor(self, info, id, **kwargs):
-        obj = Vendor.objects.fiter(id=id).last()
+        obj = Vendor.objects.filter(id=id).last()
         return obj
 
     def resolve_client_details(self, info, **kwargs):
