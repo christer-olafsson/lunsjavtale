@@ -25,6 +25,7 @@ from .choices import (
     DecisionChoices,
     InvoiceStatusChoices,
     OrderPaymentTypeChoices,
+    PaymentStatusChoices,
     PaymentTypeChoices,
 )
 from .forms import (
@@ -37,6 +38,7 @@ from .models import (
     AlterCart,
     BillingAddress,
     Order,
+    OrderPayment,
     OrderStatus,
     PaymentMethod,
     SellCart,
@@ -49,6 +51,7 @@ from .object_types import (
     ProductRatingType,
 )
 from .tasks import add_user_carts, make_previous_payment, notify_user_carts
+from .utils import make_online_payment
 
 User = get_user_model()
 
@@ -293,6 +296,7 @@ class BillingAddressInput(DjangoFormInputObjectType):
 
 class OrderCreation(graphene.Mutation):
     success = graphene.Boolean()
+    payment_url = graphene.String()
 
     class Arguments:
         payment_type = graphene.String()
@@ -304,12 +308,13 @@ class OrderCreation(graphene.Mutation):
     @transaction.atomic
     def mutate(self, info, payment_type, shipping_address, billing_address, company_allowance=0):
         user = info.context.user
+        company = user.company
         if payment_type not in OrderPaymentTypeChoices:
             raise_graphql_error("Please select a valid payment-type.")
         carts = user.added_carts.all()
         if not carts.exists():
             raise_graphql_error("Please add carts first.")
-        shipping_address = user.company.addresses.get(id=shipping_address)
+        shipping_address = company.addresses.get(id=shipping_address)
         billing_form = BillingAddressForm(data=billing_address)
         if not billing_form.is_valid():
             error_data = {}
@@ -319,30 +324,43 @@ class OrderCreation(graphene.Mutation):
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         billing_form_data = billing_form.data
         dates = set(list(carts.values_list('date', flat=True)))
+        total_invoice_amount = 0
+        orders = []
+        payment_url = None
         for date in dates:
             obj = Order.objects.create(
-                company=user.company, created_by=user, payment_type=payment_type,
+                company=company, created_by=user, payment_type=payment_type,
                 company_allowance=company_allowance, shipping_address=shipping_address,
                 delivery_date=date
             )
+            orders.append(obj)
             billing_form_data['order'] = obj
             BillingAddress.objects.create(**billing_form_data)
             OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PLACED)
             date_carts = carts.filter(date=date)
             date_carts.update(added_by=None, order=obj)
             obj.save()
-            user.company.invoice_amount += (obj.final_price * company_allowance) / 100
-            user.company.ordered_amount += obj.final_price
-            user.company.save()
+            invoice_amount = (obj.final_price * company_allowance) / 100
+            company.invoice_amount += invoice_amount
+            company.ordered_amount += obj.final_price
+            company.save()
+            total_invoice_amount += invoice_amount
             if payment_type == OrderPaymentTypeChoices.ONLINE:
                 OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
             notify_user_carts(obj.id)
+        if payment_type == OrderPaymentTypeChoices.ONLINE:
+            payment = OrderPayment.objects.create(
+                company=company, payment_type=OrderPaymentTypeChoices.ONLINE, paid_amount=total_invoice_amount,
+                created_by=user
+            )
+            payment.orders.add(*orders)
+            payment_url = make_online_payment(payment.id)
         send_admin_notification_and_save.delay(
             title="Order placed",
-            message="New orders placed "
+            message=f"New orders placed by '{company.name}'"
         )
         return OrderCreation(
-            success=True
+            success=True, payment_url=payment_url
         )
 
 
@@ -360,8 +378,15 @@ class OrderStatusUpdate(graphene.Mutation):
 
     @is_admin_user
     def mutate(self, info, id, status=""):
-        obj = Order.objects.get(id=id)
-        if status not in InvoiceStatusChoices:
+        obj = Order.objects.get(
+            id=id, status__in=[
+                InvoiceStatusChoices.PLACED, InvoiceStatusChoices.PAYMENT_COMPLETED, InvoiceStatusChoices.UPDATED,
+                InvoiceStatusChoices.CONFIRMED
+            ]
+        )
+        if status not in [
+            InvoiceStatusChoices.CONFIRMED, InvoiceStatusChoices.CANCELLED, InvoiceStatusChoices.DELIVERED
+        ]:
             raise_graphql_error("Status not valid.")
         OrderStatus.objects.create(order=obj, status=status)
         notify_company_order_update.delay(obj.id)
@@ -521,6 +546,7 @@ class OrderPaymentMutation(DjangoFormMutation):
             obj = form.save(commit=False)
             obj.created_by = user
             obj.payment_type = PaymentTypeChoices.CASH
+            obj.status = PaymentStatusChoices.COMPLETED
             obj.save()
             make_previous_payment.delay(obj.id)
         else:
@@ -560,3 +586,5 @@ class Mutation(graphene.ObjectType):
     confirm_user_cart_update = ConfirmUserCartUpdate.Field()
     place_order = OrderCreation.Field()
     create_payment = OrderPaymentMutation.Field()
+
+    # create_online_payment = OnlinePaymentMutation.Field()

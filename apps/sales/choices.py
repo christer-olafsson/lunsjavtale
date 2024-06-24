@@ -35,6 +35,15 @@ class DecisionChoices(models.TextChoices):
     REJECTED = 'rejected'
 
 
+class PaymentStatusChoices(models.TextChoices):
+    """
+        define selection fields for decision choice
+    """
+    PENDING = 'pending'
+    CANCELLED = 'cancelled'
+    COMPLETED = 'completed'
+
+
 STATUS_MAPPING = {
     '0': InvoiceStatusChoices.PLACED,
     '1': InvoiceStatusChoices.UPDATED,

@@ -9,6 +9,7 @@ from apps.sales.filters import (
     BillingAddressFilters,
     OrderFilters,
     OrderPaymentFilters,
+    OrderStatusFilters,
     PaymentMethodFilters,
     ProductRatingFilters,
     SellCartFilters,
@@ -21,6 +22,7 @@ from .models import (
     BillingAddress,
     Order,
     OrderPayment,
+    OrderStatus,
     PaymentMethod,
     ProductRating,
     SellCart,
@@ -94,6 +96,20 @@ class OrderType(DjangoObjectType):
     class Meta:
         model = Order
         filterset_class = OrderFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
+
+
+class OrderStatusType(DjangoObjectType):
+    """
+        define django object type for Order Status model with Order filter-set
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = OrderStatus
+        filterset_class = OrderStatusFilters
         interfaces = (graphene.relay.Node,)
         convert_choices_to_enum = False
         connection_class = CountConnection

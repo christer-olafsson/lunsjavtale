@@ -2,11 +2,12 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from apps.bases.models import BaseWithoutID, SoftDeletion
+from apps.bases.models import BaseModel, BaseWithoutID, SoftDeletion
 from apps.sales.choices import (
     DecisionChoices,
     InvoiceStatusChoices,
     OrderPaymentTypeChoices,
+    PaymentStatusChoices,
     PaymentTypeChoices,
 )
 
@@ -290,22 +291,28 @@ class OrderPayment(BaseWithoutID):
     note = models.TextField(blank=True, null=True)
     payment_info = models.JSONField(blank=True, null=True)
     created_by = models.ForeignKey(to='users.User', on_delete=models.DO_NOTHING, related_name='created_payments')
+    status = models.CharField(
+        max_length=32, choices=PaymentStatusChoices.choices, default=PaymentStatusChoices.PENDING)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_order_payments"  # define table name for database
 
 
-class OnlinePayment(BaseWithoutID):
+class OnlinePayment(BaseModel):
     order_payment = models.ForeignKey(
         to=OrderPayment, on_delete=models.DO_NOTHING
     )
-    request_header = models.JSONField(blank=True, null=True)
+    request_headers = models.JSONField(blank=True, null=True)
     request_data = models.JSONField(blank=True, null=True)
-    response_header = models.JSONField(blank=True, null=True)
     response_data = models.JSONField(blank=True, null=True)
+    session_data = models.JSONField(blank=True, null=True, default=dict)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_online_payments"  # define table name for database
+
+    @property
+    def status(self):
+        return self.session_data.get('sessionState', "")
 
 
 class ProductRating(BaseWithoutID):

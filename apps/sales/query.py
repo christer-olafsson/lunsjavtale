@@ -3,6 +3,7 @@
 import graphene
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Sum
+from graphene.types.generic import GenericScalar
 from graphene_django.filter.fields import DjangoFilterConnectionField
 
 from apps.scm.models import Product
@@ -19,6 +20,7 @@ from .object_types import (
     ProductRatingType,
     SellCartType,
 )
+from .utils import get_payment_info
 
 # local imports
 
@@ -43,6 +45,11 @@ class Query(graphene.ObjectType):
     product_ratings = DjangoFilterConnectionField(ProductRatingType)
     product_rating = graphene.Field(ProductRatingType, id=graphene.ID())
     added_carts_list = graphene.List(AddedCartsListType)
+    get_online_payment_info = GenericScalar(id=graphene.ID())
+
+    def resolve_get_online_payment_info(self, info, id, **kwargs):
+        online_payment = get_payment_info(id)
+        return online_payment.session_data if online_payment else False
 
     @is_authenticated
     def resolve_payment_methods(self, info, **kwargs):
