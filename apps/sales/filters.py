@@ -1,5 +1,6 @@
 
 import django_filters
+from django.db.models import Q
 
 from apps.bases.filters import BaseFilterOrderBy
 
@@ -84,12 +85,18 @@ class OrderFilters(BaseFilterOrderBy):
     company = django_filters.CharFilter(
         field_name="company__id", lookup_expr="exact"
     )
+    company_name_email = django_filters.CharFilter(
+        method="company_name_email_filter"
+    )
     delivery_date_start = django_filters.CharFilter(
         field_name='delivery_date', lookup_expr='gte'
     )
     delivery_date_end = django_filters.CharFilter(
         field_name='delivery_date', lookup_expr='lte'
     )
+
+    def company_name_email_filter(self, qs, name, value):
+        return qs.filter(Q(company__name__icontains=value) | Q(company__working_email__icontains=value))
 
     class Meta:
         model = Order

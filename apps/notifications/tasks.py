@@ -29,7 +29,8 @@ def notify_company_order_update(id):
     send_bulk_notification_and_save(
         user_ids=users,
         title="Order status update.",
-        message=f"Order status was updated for id -> {id}"
+        message=f"Order status was updated for id -> {id}",
+        object_id=order.id
     )
 
 
@@ -40,7 +41,8 @@ def notify_vendor_product(id):
         user_id=cart.item.vendor.users.last().id,
         title="Product added",
         message=f"Company '{cart.order.company.name}' ordered your product -> '{cart.item.name}'",
-        n_type=NotificationTypeChoice.VENDOR_PRODUCT_ORDERED
+        n_type=NotificationTypeChoice.VENDOR_PRODUCT_ORDERED,
+        object_id=cart.id
     )
 
 

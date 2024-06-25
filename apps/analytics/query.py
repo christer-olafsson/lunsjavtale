@@ -57,12 +57,14 @@ class AdminDashboard:
 
     def get_recent_customers(self):
         return get_serialized_data(
-            Company.objects.order_by('-created_on')[:4], fields=['name', 'email', 'contact']
+            Company.objects.order_by('-created_on')[:4], fields=['name', 'email', 'contact', 'logo_url']
         )
 
     def get_recent_orders(self):
         return get_serialized_data(
-            Order.objects.order_by('-created_on')[:4], fields=['company__name', 'final_price', 'delivery_date']
+            Order.objects.order_by('-created_on')[:4], fields=[
+                'company__name', 'final_price', 'delivery_date', 'created_on', 'status'
+            ]
         )
 
     def get_users(self):
@@ -109,14 +111,62 @@ class AdminDashboard:
 
 class VendorDashboard:
 
-    def __init__(self):
-        pass
+    def __init__(self, vendor, date_range=""):
+        if date_range and date_range not in QueryDateRangeChoices:
+            raise_graphql_error("Please select a valid choice.", field_name="dateRange")
+        self.date_range = date_range
+        self.vendor = vendor
+
+    def get_data(self):
+        context = {
+            'totalOrders': SellCart.objects.filter(
+                item__vendor=self.vendor
+            ).order_by('order').values_list('order', flat=True).distinct().count(),
+            'totalSales': str(SellCart.objects.filter(
+                item__vendor=self.vendor).aggregate(tot=Sum('total_price_with_tax'))['tot'] or '0.00'),
+            'salesToday': str(SellCart.objects.filter(
+                created_on__date=timezone.now().date(), item__vendor=self.vendor
+            ).aggregate(tot=Sum('total_price_with_tax'))['tot'] or '0.00'),
+            'recentSales': self.get_recent_orders(),
+            'recentReviews': self.get_recent_ratings(),
+            'soldProducts': self.get_sold_products(),
+        }
+        return context
 
     def get_sold_products(self):
-        pass
+        if self.date_range:
+            date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
+            carts = SellCart.objects.filter(date__gte=date, order__isnull=False, item__vendor=self.vendor)
+        else:
+            carts = SellCart.objects.filter(order__isnull=False, item__vendor=self.vendor)
+        products = list(carts.order_by('item_id').values_list('item_id', flat=True).distinct())
+        sold_products = []
+        for product_id in products:
+            product = Product.objects.get(id=product_id)
+            sold_products.append({
+                'id': product_id,
+                'name': product.name,
+                'soldAmount': carts.filter(item=product).aggregate(tot=Sum('total_price_with_tax'))['tot']
+            })
+        sold_products = sorted(sold_products, key=lambda d: d['soldAmount'], reverse=True)[:5]
+        return list(map(lambda i: {
+            'id': i['id'],
+            'name': i['name'],
+            'soldAmount': str(i['soldAmount'])
+        }, sold_products))
 
-    def get_sold_history(self):
-        pass
+    def get_recent_orders(self):
+        return get_serialized_data(
+            SellCart.objects.filter(item__vendor=self.vendor).order_by('-created_on')[:4], fields=[
+                'order__company__name', 'total_price_with_tax', 'date'
+            ]
+        )
+
+    def get_recent_ratings(self):
+        return get_serialized_data(
+            ProductRating.objects.filter(product__vendor=self.vendor).order_by('-created_on')[:4],
+            fields=['added_by__first_name', 'added_by__last_name', 'product__name', 'rating', 'description']
+        )
 
 
 class AnalyticsType(graphene.ObjectType):
@@ -131,7 +181,7 @@ class Query(graphene.ObjectType):
         AnalyticsType, date_range=graphene.String()
     )
     vendor_dashboard = graphene.Field(
-        AnalyticsType
+        AnalyticsType, date_range=graphene.String()
     )
 
     @is_admin_user
@@ -142,6 +192,9 @@ class Query(graphene.ObjectType):
         )
 
     @is_vendor_user
-    def resolve_vendor_dashboard(self, info, **kwargs):
-
-        return None
+    def resolve_vendor_dashboard(self, info, date_range="", **kwargs):
+        vendor = info.cotext.user.vendor
+        data = VendorDashboard(vendor, date_range).get_data()
+        return AnalyticsType(
+            data=data
+        )

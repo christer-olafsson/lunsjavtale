@@ -17,7 +17,7 @@ class InvoiceStatusChoices(models.TextChoices):
         define selection fields for status choice
     """
     PLACED = 'Placed'
-    UPDATED = 'updated'
+    UPDATED = 'Updated'
     CANCELLED = 'Cancelled'
     CONFIRMED = 'Confirmed'
     PARTIALLY_PAID = 'Partially-paid'

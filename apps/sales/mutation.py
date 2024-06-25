@@ -357,7 +357,8 @@ class OrderCreation(graphene.Mutation):
             payment_url = make_online_payment(payment.id)
         send_admin_notification_and_save.delay(
             title="Order placed",
-            message=f"New orders placed by '{company.name}'"
+            message=f"New orders placed by '{company.name}'",
+            object_id=str(company.id)
         )
         return OrderCreation(
             success=True, payment_url=payment_url
