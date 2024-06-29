@@ -42,7 +42,10 @@ class NotificationQuery(graphene.ObjectType):
         qs = notifications
         read = NotificationViewer.objects.filter(notification__in=qs).values_list('notification', flat=True)
         for ins in qs.exclude(id__in=read):
-            obj = NotificationViewer.objects.get_or_create(notification=ins)
+            obj = NotificationViewer.objects.get_or_create(
+                notification=ins,
+                user=info.context.user
+            )[0]
             obj.view_count += 1
             obj.save()
         return notifications

@@ -193,7 +193,7 @@ class Query(graphene.ObjectType):
 
     @is_vendor_user
     def resolve_vendor_dashboard(self, info, date_range="", **kwargs):
-        vendor = info.cotext.user.vendor
+        vendor = info.context.user.vendor
         data = VendorDashboard(vendor, date_range).get_data()
         return AnalyticsType(
             data=data

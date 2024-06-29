@@ -37,13 +37,15 @@ def notify_company_order_update(id):
 @app.task
 def notify_vendor_product(id):
     cart = SellCart.objects.get(id=id)
-    send_notification_and_save(
-        user_id=cart.item.vendor.users.last().id,
-        title="Product added",
-        message=f"Company '{cart.order.company.name}' ordered your product -> '{cart.item.name}'",
-        n_type=NotificationTypeChoice.VENDOR_PRODUCT_ORDERED,
-        object_id=cart.id
-    )
+    vendor = cart.item.vendor
+    if vendor.users.last():
+        send_notification_and_save(
+            user_id=vendor.users.last().id,
+            title="Product added",
+            message=f"Company '{cart.order.company.name}' ordered your product -> '{cart.item.name}'",
+            n_type=NotificationTypeChoice.VENDOR_PRODUCT_ORDERED,
+            object_id=cart.id
+        )
 
 
 @app.task

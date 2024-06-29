@@ -42,11 +42,13 @@ class Notification(BaseWithoutID):
 
     @property
     def is_seen(self):
-        obj = NotificationViewer.objects.filter(
+        qs = NotificationViewer.objects.filter(
             notification=self,
             view_count__gte=1
-        ).filter(user__in=self.users.all())
-        if obj:
+        )
+        if self.audience_type != AudienceTypeChoice.ADMINS:
+            qs = qs.filter(user__in=self.users.all())
+        if qs.exists():
             return True
         return False
 

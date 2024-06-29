@@ -43,4 +43,4 @@ class OrderPaymentForm(forms.ModelForm):
 
     class Meta:
         model = OrderPayment
-        exclude = ['created_by', 'payment_info', 'payment_type']
+        exclude = ['created_by', 'payment_info', 'payment_type', 'status']

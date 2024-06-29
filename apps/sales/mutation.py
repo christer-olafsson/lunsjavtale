@@ -21,6 +21,7 @@ from apps.scm.models import Ingredient, Product
 from apps.users.choices import RoleTypeChoices
 from backend.permissions import is_admin_user, is_authenticated, is_company_user
 
+from ..users.models import Coupon
 from .choices import (
     DecisionChoices,
     InvoiceStatusChoices,
@@ -567,6 +568,33 @@ class OrderPaymentMutation(DjangoFormMutation):
         )
 
 
+class ApplyCoupon(graphene.Mutation):
+    """
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        coupon = graphene.String()
+        order_id = graphene.Float()
+
+    @is_admin_user
+    def mutate(self, info, coupon, order_id, **kwargs):
+        try:
+            coupon = Coupon.objects.get(name=coupon)
+        except Exception:
+            raise_graphql_error("Invalid promo-code.", field_name="coupon")
+        order = Order.objects.get(id=order_id)
+        amount_discounted, price = coupon.get_discounted_price(order.final_price)
+        # order.final_price = price
+        order.discount_amount = amount_discounted
+        order.coupon = coupon
+        order.save()
+        return ApplyCoupon(
+            success=True, message="Successfully applied"
+        )
+
+
 class Mutation(graphene.ObjectType):
     """
         define all the mutations by identifier name for query
@@ -587,5 +615,6 @@ class Mutation(graphene.ObjectType):
     confirm_user_cart_update = ConfirmUserCartUpdate.Field()
     place_order = OrderCreation.Field()
     create_payment = OrderPaymentMutation.Field()
+    apply_coupon = ApplyCoupon.Field()
 
     # create_online_payment = OnlinePaymentMutation.Field()

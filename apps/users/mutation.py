@@ -1898,4 +1898,4 @@ class Mutation(graphene.ObjectType):
     default_mutation = DefaultMutation.Field()
     coupon_mutation = CouponMutation.Field()
     coupon_delete = CouponDelete.Field()
-    apply_coupon = ApplyCouponMutation.Field()
+    # apply_coupon = ApplyCouponMutation.Field()
