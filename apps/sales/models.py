@@ -309,6 +309,7 @@ class OnlinePayment(BaseModel):
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_online_payments"  # define table name for database
+        ordering = ['-created_on']  # define default order as id in descending
 
     @property
     def status(self):

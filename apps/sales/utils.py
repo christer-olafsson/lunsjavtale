@@ -1,6 +1,7 @@
 import requests
 from django.conf import settings
 
+from apps.sales.choices import PaymentStatusChoices
 from apps.sales.models import OnlinePayment, OrderPayment
 from apps.sales.tasks import make_previous_payment
 
@@ -13,6 +14,8 @@ def get_payment_info(payment_id):
         return None
     if session_state == "PaymentSuccessful":
         return online_payment
+    elif session_state == "PaymentTerminated":
+        return None
     url = f"{settings.PAYMENT_SITE_URL}/checkout/v3/session/{payment_id}/"
 
     headers = {
@@ -33,8 +36,13 @@ def get_payment_info(payment_id):
         print("Status Code", response.status_code)
         online_payment.session_data = response.json()
         online_payment.save()
+        if online_payment.session_data.get('sessionState') == "PaymentTerminated":
+            online_payment.order_payment.status = PaymentStatusChoices.CANCELLED
+            online_payment.order_payment.save()
         if online_payment.session_data.get('sessionState') == "PaymentSuccessful":
             make_previous_payment.delay(online_payment.order_payment.id)
+            online_payment.order_payment.status = PaymentStatusChoices.COMPLETED
+            online_payment.order_payment.save()
     else:
         print("Status Code", response.status_code)
         print("JSON Response ", response.json())
@@ -59,25 +67,26 @@ def make_online_payment(payment_id):
     }
     data = {
         "merchantInfo": {
-            "callbackUrl": f"{settings.SITE_URL}/dadmin/?ref={online_payment.id}&success={True}",
-            "returnUrl": f"{settings.SITE_URL}/dadmin/?ref={online_payment.id}&success={False}",
+            "callbackUrl": f"{settings.SITE_URL}/dadmin/?ref={online_payment.id}",
+            "returnUrl": f"{settings.SITE_URL}/dadmin/?ref={online_payment.id}",
             "callbackAuthorizationToken": "",
             "termsAndConditionsUrl": f"{settings.SITE_URL}/dadmin"
         },
         "transaction": {
             "amount": {
-                "value": float(payment.paid_amount) * 100,
+                "value": int(float(payment.paid_amount) * 100),
                 "currency": "NOK"
             },
             "reference": f"{online_payment.id}",
-            "paymentDescription": payment.note
+            "paymentDescription": payment.company.name
         }
     }
 
     response = requests.post(url, headers=headers, json=data)
 
+    print("Status Code", response.status_code)
     if response.status_code == 200:
-        print("Status Code", response.status_code)
+        print("JSON Response ", response.json())
         online_payment.request_headers = headers
         online_payment.request_data = data
         online_payment.response_data = response.json()
@@ -87,6 +96,5 @@ def make_online_payment(payment_id):
             return f"{online_payment.response_data.get('checkoutFrontendUrl')}?token={online_payment.response_data.get('token')}"
         return None
     else:
-        print("Status Code", response.status_code)
-        print("JSON Response ", response.json())
+        print("Error JSON Response ", response.json())
     return None

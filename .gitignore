@@ -9,3 +9,4 @@ celerybeat-schedule
 logs
 venv
 firebase-admin.json
+server.log

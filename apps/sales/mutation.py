@@ -146,7 +146,7 @@ class AddToCart(graphene.Mutation):
             cart.save()
             cart.ingredients.add(*item.ingredients.filter(id__in=ingredients))
             cart.added_for.clear()
-            cart.added_for.add(*User.objects.filter(company=user.company, id__in=qt['added_for']))
+            cart.added_for.add(*User.objects.filter(company=user.company, id__in=qt.get('added_for', [])))
         return AddToCart(
             success=True
         )
@@ -568,6 +568,27 @@ class OrderPaymentMutation(DjangoFormMutation):
         )
 
 
+class InitiatePendingPayment(graphene.Mutation):
+    """
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+    payment_url = graphene.String()
+
+    class Arguments:
+        id = graphene.Float()
+
+    @is_authenticated
+    def mutate(self, info, id, **kwargs):
+        payment = OrderPayment.objects.get(
+            id=id, payment_type=PaymentTypeChoices.ONLINE, status=PaymentStatusChoices.PENDING
+        )
+        payment_url = make_online_payment(payment.id)
+        return InitiatePendingPayment(
+            success=True, message="Successfully initiated", payment_url=payment_url
+        )
+
+
 class ApplyCoupon(graphene.Mutation):
     """
     """
@@ -615,6 +636,7 @@ class Mutation(graphene.ObjectType):
     confirm_user_cart_update = ConfirmUserCartUpdate.Field()
     place_order = OrderCreation.Field()
     create_payment = OrderPaymentMutation.Field()
+    initiate_pending_payment = InitiatePendingPayment.Field()
     apply_coupon = ApplyCoupon.Field()
 
     # create_online_payment = OnlinePaymentMutation.Field()
