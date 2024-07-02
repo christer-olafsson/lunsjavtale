@@ -43,8 +43,7 @@ class Notification(BaseWithoutID):
     @property
     def is_seen(self):
         qs = NotificationViewer.objects.filter(
-            notification=self,
-            view_count__gte=1
+            notification=self
         )
         if self.audience_type != AudienceTypeChoice.ADMINS:
             qs = qs.filter(user__in=self.users.all())
@@ -68,7 +67,7 @@ class NotificationTemplate(BaseWithoutID):
         return f"{self.title}:: {self.message}"
 
 
-class NotificationViewer(models.Model):
+class NotificationViewer(BaseWithoutID):
     notification = models.ForeignKey(Notification, on_delete=models.CASCADE)  # related to which notification
     user = models.ForeignKey(User, on_delete=models.CASCADE,
                              related_name='user_notifications_viewed')  # who checked the notification

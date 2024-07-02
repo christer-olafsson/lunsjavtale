@@ -94,7 +94,9 @@ def social_signup(
             social_id=social_id
         ).user
         check_user(user, activate)
+        user.is_expired = False
         user.last_login = timezone.now()
+        user.last_active_on = timezone.now()
         user.save()
         UnitOfHistory.user_history(
             action=HistoryActions.SOCIAL_LOGIN,
@@ -122,7 +124,9 @@ def social_signup(
         user.send_email_verification()
         raise_graphql_error("Please verify your email", "unverified_email")
     user.is_email_verified = True
+    user.is_expired = False
     user.last_login = timezone.now()
+    user.last_active_on = timezone.now()
     user.save()
     UnitOfHistory.user_history(
         action=HistoryActions.SOCIAL_SIGNUP,

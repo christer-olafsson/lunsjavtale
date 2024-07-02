@@ -192,7 +192,8 @@ class Authentication:
         try:
             access = AccessToken.objects.filter(token=token).last()
             user = access.user
-            if not user.is_expired and user.last_active_on > (timezone.now() - datetime.timedelta(days=settings.ACCESS_TOKEN_EXPIRY_LIMIT)):
+            if not user.is_expired and user.last_active_on > (timezone.now() - datetime.timedelta(
+                    days=settings.ACCESS_TOKEN_EXPIRY_LIMIT)):
                 user.last_active_on = timezone.now()
                 user.save()
                 return user
