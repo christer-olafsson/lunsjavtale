@@ -16,7 +16,7 @@ from backend.fcm import ExFCMNotification
 from backend.mail import send_direct_mail_by_default_bcc
 
 from .choices import AudienceTypeChoice, NotificationTypeChoice
-from .models import Notification
+from .models import Notification, NotificationViewer
 
 User = get_user_model()
 
@@ -115,7 +115,7 @@ def send_admin_notification_and_save(
     if tokens:
         send_bulk_notification(title, message, tokens, n_type)
     else:
-        getLogger().error("No user device token found.")
+        getLogger().error("No admin device token found.")
 
 
 @app.task
@@ -319,3 +319,19 @@ def send_order_creation_mail(order_id):
         "Placed",
     )
     send_direct_mail_by_default_bcc(SUBJECT, body, order.b2b_customer.user.email)
+
+
+@app.task
+def make_seen_all_notifications(user_id):
+    user = User.objects.get(id=user_id)
+    if user.is_admin:
+        notifications = Notification.objects.filter(audience_type=AudienceTypeChoice.ADMINS)
+        read = NotificationViewer.objects.filter(notification__in=notifications).values_list('notification', flat=True)
+    else:
+        notifications = Notification.objects.filter(users=user, sent_on__lte=timezone.now())
+        read = NotificationViewer.objects.filter(
+            notification__in=notifications, user=user).values_list('notification', flat=True)
+    for ins in notifications.exclude(id__in=read):
+        obj = NotificationViewer.objects.get_or_create(notification=ins, user=user)[0]
+        obj.view_count += 1
+        obj.save()

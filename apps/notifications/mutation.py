@@ -183,12 +183,17 @@ class NotificationDeleteMutation(graphene.Mutation):
     message = graphene.String()
 
     class Arguments:
-        id = graphene.String()
+        ids = graphene.List(graphene.ID, required=False)
 
     @is_admin_user
-    def mutate(self, info, id, **kwargs):
-        ids = id.split(',')
-        notifications = Notification.objects.filter(id__in=ids)
+    def mutate(self, info, ids, **kwargs):
+        user = info.context.user
+        if user.is_admin:
+            notifications = Notification.objects.filter(audience_type=AudienceTypeChoice.ADMINS)
+        else:
+            notifications = Notification.objects.filter(users=user)
+        if ids:
+            notifications = notifications.filter(id__in=ids)
         notifications.delete()
         return NotificationDeleteMutation(
             success=True,

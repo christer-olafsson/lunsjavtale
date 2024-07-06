@@ -48,11 +48,17 @@ class SellCartFilters(BaseFilterOrderBy):
     added_for = django_filters.CharFilter(
         method='added_for_filter'
     )
+    supplier_name_email = django_filters.CharFilter(
+        method='supplier_name_email_filter'
+    )
 
     def added_for_filter(self, qs, name, value):
         carts = UserCart.objects.filter(
             added_for__id=value).order_by('cart_id').values_list('cart_id', flat=True).distinct()
         return qs.filter(id__in=carts)
+
+    def supplier_name_email_filter(self, qs, name, value):
+        return qs.filter(Q(item__vendor__name__icontains=value) | Q(item__vendor__email__icontains=value))
 
     class Meta:
         model = SellCart
@@ -139,16 +145,30 @@ class OrderPaymentFilters(BaseFilterOrderBy):
         OrderPayment Filters will define here
     """
     company = django_filters.CharFilter(
-        field_name="order__company__id", lookup_expr="exact"
+        field_name="company__id", lookup_expr="exact"
     )
     user = django_filters.CharFilter(
-        field_name="user_cart__added_for__id", lookup_expr="exact"
+        field_name="payment_for__id", lookup_expr="exact"
     )
+    company_name_email = django_filters.CharFilter(
+        method="company_name_email_filter"
+    )
+    payment_for_name_email = django_filters.CharFilter(
+        method="payment_for_name_email_filter"
+    )
+
+    def company_name_email_filter(self, qs, name, value):
+        return qs.filter(Q(company__name__icontains=value) | Q(company__email__icontains=value) | Q(company__working_email__icontains=value))
+
+    def payment_for_name_email_filter(self, qs, name, value):
+        return qs.filter(Q(payment_for__first_name__icontains=value) | Q(payment_for__last_name__icontains=value) | Q(payment_for__email__icontains=value))
 
     class Meta:
         model = OrderPayment
         fields = [
             'id',
+            'payment_type',
+            'status',
         ]
 
 

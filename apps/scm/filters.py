@@ -70,6 +70,9 @@ class ProductFilters(BaseFilterOrderBy):
     max_price = django_filters.CharFilter(
         field_name='price', lookup_expr='lte'
     )
+    is_vendor_product = django_filters.BooleanFilter(
+        method="is_vendor_product_filter"
+    )
 
     def category_filter(self, qs, name, value):
         if value == '0':
@@ -81,6 +84,13 @@ class ProductFilters(BaseFilterOrderBy):
     def title_filter(self, qs, name, value):
         if value:
             qs = qs.filter(Q(title__icontains=value) | Q(description__icontains=value) | Q(name__icontains=value))
+        return qs
+
+    def is_vendor_product_filter(self, qs, name, value):
+        if value:
+            qs = qs.filter(vendor__isnull=False)
+        else:
+            qs = qs.filter(vendor__isnull=True)
         return qs
 
     class Meta:
@@ -123,10 +133,19 @@ class FoodMeetingFilters(BaseFilterOrderBy):
         field_name="title",
         lookup_expr="icontains"
     )
+    company_name_email = django_filters.CharFilter(
+        method="company_name_email_filter"
+    )
+
+    def company_name_email_filter(self, qs, name, value):
+        return qs.filter(
+            Q(company__name__icontains=value) | Q(company__working_email__icontains=value) | Q(email__icontains=value) | Q(company_name__icontains=value)
+        )
 
     class Meta:
         model = FoodMeeting
         fields = [
             'id',
             'meeting_type',
+            'status',
         ]

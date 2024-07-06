@@ -162,7 +162,7 @@ class RemoveCart(graphene.Mutation):
     class Arguments:
         id = graphene.ID()
 
-    @is_company_user
+    @is_authenticated
     def mutate(self, info, id, **kwargs):
         user = info.context.user
         carts = user.added_carts.all()
@@ -398,6 +398,53 @@ class OrderStatusUpdate(graphene.Mutation):
         )
 
 
+class OrderHistoryDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(OrderType)
+
+    class Arguments:
+        id = graphene.ID()
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        obj = Order.objects.get(
+            id=id
+        )
+        obj.is_deleted = True
+        obj.deleted_on = timezone.now()
+        obj.save()
+        return OrderHistoryDelete(
+            success=True,
+            message="Successfully deleted",
+        )
+
+
+class PaymentHistoryDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(OrderType)
+
+    class Arguments:
+        ids = graphene.List(graphene.ID)
+
+    @is_admin_user
+    def mutate(self, info, ids, **kwargs):
+        OrderPayment.objects.filter(
+            id__in=ids
+        ).update(is_deleted=True)
+        return PaymentHistoryDelete(
+            success=True,
+            message="Successfully deleted",
+        )
+
+
 class UserCartUpdate(graphene.Mutation):
     """
     """
@@ -623,6 +670,7 @@ class Mutation(graphene.ObjectType):
     payment_method_mutation = PaymentMethodMutation.Field()
     delete_payment_method = PaymentMethodDeleteMutation.Field()
     order_status_update = OrderStatusUpdate.Field()
+    order_history_delete = OrderHistoryDelete.Field()
     add_product_rating = AddProductRating.Field()
 
     add_to_cart = AddToCart.Field()
@@ -636,6 +684,7 @@ class Mutation(graphene.ObjectType):
     confirm_user_cart_update = ConfirmUserCartUpdate.Field()
     place_order = OrderCreation.Field()
     create_payment = OrderPaymentMutation.Field()
+    payment_history_delete = PaymentHistoryDelete.Field()
     initiate_pending_payment = InitiatePendingPayment.Field()
     apply_coupon = ApplyCoupon.Field()
 

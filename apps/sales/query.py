@@ -72,41 +72,45 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_orders(self, info, **kwargs):
         user = info.context.user
+        qs = Order.objects.filter(is_deleted=False)
         if user.is_admin:
-            qs = Order.objects.all()
+            qs = qs
         else:
-            qs = Order.objects.filter(company=user.company)
+            qs = qs.filter(company=user.company)
         return qs
 
     @is_authenticated
     def resolve_order(self, info, id, **kwargs):
         user = info.context.user
+        qs = Order.objects.filter(is_deleted=False)
         if user.is_admin:
-            qs = Order.objects.filter(id=id)
+            qs = qs.filter(id=id)
         else:
-            qs = Order.objects.filter(company=user.company, id=id)
+            qs = qs.filter(company=user.company, id=id)
         return qs.last()
 
     @is_authenticated
     def resolve_order_payments(self, info, **kwargs):
         user = info.context.user
+        qs = OrderPayment.objects.filter(is_deleted=False)
         if user.is_admin:
-            qs = OrderPayment.objects.all()
+            qs = qs
         elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
-            qs = OrderPayment.objects.filter(Q(company=user.company) | Q(payment_for=user))
+            qs = qs.filter(Q(company=user.company) | Q(payment_for=user))
         else:
-            qs = OrderPayment.objects.filter(payment_for=user)
+            qs = qs.filter(payment_for=user)
         return qs
 
     @is_authenticated
     def resolve_order_payment(self, info, id, **kwargs):
         user = info.context.user
+        qs = OrderPayment.objects.filter(is_deleted=False)
         if user.is_admin:
-            qs = OrderPayment.objects.filter(id=id)
+            qs = qs.filter(id=id)
         elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
-            qs = OrderPayment.objects.filter(Q(order__company=user.company) | Q(user_cart__added_for=user), id=id)
+            qs = qs.filter(Q(order__company=user.company) | Q(user_cart__added_for=user), id=id)
         else:
-            qs = OrderPayment.objects.filter(user_cart__added_for=user, id=id)
+            qs = qs.filter(user_cart__added_for=user, id=id)
         return qs.last()
 
     @is_authenticated
@@ -136,7 +140,7 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_sales_histories(self, info, **kwargs):
         user = info.context.user
-        qs = SellCart.objects.filter(item__vendor__isnull=False, order__isnull=False)
+        qs = SellCart.objects.filter(item__vendor__isnull=False, order__isnull=False, order__is_deleted=False)
         if user.is_admin:
             pass
         elif user.is_vendor:

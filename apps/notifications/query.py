@@ -11,6 +11,7 @@ from backend.permissions import is_admin_user, is_authenticated
 from .choices import AudienceTypeChoice
 from .models import Notification, NotificationTemplate, NotificationViewer
 from .object_types import NotificationTemplateType, NotificationType
+from .tasks import make_seen_all_notifications
 
 
 class NotificationQuery(graphene.ObjectType):
@@ -39,15 +40,7 @@ class NotificationQuery(graphene.ObjectType):
     @is_admin_user
     def resolve_admin_notifications(self, info, **kwargs):
         notifications = Notification.objects.filter(audience_type=AudienceTypeChoice.ADMINS)
-        qs = notifications
-        read = NotificationViewer.objects.filter(notification__in=qs).values_list('notification', flat=True)
-        for ins in qs.exclude(id__in=read):
-            obj = NotificationViewer.objects.get_or_create(
-                notification=ins,
-                user=info.context.user
-            )[0]
-            obj.view_count += 1
-            obj.save()
+        make_seen_all_notifications.delay(info.context.user.id)
         return notifications
 
     @is_admin_user
@@ -91,12 +84,7 @@ class Query(NotificationQuery, NotificationTemplateQuery):
     def resolve_user_notifications(self, info, **kwargs):
         user = info.context.user
         notifications = Notification.objects.filter(users=user, sent_on__lte=timezone.now())
-        read = NotificationViewer.objects.filter(
-            notification__in=notifications, user=user).values_list('notification', flat=True)
-        for ins in notifications.exclude(id__in=read):
-            obj = NotificationViewer.objects.get_or_create(notification=ins, user=user)[0]
-            obj.view_count += 1
-            obj.save()
+        make_seen_all_notifications.delay(user.id)
         return notifications
 
     @is_authenticated

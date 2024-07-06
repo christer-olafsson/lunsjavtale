@@ -1810,6 +1810,34 @@ class CouponDelete(graphene.Mutation):
             raise_graphql_error("Coupon not found.", "coupon_not_exist")
 
 
+class WithdrawRequestDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @is_admin_user
+    def mutate(self, info, id):
+        try:
+            obj = WithdrawRequest.objects.get(id=id, is_deleted=False)
+            if obj.status in [WithdrawRequestChoices.PENDING, WithdrawRequestChoices.CANCELLED]:
+                obj.delete()
+            else:
+                obj.is_deleted = True
+                obj.deleted_on = timezone.now()
+                obj.save()
+            return WithdrawRequestDelete(
+                success=True,
+                message="Successfully deleted",
+            )
+        except WithdrawRequest.DoesNotExist:
+            raise_graphql_error("Coupon not found.", "coupon_not_exist")
+
+
 class ApplyCouponMutation(graphene.Mutation):
     """
     """
@@ -1867,6 +1895,7 @@ class Mutation(graphene.ObjectType):
     vendor_block_unblock = VendorBlockUnBlock.Field()
     vendor_delete = VendorDelete.Field()
     withdraw_request_mutation = VendorWithdrawRequest.Field()
+    withdraw_request_delete = WithdrawRequestDelete.Field()
     user_password_reset = UserPasswordReset.Field()
     # reset_password_company_staff = PasswordResetCompany.Field()
 
