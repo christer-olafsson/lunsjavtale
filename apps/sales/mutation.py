@@ -239,7 +239,7 @@ class RemoveProductCart(graphene.Mutation):
     class Arguments:
         id = graphene.ID()
 
-    @is_company_user
+    @is_authenticated
     def mutate(self, info, id, **kwargs):
         user = info.context.user
         carts = user.added_carts.all()

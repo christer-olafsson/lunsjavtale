@@ -92,7 +92,7 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_order_payments(self, info, **kwargs):
         user = info.context.user
-        qs = OrderPayment.objects.filter(is_deleted=False)
+        qs = OrderPayment.objects.all()
         if user.is_admin:
             qs = qs
         elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
@@ -104,7 +104,7 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_order_payment(self, info, id, **kwargs):
         user = info.context.user
-        qs = OrderPayment.objects.filter(is_deleted=False)
+        qs = OrderPayment.objects.all()
         if user.is_admin:
             qs = qs.filter(id=id)
         elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:

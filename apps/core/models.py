@@ -117,7 +117,7 @@ class Partner(BaseWithoutID):
 
 class FollowUs(BaseWithoutID):
     title = models.CharField(
-        max_length=32, null=True
+        max_length=32, null=True, blank=True
     )
     link_type = models.CharField(
         max_length=32, null=True

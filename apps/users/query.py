@@ -167,7 +167,7 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_withdraw_requests(self, info, **kwargs) -> object:
         user = info.context.user
-        qs = WithdrawRequest.filter(is_deleted=False)
+        qs = WithdrawRequest.objects.filter(is_deleted=False)
         if not user.is_admin:
             qs = qs.filter(vendor=user.vendor)
         return qs
@@ -175,7 +175,7 @@ class Query(graphene.ObjectType):
     @is_authenticated
     def resolve_withdraw_request(self, info, id, **kwargs) -> object:
         user = info.context.user
-        qs = WithdrawRequest.filter(is_deleted=False, id=id)
+        qs = WithdrawRequest.objects.filter(is_deleted=False, id=id)
         if not user.is_admin:
             qs = qs.filter(vendor=user.vendor)
         return qs.last()
