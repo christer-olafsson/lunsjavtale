@@ -38,6 +38,7 @@ from .forms import (
 from .models import (
     AlterCart,
     BillingAddress,
+    OnlinePayment,
     Order,
     OrderPayment,
     OrderStatus,
@@ -436,9 +437,11 @@ class PaymentHistoryDelete(graphene.Mutation):
 
     @is_admin_user
     def mutate(self, info, ids, **kwargs):
-        OrderPayment.objects.filter(
+        payments = OrderPayment.objects.filter(
             id__in=ids
-        ).update(is_deleted=True)
+        )
+        OnlinePayment.objects.filter(order_payment__in=payments).delete()
+        payments.delete()
         return PaymentHistoryDelete(
             success=True,
             message="Successfully deleted",
