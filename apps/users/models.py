@@ -63,6 +63,7 @@ class ClientDetails(models.Model):
     address = models.TextField(blank=True, null=True)
     formation_date = models.DateField(blank=True, null=True)
     contact = models.CharField(max_length=15, blank=True, null=True)
+    email = models.EmailField(max_length=128, blank=True, null=True)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_client_details"  # define table name for database

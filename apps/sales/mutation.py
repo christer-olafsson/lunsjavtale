@@ -203,6 +203,7 @@ class EditCartMutation(graphene.Mutation):
         obj.save()
         obj.added_for.clear()
         obj.added_for.add(*staffs)
+        obj.order.save()
         add_user_carts.delay(obj.id)
         return EditCartMutation(
             success=True,
