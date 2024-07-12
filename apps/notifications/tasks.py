@@ -8,7 +8,7 @@ from django.utils import timezone
 from apps.sales.choices import InvoiceStatusChoices
 from apps.sales.models import Order, SellCart
 from apps.users.choices import DeviceTypeChoices, RoleTypeChoices
-from apps.users.models import UserDeviceToken
+from apps.users.models import Company, UserDeviceToken
 
 # local imports
 from backend.celery import app
@@ -26,12 +26,35 @@ def notify_company_order_update(id):
     order = Order.objects.get(id=id)
     users = list(order.company.users.filter(
         role__in=[RoleTypeChoices.COMPANY_MANAGER, RoleTypeChoices.COMPANY_OWNER]).values_list('id', flat=True))
+    title = "Order status update."
+    message = f"Order status was updated to '{str(order.status).replace('-', ' ')}'"
     send_bulk_notification_and_save(
         user_ids=users,
-        title="Order status update.",
-        message=f"Order status was updated for id -> {id}",
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_STATUS_CHANGED,
         object_id=order.id
     )
+    send_order_update_mail(order.company.working_email, title, message)
+
+
+@app.task
+def send_order_update_mail(email, title, message):
+    """
+        send mail to user for sell-order update
+    """
+    body = """
+    <html>
+    <head></head>
+    <body>
+    <h3>{0}</h3>
+    <p>Thank you for ordering.</p>
+    <p>Sincerely,</p>
+    <p>Lunsjavtale Team</p>
+    </body>
+    </html>
+    """.format(message)
+    send_direct_mail_by_default_bcc(title, body, email)
 
 
 @app.task
@@ -119,23 +142,39 @@ def send_admin_notification_and_save(
 
 
 @app.task
-def send_sell_order_mail(ad_id, title, message):
+def notify_order_placed(id):
+    company = Company.objects.get(id=id)
+    title = "Order Placed"
+    message = "Your orders have been placed successfully."
+    users = list(company.users.filter(
+        role__in=[RoleTypeChoices.COMPANY_MANAGER, RoleTypeChoices.COMPANY_OWNER]).values_list('id', flat=True))
+    send_bulk_notification_and_save(
+        user_ids=users,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_PLACED,
+        object_id=None
+    )
+    send_sell_order_mail(company.working_email, title, message)
+
+
+@app.task
+def send_sell_order_mail(email, title, message):
     """
         send mail to user for sell-order update
     """
-    ad = Order.objects.get(id=ad_id)
-    url = f"{settings.SITE_URL}/sell-order/{ad.id}"
     body = """
     <html>
     <head></head>
     <body>
     <h3>{0}</h3>
-    <p>Please check below link-</p>
-    <p><a href='{1}'>{2}</a></p>
+    <p>Thank you for ordering.</p>
+    <p>Sincerely,</p>
+    <p>Lunsjavtale Team</p>
     </body>
     </html>
-    """.format(message, url, url)
-    send_direct_mail_by_default_bcc(title, body, ad.b2b_customer.user.email)
+    """.format(message)
+    send_direct_mail_by_default_bcc(title, body, email)
 
 
 @app.task
@@ -152,6 +191,9 @@ def send_other_mail(email, title, message, link=None):
     <h3>{0}</h3>
     <p>Please check below link-</p>
     <p><a href='{1}'>{2}</a></p>
+    <p>Thank you for staying with us.</p>
+    <p>Sincerely,</p>
+    <p>Lunsjavtale Team</p>
     </body>
     </html>
     """.format(message, link, link)

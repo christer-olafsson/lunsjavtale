@@ -32,7 +32,13 @@ class PaymentMethod(BaseWithoutID, SoftDeletion):
         super(PaymentMethod, self).save(*args, **kwargs)
 
 
-class SellCart(BaseWithoutID):
+class SellCartManager(models.Manager):
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
+class SellCart(BaseWithoutID, SoftDeletion):
     order = models.ForeignKey(
         to='Order', on_delete=models.DO_NOTHING, related_name='order_carts', blank=True, null=True
     )
@@ -80,6 +86,8 @@ class SellCart(BaseWithoutID):
     request_status = models.CharField(
         max_length=32, choices=DecisionChoices.choices, default=DecisionChoices.PENDING
     )
+
+    objects = SellCartManager()
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_sell_carts"  # define table name for database
@@ -145,6 +153,12 @@ class AlterCart(BaseWithoutID):
         db_table = f"{settings.DB_PREFIX}_alter_carts"  # define table name for database
 
 
+class OrderManager(models.Manager):
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
 class Order(BaseWithoutID, SoftDeletion):
     company = models.ForeignKey(
         to='users.Company', on_delete=models.DO_NOTHING, related_name='orders'
@@ -192,6 +206,9 @@ class Order(BaseWithoutID, SoftDeletion):
         max_length=32, choices=InvoiceStatusChoices.choices, default=InvoiceStatusChoices.PLACED
     )
     is_full_paid = models.BooleanField(default=False)
+    is_checked = models.BooleanField(default=False)
+
+    objects = OrderManager()
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_orders"  # define table name for database
@@ -271,7 +288,13 @@ class OrderStatus(models.Model):
 #         db_table = f"{settings.DB_PREFIX}_user_cart_statuses"  # define table name for database
 
 
-class OrderPayment(BaseWithoutID):
+class OrderPaymentManager(models.Manager):
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
+class OrderPayment(BaseWithoutID, SoftDeletion):
     orders = models.ManyToManyField(
         to=Order, blank=True
     )
@@ -293,6 +316,9 @@ class OrderPayment(BaseWithoutID):
     created_by = models.ForeignKey(to='users.User', on_delete=models.DO_NOTHING, related_name='created_payments')
     status = models.CharField(
         max_length=32, choices=PaymentStatusChoices.choices, default=PaymentStatusChoices.PENDING)
+    is_checked = models.BooleanField(default=False)
+
+    objects = OrderPaymentManager()
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_order_payments"  # define table name for database
@@ -325,6 +351,7 @@ class ProductRating(BaseWithoutID):
         db_index=True, default=1, validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
     description = models.TextField(null=True)
+    is_checked = models.BooleanField(default=False)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_product_ratings"  # define table name for database

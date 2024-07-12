@@ -52,6 +52,9 @@ class ProductFilters(BaseFilterOrderBy):
     category = django_filters.CharFilter(
         method='category_filter',
     )
+    vendor = django_filters.CharFilter(
+        field_name='vendor__id', lookup_expr='exact'
+    )
     created_on = django_filters.CharFilter(
         field_name='created_on__date', lookup_expr='exact'
     )

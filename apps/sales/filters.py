@@ -45,6 +45,9 @@ class SellCartFilters(BaseFilterOrderBy):
     order = django_filters.CharFilter(
         field_name='order__id', lookup_expr='exact'
     )
+    order_status = django_filters.CharFilter(
+        field_name='order__status', lookup_expr='exact'
+    )
     added_for = django_filters.CharFilter(
         method='added_for_filter'
     )

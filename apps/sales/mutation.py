@@ -15,12 +15,14 @@ from apps.bases.utils import (
 )
 from apps.notifications.tasks import (
     notify_company_order_update,
+    notify_order_placed,
     send_admin_notification_and_save,
 )
 from apps.scm.models import Ingredient, Product
 from apps.users.choices import RoleTypeChoices
 from backend.permissions import is_admin_user, is_authenticated, is_company_user
 
+from ..notifications.choices import NotificationTypeChoice
 from ..users.models import Coupon
 from .choices import (
     DecisionChoices,
@@ -38,7 +40,6 @@ from .forms import (
 from .models import (
     AlterCart,
     BillingAddress,
-    OnlinePayment,
     Order,
     OrderPayment,
     OrderStatus,
@@ -351,6 +352,7 @@ class OrderCreation(graphene.Mutation):
             if payment_type == OrderPaymentTypeChoices.ONLINE:
                 OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
             notify_user_carts(obj.id)
+        notify_order_placed.delay(company.id)
         if payment_type == OrderPaymentTypeChoices.ONLINE:
             payment = OrderPayment.objects.create(
                 company=company, payment_type=OrderPaymentTypeChoices.ONLINE, paid_amount=total_invoice_amount,
@@ -361,7 +363,8 @@ class OrderCreation(graphene.Mutation):
         send_admin_notification_and_save.delay(
             title="Order placed",
             message=f"New orders placed by '{company.name}'",
-            object_id=str(company.id)
+            object_id=str(company.id),
+            n_type=NotificationTypeChoice.ORDER_PLACED
         )
         return OrderCreation(
             success=True, payment_url=payment_url
@@ -441,9 +444,31 @@ class PaymentHistoryDelete(graphene.Mutation):
         payments = OrderPayment.objects.filter(
             id__in=ids
         )
-        OnlinePayment.objects.filter(order_payment__in=payments).delete()
-        payments.delete()
+        payments.update(is_deleted=True, deleted_on=timezone.now())
         return PaymentHistoryDelete(
+            success=True,
+            message="Successfully deleted",
+        )
+
+
+class SalesHistoryDelete(graphene.Mutation):
+    """
+    """
+
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(OrderType)
+
+    class Arguments:
+        ids = graphene.List(graphene.ID)
+
+    @is_admin_user
+    def mutate(self, info, ids, **kwargs):
+        qs = SellCart.objects.filter(
+            id__in=ids
+        )
+        qs.update(is_deleted=True, deleted_on=timezone.now())
+        return SalesHistoryDelete(
             success=True,
             message="Successfully deleted",
         )
@@ -673,8 +698,6 @@ class Mutation(graphene.ObjectType):
     """
     payment_method_mutation = PaymentMethodMutation.Field()
     delete_payment_method = PaymentMethodDeleteMutation.Field()
-    order_status_update = OrderStatusUpdate.Field()
-    order_history_delete = OrderHistoryDelete.Field()
     add_product_rating = AddProductRating.Field()
 
     add_to_cart = AddToCart.Field()
@@ -686,10 +709,15 @@ class Mutation(graphene.ObjectType):
     user_cart_update = UserCartUpdate.Field()
     user_cart_ingredients_update = UserCartIngredientUpdate.Field()
     confirm_user_cart_update = ConfirmUserCartUpdate.Field()
+    sales_history_delete = SalesHistoryDelete.Field()
+
     place_order = OrderCreation.Field()
+    order_status_update = OrderStatusUpdate.Field()
+    order_history_delete = OrderHistoryDelete.Field()
+    apply_coupon = ApplyCoupon.Field()
+
     create_payment = OrderPaymentMutation.Field()
     payment_history_delete = PaymentHistoryDelete.Field()
     initiate_pending_payment = InitiatePendingPayment.Field()
-    apply_coupon = ApplyCoupon.Field()
 
     # create_online_payment = OnlinePaymentMutation.Field()

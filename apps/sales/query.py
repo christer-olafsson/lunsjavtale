@@ -85,6 +85,7 @@ class Query(graphene.ObjectType):
         qs = Order.objects.filter(is_deleted=False)
         if user.is_admin:
             qs = qs.filter(id=id)
+            qs.update(is_checked=True)
         else:
             qs = qs.filter(company=user.company, id=id)
         return qs.last()
@@ -107,6 +108,7 @@ class Query(graphene.ObjectType):
         qs = OrderPayment.objects.all()
         if user.is_admin:
             qs = qs.filter(id=id)
+            qs.update(is_checked=True)
         elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
             qs = qs.filter(Q(order__company=user.company) | Q(user_cart__added_for=user), id=id)
         else:
@@ -127,6 +129,7 @@ class Query(graphene.ObjectType):
         user = info.context.user
         if user.is_admin:
             qs = ProductRating.objects.filter(id=id)
+            qs.update(is_checked=True)
         else:
             qs = ProductRating.objects.filter(added_by=user, id=id)
         return qs.last()
