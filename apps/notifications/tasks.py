@@ -72,6 +72,17 @@ def notify_vendor_product(id):
 
 
 @app.task
+def notify_company_registration(id):
+    company = Company.objects.get(id=id)
+    send_admin_notification_and_save(
+        title="Company registration",
+        message=f"New company '{company.name}' has been registered",
+        n_type=NotificationTypeChoice.COMPANY_REGISTERED,
+        object_id=company.id
+    )
+
+
+@app.task
 def send_notification_and_save(user_id, title, message, n_type, object_id=None):
     user = User.objects.get(id=user_id)
     token = getattr(user, 'device_tokens', None)

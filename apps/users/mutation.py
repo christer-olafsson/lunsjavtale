@@ -30,6 +30,7 @@ from backend.permissions import (
     is_super_admin,
 )
 
+from ..notifications.tasks import notify_company_registration
 from .choices import RoleTypeChoices, WithdrawRequestChoices
 from .forms import (
     AddressForm,
@@ -164,6 +165,7 @@ class CompanyMutation(DjangoFormMutation):
         form = CompanyForm(data=input)
         if form.is_valid():
             obj = form.save()
+            notify_company_registration.delay(obj.id)
         else:
             error_data = {}
             for error in form.errors:
@@ -1056,7 +1058,7 @@ class PasswordResetMail(graphene.Mutation):
         )
         return PasswordResetMail(
             success=True,
-            message="Password reset mail was sent successfully"
+            message="E-post for tilbakestilling av passord ble sendt."
         )
 
 

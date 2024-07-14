@@ -23,6 +23,12 @@ class Ingredient(BaseWithoutID, SoftDeletion):
         return cls.objects.filter(is_deleted=False)
 
 
+class CategoryManager(models.Manager):
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
 class Category(BaseWithoutID, SoftDeletion):
     """
         Store category information by making a hierarchy of category and sub-category
@@ -43,16 +49,25 @@ class Category(BaseWithoutID, SoftDeletion):
         blank=True, null=True
     )
     is_active = models.BooleanField(default=True)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    objects = CategoryManager()
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_categories"  # define table name for database
         verbose_name_plural = 'Categories'
-        ordering = ['-id']  # define default order as id in descending
+        ordering = ['order', '-created_on']  # define default order as id in descending
         unique_together = ('name', 'parent')
 
     @classmethod
     def queryset(cls):
         return cls.objects.filter(is_deleted=False)
+
+
+class ProductManager(models.Manager):
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
 
 
 class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
@@ -74,10 +89,13 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
     discount_availability = models.BooleanField(default=True)  # if discount available or not
     visitor_count = models.PositiveIntegerField(default=0, null=True)  # store product visits
     is_adjustable_for_single_staff = models.BooleanField(default=False)
+    order = models.PositiveSmallIntegerField(default=1)
+
+    objects = ProductManager()
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_products"  # define table name for database
-        ordering = ['-id']  # define default order as created in descending
+        ordering = ['order', '-created_on']  # define default order as id in descending
         verbose_name = 'Product'
         verbose_name_plural = 'Products'
         # unique_together = ('title', 'category')
@@ -144,3 +162,14 @@ class FoodMeeting(BaseWithoutID):
     class Meta:
         db_table = f"{settings.DB_PREFIX}_food_meetings"  # define table name for database
         ordering = ['-id']  # define default order as created in descending
+
+
+class FavoriteProduct(BaseWithoutID):
+    added_by = models.ForeignKey(
+        to='users.User', on_delete=models.DO_NOTHING, related_name='user_favorites'
+    )
+    product = models.ForeignKey(to='scm.Product', on_delete=models.DO_NOTHING, related_name='favorites')
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_fav_products"  # define table name for database
+        ordering = ['-id']  # define default order as id in descending

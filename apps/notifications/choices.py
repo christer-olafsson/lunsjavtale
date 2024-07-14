@@ -13,6 +13,7 @@ class AudienceTypeChoice(models.TextChoices):
 
 class NotificationTypeChoice(models.TextChoices):
     ALERT = 'alert'  # send by admin
-    ORDER_STATUS_CHANGED = 'order-status-changed'
     ORDER_PLACED = 'order-placed'
+    ORDER_STATUS_CHANGED = 'order-status-changed'
     VENDOR_PRODUCT_ORDERED = 'vendor-product-ordered'
+    COMPANY_REGISTERED = 'company-registered'

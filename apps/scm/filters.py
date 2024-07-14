@@ -4,7 +4,14 @@ from django.db.models import Q
 
 from apps.bases.filters import BaseFilterOrderBy
 
-from .models import Category, FoodMeeting, Ingredient, Product, ProductAttachment
+from .models import (
+    Category,
+    FavoriteProduct,
+    FoodMeeting,
+    Ingredient,
+    Product,
+    ProductAttachment,
+)
 
 
 class CategoryFilters(BaseFilterOrderBy):
@@ -151,4 +158,13 @@ class FoodMeetingFilters(BaseFilterOrderBy):
             'id',
             'meeting_type',
             'status',
+        ]
+
+
+class FavoriteProductFilters(BaseFilterOrderBy):
+
+    class Meta:
+        model = FavoriteProduct
+        fields = [
+            'id',
         ]

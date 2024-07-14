@@ -6,7 +6,7 @@ from graphql import GraphQLError
 
 # local imports
 from apps.bases.utils import camel_case_format, get_object_by_id, raise_graphql_error
-from backend.permissions import is_admin_user, is_vendor_user
+from backend.permissions import is_admin_user, is_authenticated, is_vendor_user
 
 from ..sales.models import SellCart
 from .choices import MeetingStatusChoices
@@ -17,7 +17,14 @@ from .forms import (
     ProductForm,
     VendorProductForm,
 )
-from .models import Category, FoodMeeting, Ingredient, Product, ProductAttachment
+from .models import (
+    Category,
+    FavoriteProduct,
+    FoodMeeting,
+    Ingredient,
+    Product,
+    ProductAttachment,
+)
 from .object_types import CategoryType, FoodMeetingType, IngredientType, ProductType
 
 
@@ -130,6 +137,26 @@ class IngredientMutation(DjangoModelFormMutation):
             )
         return IngredientMutation(
             success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+        )
+
+
+class IngredientDeleteMutation(graphene.Mutation):
+    """
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+
+    @is_admin_user
+    def mutate(self, info, id, **kwargs):
+        obj = Ingredient.objects.get(id=id, is_deleted=False)
+        obj.is_deleted = True
+        obj.deleted_on = timezone.now()
+        obj.save()
+        return IngredientDeleteMutation(
+            success=True, message="Successfully deleted"
         )
 
 
@@ -353,6 +380,25 @@ class ProductDeleteMutation(graphene.Mutation):
         )
 
 
+class FavoriteProductMutation(graphene.Mutation):
+    """
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+
+    @is_authenticated
+    def mutate(self, info, id, **kwargs):
+        user = info.context.user
+        obj = Product.objects.get(id=id)
+        FavoriteProduct.objects.get_or_create(added_by=user, product=obj)
+        return FavoriteProductMutation(
+            success=True, message="Successfully added"
+        )
+
+
 class Mutation(graphene.ObjectType):
     """
         define all the mutations by identifier name for query
@@ -360,9 +406,11 @@ class Mutation(graphene.ObjectType):
     category_mutation = CategoryMutation.Field()
     category_delete = CategoryDeleteMutation.Field()
     ingredient_mutation = IngredientMutation.Field()
+    ingredient_delete = IngredientDeleteMutation.Field()
     product_mutation = ProductMutation.Field()
     product_delete = ProductDeleteMutation.Field()
     vendor_product_mutation = VendorProductMutation.Field()
     food_meeting_mutation = FoodMeetingMutation.Field()
     food_meeting_resolve = FoodMeetingResolve.Field()
     food_meeting_delete = MeetingDeleteMutation.Field()
+    favorite_product_mutation = FavoriteProductMutation.Field()
