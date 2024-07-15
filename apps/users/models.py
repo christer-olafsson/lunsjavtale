@@ -375,7 +375,17 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
             'password': password,
             'link': settings.SITE_URL
         }
-        template = 'emails/verification.html'
+        if self.role == RoleTypeChoices.COMPANY_MANAGER:
+            template = 'emails/manager_verification.html'
+            context['link'] = "https://lunsjavtale.no/login"
+        elif self.role == RoleTypeChoices.COMPANY_EMPLOYEE:
+            template = 'emails/staff_verification.html'
+            context['link'] = "https://lunsjavtale.no/login"
+        elif self.role == RoleTypeChoices.VENDOR:
+            template = 'emails/supplier_verification.html'
+            context['link'] = "https://supplier.lunsjavtale.no/login"
+        else:
+            template = 'emails/verification.html'
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 
@@ -400,7 +410,12 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
             'email': self.email,
             'password': password
         }
-        template = 'emails/verification.html'
+        if self.role == RoleTypeChoices.VENDOR:
+            template = 'emails/supplier_verification.html'
+            context['link'] = "https://supplier.lunsjavtale.no/login"
+        else:
+            template = 'emails/verification.html'
+            context['link'] = "https://lunsjavtale.no"
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 

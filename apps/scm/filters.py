@@ -109,6 +109,7 @@ class ProductFilters(BaseFilterOrderBy):
             'id',
             'title',
             'availability',
+            'is_featured',
             'is_deleted',
         ]
 

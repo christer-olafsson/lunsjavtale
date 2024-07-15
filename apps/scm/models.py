@@ -89,6 +89,7 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
     discount_availability = models.BooleanField(default=True)  # if discount available or not
     visitor_count = models.PositiveIntegerField(default=0, null=True)  # store product visits
     is_adjustable_for_single_staff = models.BooleanField(default=False)
+    is_featured = models.BooleanField(default=False)
     order = models.PositiveSmallIntegerField(default=1)
 
     objects = ProductManager()

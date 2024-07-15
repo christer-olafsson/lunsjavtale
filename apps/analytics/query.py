@@ -44,6 +44,10 @@ class AdminDashboard:
             'totalCustomers': Company.objects.count(),
             'totalOrders': Order.objects.count(),
             'totalSales': str(Order.objects.aggregate(tot=Sum('final_price'))['tot'] or '0.00'),
+            'totalDue': str(
+                (Order.objects.aggregate(tot=Sum('final_price'))['tot'] or 0) - (Order.objects.aggregate(
+                    paid=Sum('paid_amount'))['paid'] or 0)
+            ),
             'salesToday': str(Order.objects.filter(
                 created_on__date=timezone.now().date()
             ).aggregate(tot=Sum('final_price'))['tot'] or '0.00'),
