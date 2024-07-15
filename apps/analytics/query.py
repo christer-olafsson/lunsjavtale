@@ -3,7 +3,7 @@ import datetime
 import graphene
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models import Sum
+from django.db.models import F, Sum
 from django.utils import timezone
 from graphene.types.generic import GenericScalar
 
@@ -93,15 +93,16 @@ class AdminDashboard:
             carts = SellCart.objects.filter(date__gte=date, order__isnull=False)
         else:
             carts = SellCart.objects.filter(order__isnull=False)
-        products = list(carts.order_by('item_id').values_list('item_id', flat=True).distinct())
+        products = list(carts.filter(item__is_deleted=False).order_by('item').values_list('item_id', flat=True).distinct())
         sold_products = []
         for product_id in products:
-            product = Product.objects.get(id=product_id)
-            sold_products.append({
-                'id': product_id,
-                'name': product.name,
-                'soldAmount': carts.filter(item=product).aggregate(tot=Sum('total_price_with_tax'))['tot']
-            })
+            product = Product.objects.filter(id=product_id).last()
+            if product:
+                sold_products.append({
+                    'id': product_id,
+                    'name': product.name,
+                    'soldAmount': carts.filter(item=product).aggregate(tot=Sum('total_price_with_tax'))['tot']
+                })
         sold_products = sorted(sold_products, key=lambda d: d['soldAmount'], reverse=True)[:5]
         return list(map(lambda i: {
             'id': i['id'],
@@ -143,15 +144,16 @@ class VendorDashboard:
             carts = SellCart.objects.filter(date__gte=date, order__isnull=False, item__vendor=self.vendor)
         else:
             carts = SellCart.objects.filter(order__isnull=False, item__vendor=self.vendor)
-        products = list(carts.order_by('item_id').values_list('item_id', flat=True).distinct())
+        products = list(carts.filter(item__is_deleted=False).order_by('item').values_list('item_id', flat=True).distinct())
         sold_products = []
         for product_id in products:
-            product = Product.objects.get(id=product_id)
-            sold_products.append({
-                'id': product_id,
-                'name': product.name,
-                'soldAmount': carts.filter(item=product).aggregate(tot=Sum('total_price_with_tax'))['tot']
-            })
+            product = Product.objects.filter(id=product_id).last()
+            if product:
+                sold_products.append({
+                    'id': product_id,
+                    'name': product.name,
+                    'soldAmount': carts.filter(item=product).aggregate(tot=Sum('total_price_with_tax'))['tot']
+                })
         sold_products = sorted(sold_products, key=lambda d: d['soldAmount'], reverse=True)[:5]
         return list(map(lambda i: {
             'id': i['id'],
@@ -187,6 +189,7 @@ class Query(graphene.ObjectType):
     vendor_dashboard = graphene.Field(
         AnalyticsType, date_range=graphene.String()
     )
+    company_due = GenericScalar(date_range=graphene.String())
 
     @is_admin_user
     def resolve_admin_dashboard(self, info, date_range="", **kwargs):
@@ -202,3 +205,20 @@ class Query(graphene.ObjectType):
         return AnalyticsType(
             data=data
         )
+
+    @is_admin_user
+    def resolve_company_due(self, info, date_range="", **kwargs):
+        if date_range:
+            date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
+            orders = Order.objects.filter(delivery_date__gte=date)
+        else:
+            orders = Order.objects.all()
+        data = {}
+        for order in orders.annotate(due=F('final_price') - F('paid_amount')).filter(due__gt=0):
+            try:
+                data[order.company.id]['due'] += order.due
+            except Exception:
+                data[order.company.id] = {
+                    'company': {'id': order.company.id, 'workingEmail': order.company.working_email,
+                                'name': order.company.name}, 'due': order.due}
+        return list(map(lambda k: {'company': k['company'], 'due': str(k['due'])}, list(data.values())))

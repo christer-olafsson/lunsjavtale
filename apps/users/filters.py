@@ -245,10 +245,24 @@ class VendorFilters(BaseFilterOrderBy):
     title = django_filters.CharFilter(
         method="title_filter",
     )
+    has_product = django_filters.BooleanFilter(
+        method="has_product_filter",
+    )
 
     def title_filter(self, qs, name, value):
         if value:
             qs = qs.filter(Q(email__icontains=value) | Q(name__icontains=value))
+        return qs
+
+    def has_product_filter(self, qs, name, value):
+        from apps.scm.models import Product
+        vendors = Product.objects.filter(
+            vendor__isnull=False, is_deleted=False
+        ).order_by('vendor').values_list('vendor_id', flat=True).distinct()
+        if value:
+            qs = qs.filter(id__in=vendors)
+        else:
+            qs = qs.exclude(id__in=vendors)
         return qs
 
     class Meta:
@@ -256,6 +270,7 @@ class VendorFilters(BaseFilterOrderBy):
         fields = [
             'id',
             'is_blocked',
+            'has_product'
         ]
 
 

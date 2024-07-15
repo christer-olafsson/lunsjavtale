@@ -385,16 +385,19 @@ class OrderStatusUpdate(graphene.Mutation):
 
     @is_admin_user
     def mutate(self, info, id, status=""):
-        obj = Order.objects.get(
-            id=id, status__in=[
-                InvoiceStatusChoices.PLACED, InvoiceStatusChoices.PAYMENT_COMPLETED, InvoiceStatusChoices.UPDATED,
-                InvoiceStatusChoices.CONFIRMED
-            ]
-        )
-        if status not in [
-            InvoiceStatusChoices.CONFIRMED, InvoiceStatusChoices.CANCELLED, InvoiceStatusChoices.DELIVERED
-        ]:
-            raise_graphql_error("Status not valid.")
+        # obj = Order.objects.get(
+        #     id=id, status__in=[
+        #         InvoiceStatusChoices.PLACED, InvoiceStatusChoices.PAYMENT_COMPLETED, InvoiceStatusChoices.UPDATED,
+        #         InvoiceStatusChoices.CONFIRMED
+        #     ]
+        # )
+        # if status not in [
+        #     InvoiceStatusChoices.CONFIRMED, InvoiceStatusChoices.CANCELLED, InvoiceStatusChoices.DELIVERED
+        # ]:
+        #     raise_graphql_error("Status not valid.")
+        obj = Order.objects.get(id=id)
+        if obj.status in [InvoiceStatusChoices.CANCELLED, InvoiceStatusChoices.DELIVERED]:
+            raise_graphql_error(f"Order status already in '{obj.status}'")
         OrderStatus.objects.create(order=obj, status=status)
         notify_company_order_update.delay(obj.id)
         return OrderStatusUpdate(
