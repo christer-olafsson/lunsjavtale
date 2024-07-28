@@ -204,7 +204,9 @@ class EditCartMutation(graphene.Mutation):
         obj.save()
         obj.added_for.clear()
         obj.added_for.add(*staffs)
-        obj.order.save()
+        if obj.order:
+            obj.order.save()
+            OrderStatus.objects.create(order=obj.order, status=InvoiceStatusChoices.UPDATED)
         add_user_carts.delay(obj.id)
         return EditCartMutation(
             success=True,
@@ -382,9 +384,10 @@ class OrderStatusUpdate(graphene.Mutation):
     class Arguments:
         id = graphene.ID()
         status = graphene.String()
+        note = graphene.String()
 
     @is_admin_user
-    def mutate(self, info, id, status=""):
+    def mutate(self, info, id, status="", note=""):
         # obj = Order.objects.get(
         #     id=id, status__in=[
         #         InvoiceStatusChoices.PLACED, InvoiceStatusChoices.PAYMENT_COMPLETED, InvoiceStatusChoices.UPDATED,
@@ -398,7 +401,7 @@ class OrderStatusUpdate(graphene.Mutation):
         obj = Order.objects.get(id=id)
         if obj.status in [InvoiceStatusChoices.CANCELLED, InvoiceStatusChoices.DELIVERED]:
             raise_graphql_error(f"Order status already in '{obj.status}'")
-        OrderStatus.objects.create(order=obj, status=status)
+        OrderStatus.objects.create(order=obj, status=status, note=note)
         notify_company_order_update.delay(obj.id)
         return OrderStatusUpdate(
             success=True,

@@ -260,6 +260,7 @@ class OrderStatus(models.Model):
     status = models.CharField(
         max_length=32, choices=InvoiceStatusChoices.choices, default=InvoiceStatusChoices.PLACED
     )
+    note = models.TextField(null=True, blank=True)
     created_on = models.DateTimeField(
         auto_now_add=True
     )  # object creation time. will automatically generate
@@ -270,6 +271,7 @@ class OrderStatus(models.Model):
     def save(self, *args, **kwargs):
         super(OrderStatus, self).save(*args, **kwargs)
         self.order.status = self.order.statuses.latest('created_on').status
+        self.order.note = self.order.statuses.latest('created_on').note
         self.order.save()
 
 
