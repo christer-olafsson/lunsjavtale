@@ -185,7 +185,10 @@ class Vendor(BaseWithoutID, SoftDeletion):
 
     @property
     def balance(self):
-        return self.sold_amount - self.withdrawn_amount
+        pending_withdraw = self.withdraw_requests.filter(
+            status=WithdrawRequestChoices.PENDING
+        ).aggregate(tot=models.Sum('withdraw_amount'))['tot'] or 0
+        return self.sold_amount - self.withdrawn_amount - pending_withdraw
 
     @property
     def owner(self):

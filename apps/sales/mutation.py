@@ -291,7 +291,7 @@ class ApproveCart(graphene.Mutation):
             qt.delete()
         return ApproveCart(
             success=True,
-            message="Successfully removed",
+            message="Item added to cart.",
         )
 
 
@@ -320,7 +320,10 @@ class OrderCreation(graphene.Mutation):
         carts = user.added_carts.all()
         if not carts.exists():
             raise_graphql_error("Please add carts first.")
-        shipping_address = company.addresses.get(id=shipping_address)
+        try:
+            shipping_address = company.addresses.get(id=shipping_address)
+        except Exception:
+            raise_graphql_error("Invalid shipping address", field_name="shippingAddress")
         billing_form = BillingAddressForm(data=billing_address)
         if not billing_form.is_valid():
             error_data = {}

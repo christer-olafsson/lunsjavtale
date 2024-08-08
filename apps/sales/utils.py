@@ -40,9 +40,10 @@ def get_payment_info(payment_id):
             online_payment.order_payment.status = PaymentStatusChoices.CANCELLED
             online_payment.order_payment.save()
         if online_payment.session_data.get('sessionState') == "PaymentSuccessful":
-            make_previous_payment.delay(online_payment.order_payment.id)
-            online_payment.order_payment.status = PaymentStatusChoices.COMPLETED
-            online_payment.order_payment.save()
+            order_payment = online_payment.order_payment
+            order_payment.status = PaymentStatusChoices.COMPLETED
+            order_payment.save()
+            make_previous_payment(order_payment.id)
     else:
         print("Status Code", response.status_code)
         print("JSON Response ", response.json())
@@ -67,7 +68,7 @@ def make_online_payment(payment_id):
     }
     data = {
         "merchantInfo": {
-            "callbackUrl": f"{settings.SITE_URL}/dadmin/?ref={online_payment.id}",
+            "callbackUrl": f"{settings.SITE_URL}/dadmins/?ref={online_payment.id}",
             "returnUrl": f"{settings.SITE_URL}/dadmin/?ref={online_payment.id}",
             "callbackAuthorizationToken": "",
             "termsAndConditionsUrl": f"{settings.SITE_URL}/dadmin"

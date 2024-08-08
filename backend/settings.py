@@ -192,6 +192,9 @@ EXPIRY_LIMIT_DAYS = config('EXPIRY_LIMIT_DAYS', default=30, cast=int)
 ACCESS_TOKEN_EXPIRY_LIMIT = config('ACCESS_TOKEN_EXPIRY_LIMIT', default=7, cast=int)
 SITE_URL = config('SITE_URL', 'https://lunsjavtale.no')
 COUPON_ERROR_MESSAGE = "Invalid code"
+DEFAULT_BCC_EMAIL = ""
+
+# payment creds
 PAYMENT_SITE_URL = config("PAYMENT_SITE_URL", "https://apitest.vipps.no")
 VIPPS_SYSTEM_NAME = config("VIPPS_SYSTEM_NAME", "")
 VIPPS_SYSTEM_VERSION = config("VIPPS_SYSTEM_VERSION", "")

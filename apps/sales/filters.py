@@ -105,7 +105,7 @@ class OrderFilters(BaseFilterOrderBy):
     )
 
     def company_name_email_filter(self, qs, name, value):
-        return qs.filter(Q(company__name__icontains=value) | Q(company__working_email__icontains=value))
+        return qs.filter(Q(company__name__icontains=value) | Q(company__working_email__icontains=value) | Q(id__icontains=value))
 
     class Meta:
         model = Order

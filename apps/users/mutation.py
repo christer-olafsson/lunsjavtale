@@ -4,7 +4,6 @@ import graphene
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
-from django.db.models import Sum
 from django.utils import timezone
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphql import GraphQLError
@@ -504,12 +503,9 @@ class VendorWithdrawRequest(graphene.Mutation):
             if not user.is_vendor:
                 raise_graphql_error("User not permitted.")
             vendor = user.vendor
-            pending_withdraw = vendor.withdraw_requests.filter(
-                status=WithdrawRequestChoices.PENDING
-            ).aggregate(tot=Sum('withdraw_amount'))['tot'] or 0
-            if withdraw_amount + pending_withdraw > vendor.sold_amount - vendor.withdrawn_amount:
+            if withdraw_amount > vendor.balance:
                 raise_graphql_error("Amount is not available.", field_name="withdraw_amount")
-            WithdrawRequest.objects.create(vendor=vendor, withdraw_amount=withdraw_amount)
+            WithdrawRequest.objects.create(vendor=vendor, withdraw_amount=withdraw_amount, note=note)
             msg = 'added'
         return VendorWithdrawRequest(
             success=True,

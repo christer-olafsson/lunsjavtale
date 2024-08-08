@@ -211,10 +211,10 @@ class CompanyFilters(BaseFilterOrderBy):
     def is_valid_filter(self, qs, name, value):
         if value:
             qs = qs.filter(post_code__in=ValidArea.objects.filter(
-                post_code=self.post_code, is_active=True).values_list('post_code', flat=True))
+                is_active=True).values_list('post_code', flat=True))
         else:
             qs = qs.exclude(post_code__in=ValidArea.objects.filter(
-                post_code=self.post_code, is_active=True).values_list('post_code', flat=True))
+                is_active=True).values_list('post_code', flat=True))
         return qs
 
     def name_email_filter(self, qs, name, value):

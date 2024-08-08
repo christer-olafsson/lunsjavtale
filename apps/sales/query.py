@@ -77,6 +77,10 @@ class Query(graphene.ObjectType):
             qs = qs
         else:
             qs = qs.filter(company=user.company)
+            if user.role == RoleTypeChoices.COMPANY_EMPLOYEE:
+                qs = qs.filter(
+                    id__in=user.cart_items.filter(cart__order__isnull=False).values_list('cart__order_id', flat=True)
+                )
         return qs
 
     @is_authenticated
