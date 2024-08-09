@@ -261,7 +261,7 @@ class VendorMutation(DjangoFormMutation):
             user = User.objects.create_user(**user_input)
             user.vendor = obj
             user.save()
-            user.vendor_email_verification(password)
+            user.email_verification(password)
         else:
             for error in form.errors:
                 for err in form.errors[error]:
@@ -1611,13 +1611,16 @@ class AddAdministrator(DjangoModelFormMutation):
                 except Exception as e:
                     raise_graphql_error_with_fields("Invalid request.", errors={'password': list(e)})
                 user = User.objects.create_user(**form.cleaned_data)
+                user.email_verification(form.cleaned_data['password'])
             else:
                 del form.cleaned_data['password']
                 user = User.objects.get(id=input.get('id'))
                 User.objects.filter(id=user.id).update(**form.cleaned_data)
-            if super_user:
-                user.is_staff = True
-                user.is_superuser = super_user
+            # if super_user:
+            #     user.is_staff = True
+            #     user.is_superuser = super_user
+            user.is_staff = super_user
+            user.is_superuser = super_user
             user.save()
         else:
             error_data = {}

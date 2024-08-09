@@ -34,7 +34,7 @@ def get_payment_info(payment_id):
 
     if response.status_code == 200:
         print("Status Code", response.status_code)
-        online_payment.session_data = response.json()
+        online_payment.session_data = {**response.json(), **{'payment_id': online_payment.order_payment.id}}
         online_payment.save()
         if online_payment.session_data.get('sessionState') == "PaymentTerminated":
             online_payment.order_payment.status = PaymentStatusChoices.CANCELLED
@@ -43,7 +43,7 @@ def get_payment_info(payment_id):
             order_payment = online_payment.order_payment
             order_payment.status = PaymentStatusChoices.COMPLETED
             order_payment.save()
-            make_previous_payment(order_payment.id)
+            make_previous_payment.delay(order_payment.id)
     else:
         print("Status Code", response.status_code)
         print("JSON Response ", response.json())
@@ -68,8 +68,8 @@ def make_online_payment(payment_id):
     }
     data = {
         "merchantInfo": {
-            "callbackUrl": f"{settings.SITE_URL}/dadmins/?ref={online_payment.id}",
-            "returnUrl": f"{settings.SITE_URL}/dadmin/?ref={online_payment.id}",
+            "callbackUrl": f"{settings.SITE_URL}/dashboard/orders/payment-success/?ref={online_payment.id}",
+            "returnUrl": f"{settings.SITE_URL}/dashboard/orders/payment-success/?ref={online_payment.id}",
             "callbackAuthorizationToken": "",
             "termsAndConditionsUrl": f"{settings.SITE_URL}/dadmin"
         },
@@ -79,7 +79,7 @@ def make_online_payment(payment_id):
                 "currency": "NOK"
             },
             "reference": f"{online_payment.id}",
-            "paymentDescription": payment.company.name
+            "paymentDescription": payment.company.working_email
         }
     }
 
@@ -97,5 +97,7 @@ def make_online_payment(payment_id):
             return f"{online_payment.response_data.get('checkoutFrontendUrl')}?token={online_payment.response_data.get('token')}"
         return None
     else:
+        online_payment.response_data = response.json()
+        online_payment.save()
         print("Error JSON Response ", response.json())
     return None

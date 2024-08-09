@@ -404,7 +404,7 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 
-    def vendor_email_verification(self, password):
+    def email_verification(self, password):
         self.is_verified = True
         self.is_email_verified = True
         self.save()
@@ -416,6 +416,12 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         if self.role == RoleTypeChoices.VENDOR:
             template = 'emails/supplier_verification.html'
             context['link'] = "https://supplier.lunsjavtale.no/login"
+        elif self.role in [
+            RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN, RoleTypeChoices.SEO_MANAGER, RoleTypeChoices.EDITOR,
+            RoleTypeChoices.DEVELOPER, RoleTypeChoices.SYSTEM_MANAGER
+        ]:
+            template = 'emails/verification.html'
+            context['link'] = "https://admin.lunsjavtale.no"
         else:
             template = 'emails/verification.html'
             context['link'] = "https://lunsjavtale.no"

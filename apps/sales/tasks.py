@@ -82,6 +82,8 @@ def make_previous_payment(id):
         if obj.orders.exists():
             for order in obj.orders.all().order_by('created_on'):
                 final_price = order.final_price * order.company_allowance / 100
+                if order.status == InvoiceStatusChoices.PAYMENT_PENDING:
+                    order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
                 if paid_amount > final_price - order.paid_amount:
                     order.paid_amount = final_price
                     order.save()
@@ -90,22 +92,21 @@ def make_previous_payment(id):
                     order.paid_amount += paid_amount
                     # order.save()
                     paid_amount -= paid_amount
+                    order.save()
                     break
-                order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
-                order.save()
         else:
             orders = obj.company.orders.all()
             for order in orders.order_by('created_on'):
                 obj.orders.add(order)
                 final_price = order.final_price * order.company_allowance / 100
+                if order.status == InvoiceStatusChoices.PAYMENT_PENDING:
+                    order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
                 if paid_amount > final_price - order.paid_amount:
                     order.paid_amount = final_price
                     order.save()
                     paid_amount -= order.final_price - order.paid_amount
                 else:
                     order.paid_amount += paid_amount
-                    # order.save()
+                    order.save()
                     paid_amount -= paid_amount
                     break
-                order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
-                order.save()
