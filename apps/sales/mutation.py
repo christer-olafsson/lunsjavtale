@@ -17,6 +17,7 @@ from apps.notifications.tasks import (
     notify_company_order_update,
     notify_order_placed,
     send_admin_notification_and_save,
+    send_admin_sell_order_mail,
 )
 from apps.scm.models import Ingredient, Product
 from apps.users.choices import RoleTypeChoices
@@ -33,6 +34,7 @@ from .choices import (
 )
 from .forms import (
     BillingAddressForm,
+    CompanyOrderPaymentForm,
     OrderPaymentForm,
     PaymentMethodForm,
     ProductRatingForm,
@@ -146,7 +148,7 @@ class AddToCart(graphene.Mutation):
             cart.price = item.actual_price
             cart.price_with_tax = item.price_with_tax
             cart.save()
-            cart.ingredients.add(*item.ingredients.filter(id__in=ingredients))
+            cart.ingredients.add(*Ingredient.objects.filter(id__in=ingredients))
             cart.added_for.clear()
             cart.added_for.add(*User.objects.filter(company=user.company, id__in=qt.get('added_for', [])))
         return AddToCart(
@@ -357,7 +359,7 @@ class OrderCreation(graphene.Mutation):
             if payment_type == OrderPaymentTypeChoices.ONLINE:
                 OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
             notify_user_carts(obj.id)
-        notify_order_placed.delay(company.id)
+        notify_order_placed.delay(company.id, list(map(lambda i: i.id, orders)))
         if payment_type == OrderPaymentTypeChoices.ONLINE:
             payment = OrderPayment.objects.create(
                 company=company, payment_type=OrderPaymentTypeChoices.ONLINE, paid_amount=total_invoice_amount,
@@ -366,11 +368,12 @@ class OrderCreation(graphene.Mutation):
             payment.orders.add(*orders)
             payment_url = make_online_payment(payment.id)
         send_admin_notification_and_save.delay(
-            title="Order placed",
+            title="New Order placed",
             message=f"New orders placed by '{company.name}'",
             object_id=str(company.id),
             n_type=NotificationTypeChoice.ORDER_PLACED
         )
+        send_admin_sell_order_mail.delay(list(map(lambda i: i.id, orders)))
         return OrderCreation(
             success=True, payment_url=payment_url
         )
@@ -653,6 +656,45 @@ class OrderPaymentMutation(DjangoFormMutation):
         )
 
 
+class MakeOnlinePaymentMutation(DjangoFormMutation):
+    """
+        update and create new PaymentMethod information by some default fields.
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+    payment_url = graphene.String()
+    instance = graphene.Field(OrderPaymentType)
+
+    class Meta:
+        form_class = CompanyOrderPaymentForm
+
+    @is_company_user
+    def mutate_and_get_payload(self, info, **input):
+        user = info.context.user
+        form = CompanyOrderPaymentForm(data=input)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.created_by = user
+            obj.payment_type = PaymentTypeChoices.ONLINE
+            obj.save()
+            payment_url = make_online_payment(obj.id)
+        else:
+            error_data = {}
+            for error in form.errors:
+                for err in form.errors[error]:
+                    error_data[camel_case_format(error)] = err
+            raise GraphQLError(
+                message="Invalid input request.",
+                extensions={
+                    "errors": error_data,
+                    "code": "invalid_input"
+                }
+            )
+        return MakeOnlinePaymentMutation(
+            success=True, message="Successfully created", instance=obj, payment_url=payment_url
+        )
+
+
 class InitiatePendingPayment(graphene.Mutation):
     """
     """
@@ -727,6 +769,5 @@ class Mutation(graphene.ObjectType):
 
     create_payment = OrderPaymentMutation.Field()
     payment_history_delete = PaymentHistoryDelete.Field()
+    make_online_payment = MakeOnlinePaymentMutation.Field()
     initiate_pending_payment = InitiatePendingPayment.Field()
-
-    # create_online_payment = OnlinePaymentMutation.Field()

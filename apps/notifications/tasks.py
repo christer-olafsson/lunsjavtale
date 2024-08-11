@@ -13,7 +13,7 @@ from apps.users.models import Company, UserDeviceToken
 # local imports
 from backend.celery import app
 from backend.fcm import ExFCMNotification
-from backend.mail import send_direct_mail_by_default_bcc
+from backend.mail import send_direct_mail_by_default_bcc, send_mail_from_template
 
 from .choices import AudienceTypeChoice, NotificationTypeChoice
 from .models import Notification, NotificationViewer
@@ -153,7 +153,20 @@ def send_admin_notification_and_save(
 
 
 @app.task
-def notify_order_placed(id):
+def send_admin_sell_order_mail(orders):
+    orders = Order.objects.filter(id__in=orders)
+    company = orders.last().company
+    send_mail_from_template(
+        'admin_sell_order_mail.html', {
+            'message': f"New orders placed by '{company.name}'", 'orders': orders
+        }, "New Order placed", list(User.objects.filter(
+            role__in=[RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN]
+        ).values_list('email', flat=True))
+    )
+
+
+@app.task
+def notify_order_placed(id, orders=[]):
     company = Company.objects.get(id=id)
     title = "Order Placed"
     message = "Your orders have been placed successfully."
@@ -166,7 +179,12 @@ def notify_order_placed(id):
         n_type=NotificationTypeChoice.ORDER_PLACED,
         object_id=None
     )
-    send_sell_order_mail(company.working_email, title, message)
+    orders = Order.objects.filter(id__in=orders)
+    send_mail_from_template(
+        'sell_order_mail.html', {'message': message, 'orders': orders},
+        title, company.working_email
+    )
+    # send_sell_order_mail(company.working_email, title, message, orders)
 
 
 @app.task

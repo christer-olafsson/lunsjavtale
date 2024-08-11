@@ -43,4 +43,14 @@ class OrderPaymentForm(forms.ModelForm):
 
     class Meta:
         model = OrderPayment
-        exclude = ['created_by', 'payment_info', 'payment_type', 'status']
+        exclude = ['created_by', 'payment_info', 'payment_type', 'status', 'is_deleted', 'deleted_on', 'is_checked']
+
+
+class CompanyOrderPaymentForm(forms.ModelForm):
+    """
+        BillingAddress model form will define here
+    """
+
+    class Meta:
+        model = OrderPayment
+        exclude = ['created_by', 'payment_info', 'payment_type', 'status', 'is_deleted', 'deleted_on', 'is_checked']

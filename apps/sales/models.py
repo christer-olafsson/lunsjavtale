@@ -81,7 +81,7 @@ class SellCart(BaseWithoutID, SoftDeletion):
         decimal_places=2,
         default=0
     )
-    ingredients = models.ManyToManyField(to='scm.Ingredient', blank=True)
+    ingredients = models.ManyToManyField(to='scm.Ingredient', blank=True)  # Allergies
     is_requested = models.BooleanField(default=False)
     request_status = models.CharField(
         max_length=32, choices=DecisionChoices.choices, default=DecisionChoices.PENDING

@@ -1,0 +1,34 @@
+<html>
+<head>
+    <style>
+        table, th, td {
+          border: 1px solid black;
+          padding: 10px;
+          border-collapse: collapse;
+        }
+
+    </style>
+</head>
+<body>
+    <h3>{{ message }}</h3>
+    <br>
+    <table>
+        <tr style="font-size: 12px;">
+            <th>Order Id</th>
+            <th>Delivery Date</th>
+            <th>Price</th>
+        </tr>
+        {% for o in orders %}
+        <tr style="font-size: 12px;">
+            <td>{{ o.id }}</td>
+            <td>{{ o.delivery_date }}</td>
+            <td>{{ o.final_price }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <p>Thank you for ordering.</p>
+    <p>Sincerely,</p>
+    <p>Lunsjavtale Team</p>
+</body>
+</html>
