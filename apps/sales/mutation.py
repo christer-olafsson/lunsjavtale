@@ -55,8 +55,12 @@ from .object_types import (
     PaymentMethodType,
     ProductRatingType,
 )
-from .tasks import add_user_carts, make_previous_payment, notify_user_carts
-from .utils import make_online_payment
+from .tasks import (
+    add_user_carts,
+    make_online_payment,
+    make_previous_payment,
+    notify_user_carts,
+)
 
 User = get_user_model()
 
@@ -358,8 +362,7 @@ class OrderCreation(graphene.Mutation):
             total_invoice_amount += invoice_amount
             if payment_type == OrderPaymentTypeChoices.ONLINE:
                 OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
-            notify_user_carts(obj.id)
-        notify_order_placed.delay(company.id, list(map(lambda i: i.id, orders)))
+            # notify_user_carts.delay(obj.id)
         if payment_type == OrderPaymentTypeChoices.ONLINE:
             payment = OrderPayment.objects.create(
                 company=company, payment_type=OrderPaymentTypeChoices.ONLINE, paid_amount=total_invoice_amount,
@@ -367,13 +370,21 @@ class OrderCreation(graphene.Mutation):
             )
             payment.orders.add(*orders)
             payment_url = make_online_payment(payment.id)
+        notify_order_placed.delay(company.id, list(map(lambda i: i.id, orders)))
         send_admin_notification_and_save.delay(
             title="New Order placed",
             message=f"New orders placed by '{company.name}'",
             object_id=str(company.id),
             n_type=NotificationTypeChoice.ORDER_PLACED
         )
-        send_admin_sell_order_mail.delay(list(map(lambda i: i.id, orders)))
+        for obj in orders:
+            obj.save()
+            notify_user_carts.delay(list(obj.order_carts.all().values_list('id', flat=True)))
+        send_admin_sell_order_mail.delay(
+            company.id, list(map(lambda i: {
+                'id': i.id, 'delivery_date': i.delivery_date, 'final_price': i.final_price
+            }, orders))
+        )
         return OrderCreation(
             success=True, payment_url=payment_url
         )

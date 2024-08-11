@@ -20,7 +20,7 @@ from .object_types import (
     ProductRatingType,
     SellCartType,
 )
-from .utils import get_payment_info
+from .tasks import get_payment_info
 
 # local imports
 
