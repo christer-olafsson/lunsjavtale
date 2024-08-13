@@ -30,6 +30,8 @@ from .models import (
 )
 from .object_types import CategoryType, FoodMeetingType, IngredientType, ProductType
 
+USE_me = True
+
 
 class CategoryMutation(DjangoModelFormMutation):
     """
