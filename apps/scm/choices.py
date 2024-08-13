@@ -12,3 +12,9 @@ class MeetingStatusChoices(models.TextChoices):
     PENDING = 'pending'
     ATTENDED = 'attended'
     POSTPONED = 'postponed'
+
+
+class ProductStatusChoices(models.TextChoices):
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'

@@ -58,6 +58,47 @@ def send_order_update_mail(email, title, message):
 
 
 @app.task
+def send_admin_mail_for_vendor_product(vendor_name, product_name):
+    """
+        send mail to admin for vendor product added
+    """
+    body = """
+    <html>
+    <head></head>
+    <body>
+    <h3>New vendor product added by {0}.</h3>
+    <p>Product name: {1}</p>
+    </body>
+    </html>
+    """.format(vendor_name, product_name)
+    send_direct_mail_by_default_bcc(
+        "Vendor Product Added", body,
+        list(User.objects.filter(
+            role__in=[RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN]
+        ).values_list('email', flat=True))
+    )
+
+
+@app.task
+def send_vendor_product_update_mail(email, status, product_name):
+    """
+        send mail to vendor for vendor product update
+    """
+    body = """
+    <html>
+    <head></head>
+    <body>
+    <h3>Your product was {0} by admins.</h3>
+    <p>Product name: {1}</p>
+    <p>Sincerely,</p>
+    <p>Lunsjavtale Team</p>
+    </body>
+    </html>
+    """.format(status, product_name)
+    send_direct_mail_by_default_bcc("Vendor Product Updated", body, email)
+
+
+@app.task
 def notify_vendor_product(id):
     cart = SellCart.objects.get(id=id)
     vendor = cart.item.vendor

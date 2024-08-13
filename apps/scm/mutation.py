@@ -6,10 +6,13 @@ from graphql import GraphQLError
 
 # local imports
 from apps.bases.utils import camel_case_format, get_object_by_id, raise_graphql_error
+from apps.notifications.choices import NotificationTypeChoice
+from apps.notifications.tasks import send_admin_notification_and_save, send_admin_mail_for_vendor_product, \
+    send_notification_and_save, send_vendor_product_update_mail
 from backend.permissions import is_admin_user, is_authenticated, is_vendor_user
 
 from ..sales.models import SellCart
-from .choices import MeetingStatusChoices
+from .choices import MeetingStatusChoices, ProductStatusChoices
 from .forms import (
     CategoryForm,
     FoodMeetingForm,
@@ -342,6 +345,15 @@ class VendorProductMutation(graphene.Mutation):
                         product=obj, file_url=attach.get('file_url'), file_id=attach.get('file_id'),
                         is_cover=attach.get('is_cover')
                     )
+            send_admin_notification_and_save.delay(
+                title="New vendor product",
+                message=f"New product added by '{obj.vendor.name}'",
+                object_id=str(obj.vendor.id),
+                n_type=NotificationTypeChoice.VENDOR_PRODUCT_ADDED
+            )
+            send_admin_mail_for_vendor_product.delay(
+                obj.vendor.name, obj.name
+            )
         else:
             error_data = {}
             for error in form.errors:
@@ -357,6 +369,55 @@ class VendorProductMutation(graphene.Mutation):
         return VendorProductMutation(
             success=True, message=f"Successfully {'added' if input.get('id') else 'updated'}", instance=obj
         )
+
+
+class VerifyVendorProduct(graphene.Mutation):
+    """
+        While Verify vendor product Admin have to choose action
+        like approve or reject. if reject have to
+        reason of rejection.
+        action::
+            1. approved
+            2. rejected
+    """
+
+    message = graphene.String()
+    success = graphene.Boolean()
+    instance = graphene.Field(ProductType)
+
+    class Arguments:
+        id = graphene.ID(required=True)
+        status = graphene.String(required=True)
+        note = graphene.String()
+
+    @is_admin_user
+    def mutate(self, info, id, status, note=""):
+        if status not in [ProductStatusChoices.APPROVED, ProductStatusChoices.REJECTED]:
+            raise_graphql_error("Please Choose between 'approved' or 'rejected'.", "invalid_action")
+        try:
+            obj = Product.objects.get(id=id)
+            obj.status = status
+            if status == ProductStatusChoices.APPROVED:
+                obj.availability = True
+            obj.note = note
+            obj.save()
+            send_notification_and_save.delay(
+                user_id=obj.vendor.owner.id,
+                title=f"Vendor product {status}",
+                message=f"Your product '{obj.name}' is {status} by admins.",
+                object_id=str(obj.vendor.id),
+                n_type=NotificationTypeChoice.VENDOR_PRODUCT_UPDATED
+            )
+            send_vendor_product_update_mail.delay(
+                obj.vendor.email, status, obj.name
+            )
+            return VerifyVendorProduct(
+                instance=obj,
+                success=True,
+                message=f"Successfully {'verified' if status == ProductStatusChoices.APPROVED else 'rejected'}"
+            )
+        except Product.DoesNotExist:
+            raise_graphql_error("Product not found.", "user_not_exist")
 
 
 class ProductDeleteMutation(graphene.Mutation):
@@ -410,6 +471,7 @@ class Mutation(graphene.ObjectType):
     product_mutation = ProductMutation.Field()
     product_delete = ProductDeleteMutation.Field()
     vendor_product_mutation = VendorProductMutation.Field()
+    verify_vendor_product = VerifyVendorProduct.Field()
     food_meeting_mutation = FoodMeetingMutation.Field()
     food_meeting_resolve = FoodMeetingResolve.Field()
     food_meeting_delete = MeetingDeleteMutation.Field()

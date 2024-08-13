@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.bases.models import BasePriceModel, BaseWithoutID, SoftDeletion
-from apps.scm.choices import MeetingStatusChoices, MeetingTypeChoices
+from apps.scm.choices import MeetingStatusChoices, MeetingTypeChoices, ProductStatusChoices
 
 
 class Ingredient(BaseWithoutID, SoftDeletion):
@@ -75,7 +75,7 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
         product posting minimum required fields will define here
     """
     name = models.CharField(max_length=128)  # name of the product
-    title = models.CharField(max_length=128, blank=True, null=True)  # name of the product
+    title = models.CharField(max_length=128, blank=True, null=True)  # title of the product
     description = models.TextField()  # some details about the product
     category = models.ForeignKey(
         to=Category, on_delete=models.SET_NULL, related_name='products', null=True
@@ -91,6 +91,8 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
     is_adjustable_for_single_staff = models.BooleanField(default=False)
     is_featured = models.BooleanField(default=False)
     order = models.PositiveSmallIntegerField(default=1)
+    status = models.CharField(max_length=8, choices=ProductStatusChoices.choices, default=ProductStatusChoices.APPROVED)
+    note = models.TextField(blank=True, null=True)
 
     objects = ProductManager()
 
@@ -100,6 +102,11 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
         verbose_name = 'Product'
         verbose_name_plural = 'Products'
         # unique_together = ('title', 'category')
+
+    def save(self, *args, **kwargs):
+        if self.vendor and not self.availability:
+            self.status = ProductStatusChoices.PENDING
+        super(Product, self).save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name}"
