@@ -103,11 +103,6 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
         verbose_name_plural = 'Products'
         # unique_together = ('title', 'category')
 
-    def save(self, *args, **kwargs):
-        if self.vendor and not self.availability:
-            self.status = ProductStatusChoices.PENDING
-        super(Product, self).save(*args, **kwargs)
-
     def __str__(self):
         return f"{self.name}"
 

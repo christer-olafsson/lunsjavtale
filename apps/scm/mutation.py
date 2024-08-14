@@ -334,8 +334,9 @@ class VendorProductMutation(graphene.Mutation):
             old_obj = get_object_by_id(Product, object_id)
             form = ProductForm(data=input, instance=old_obj)
         if form.is_valid():
-            obj = form.save()
+            obj = form.save(commit=False)
             obj.vendor = user.vendor
+            obj.status = ProductStatusChoices.PENDING
             obj.save()
             obj.ingredients.clear()
             for ing in ingredients:
@@ -350,7 +351,7 @@ class VendorProductMutation(graphene.Mutation):
             send_admin_notification_and_save.delay(
                 title="New vendor product",
                 message=f"New product added by '{obj.vendor.name}'",
-                object_id=str(obj.vendor.id),
+                object_id=str(obj.id),
                 n_type=NotificationTypeChoice.VENDOR_PRODUCT_ADDED
             )
             send_admin_mail_for_vendor_product.delay(
