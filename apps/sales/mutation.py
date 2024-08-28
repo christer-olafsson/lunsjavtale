@@ -644,11 +644,14 @@ class OrderPaymentMutation(DjangoFormMutation):
         user = info.context.user
         form = OrderPaymentForm(data=input)
         if form.is_valid():
+            orders = form.cleaned_data.pop('orders')
             obj = form.save(commit=False)
             obj.created_by = user
             obj.payment_type = PaymentTypeChoices.CASH
             obj.status = PaymentStatusChoices.COMPLETED
             obj.save()
+            if orders:
+                obj.orders.add(*Order.objects.filter(id__in=orders))
             make_previous_payment.delay(obj.id)
         else:
             error_data = {}
@@ -684,10 +687,13 @@ class MakeOnlinePaymentMutation(DjangoFormMutation):
         user = info.context.user
         form = CompanyOrderPaymentForm(data=input)
         if form.is_valid():
+            orders = form.cleaned_data.pop('orders')
             obj = form.save(commit=False)
             obj.created_by = user
             obj.payment_type = PaymentTypeChoices.ONLINE
             obj.save()
+            if orders:
+                obj.orders.add(*Order.objects.filter(id__in=orders))
             payment_url = make_online_payment(obj.id)
         else:
             error_data = {}
