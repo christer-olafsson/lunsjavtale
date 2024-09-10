@@ -92,6 +92,8 @@ class OrderType(DjangoObjectType):
     """
     id = graphene.ID(required=True)
     due_amount = graphene.Decimal()
+    company_due_amount = graphene.Decimal()
+    employee_due_amount = graphene.Decimal()
 
     class Meta:
         model = Order

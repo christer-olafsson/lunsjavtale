@@ -362,7 +362,6 @@ class OrderCreation(graphene.Mutation):
             total_invoice_amount += invoice_amount
             if payment_type == OrderPaymentTypeChoices.ONLINE:
                 OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
-            # notify_user_carts.delay(obj.id)
         if payment_type == OrderPaymentTypeChoices.ONLINE:
             payment = OrderPayment.objects.create(
                 company=company, payment_type=OrderPaymentTypeChoices.ONLINE, paid_amount=total_invoice_amount,

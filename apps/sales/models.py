@@ -81,7 +81,9 @@ class SellCart(BaseWithoutID, SoftDeletion):
         decimal_places=2,
         default=0
     )
-    ingredients = models.ManyToManyField(to='scm.Ingredient', blank=True)  # Allergies
+    ingredients = models.ManyToManyField(
+        to='scm.Ingredient', help_text="Allergies", blank=True
+    )
     is_requested = models.BooleanField(default=False)
     request_status = models.CharField(
         max_length=32, choices=DecisionChoices.choices, default=DecisionChoices.PENDING
@@ -122,7 +124,9 @@ class UserCart(BaseWithoutID):
         decimal_places=2,
         default=0
     )
-    ingredients = models.ManyToManyField(to='scm.Ingredient', blank=True)
+    ingredients = models.ManyToManyField(
+        to='scm.Ingredient', help_text="Allergies", blank=True
+    )
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_user_carts"  # define table name for database
@@ -227,6 +231,17 @@ class Order(BaseWithoutID, SoftDeletion):
     @property
     def due_amount(self):
         return self.final_price - self.paid_amount
+
+    @property
+    def company_due_amount(self):
+        return (self.final_price * self.company_allowance / 100) - self.paid_amount
+
+    @property
+    def employee_due_amount(self):
+        paid_amount = UserCart.objects.filter(
+            cart__in=self.order_carts.all()
+        ).aggregate(paid=models.Sum('paid_amount'))['paid'] or 0
+        return (self.final_price * (100 - self.company_allowance) / 100) - paid_amount
 
     def get_payment_status(self, final_price, company_allowance, paid_amount):
         return (final_price * company_allowance / 100) <= paid_amount

@@ -360,7 +360,7 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         ordering = ['-created_on']  # define default filter as created in descending
 
     def __str__(self) -> str:
-        return str(self.email)
+        return f"{self.pk}. {self.email}"
 
     @property
     def full_name(self):
@@ -640,7 +640,7 @@ class Address(BaseWithoutID, SoftDeletion):
     default = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.address
+        return f"{self.pk}. {self.address}"
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_user_addresses"  # define table name for database

@@ -3,6 +3,7 @@ from time import sleep
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db.models import F
 
 from apps.notifications.tasks import notify_vendor_product
 from apps.sales.choices import InvoiceStatusChoices, PaymentStatusChoices
@@ -167,7 +168,9 @@ def make_previous_payment(id):
                     paid_amount -= paid_amount
                     break
         else:
-            user_carts = obj.payment_for.cart_items.all()
+            user_carts = obj.payment_for.cart_items.annotate(
+                c_due=F('cart__price_with_tax') * (100 - F('cart__order__company_allowance')) / 100 - F('paid_amount')
+            ).filter(c_due__gt=0)
             for user_cart in user_carts.order_by('created_on'):
                 obj.user_carts.add(user_cart)
                 if paid_amount > user_cart.cart.price_with_tax - user_cart.paid_amount:
@@ -205,7 +208,9 @@ def make_previous_payment(id):
                     order.save()
                     break
         else:
-            orders = obj.company.orders.all()
+            orders = obj.company.orders.annotate(
+                c_due=F('final_price') * F('company_allowance') / 100 - F('paid_amount')
+            ).filter(c_due__gt=0)
             for order in orders.order_by('created_on'):
                 obj.orders.add(order)
                 final_price = order.final_price * order.company_allowance / 100
