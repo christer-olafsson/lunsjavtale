@@ -152,13 +152,14 @@ def make_previous_payment(id):
     if obj.payment_for:
         if obj.user_carts.exists():
             for user_cart in obj.user_carts.all().order_by('created_on'):
-                if paid_amount > user_cart.cart.price_with_tax - user_cart.paid_amount:
-                    user_cart.paid_amount = user_cart.cart.price_with_tax
+                due = (user_cart.cart.price_with_tax * (100 - user_cart.cart.order.company_allowance) / 100) - user_cart.paid_amount
+                if paid_amount >= due:
+                    user_cart.paid_amount = user_cart.cart.price_with_tax * (100 - user_cart.cart.order.company_allowance) / 100
                     user_cart.save()
                     order = user_cart.cart.order
-                    order.paid_amount += user_cart.cart.price_with_tax - user_cart.paid_amount
+                    order.paid_amount += due
                     order.save()
-                    paid_amount -= user_cart.cart.price_with_tax - user_cart.paid_amount
+                    paid_amount -= due
                 else:
                     user_cart.paid_amount += paid_amount
                     user_cart.save()
@@ -173,13 +174,14 @@ def make_previous_payment(id):
             ).filter(c_due__gt=0)
             for user_cart in user_carts.order_by('created_on'):
                 obj.user_carts.add(user_cart)
-                if paid_amount > user_cart.cart.price_with_tax - user_cart.paid_amount:
-                    user_cart.paid_amount = user_cart.cart.price_with_tax
+                due = (user_cart.cart.price_with_tax * (100 - user_cart.cart.order.company_allowance) / 100) - user_cart.paid_amount
+                if paid_amount >= due:
+                    user_cart.paid_amount = user_cart.cart.price_with_tax * (100 - user_cart.cart.order.company_allowance) / 100
                     user_cart.save()
                     order = user_cart.cart.order
-                    order.paid_amount += user_cart.cart.price_with_tax - user_cart.paid_amount
+                    order.paid_amount += due
                     order.save()
-                    paid_amount -= user_cart.cart.price_with_tax - user_cart.paid_amount
+                    paid_amount -= due
                 else:
                     user_cart.paid_amount += paid_amount
                     user_cart.save()
