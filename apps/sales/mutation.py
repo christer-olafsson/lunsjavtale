@@ -355,7 +355,7 @@ class OrderCreation(graphene.Mutation):
             date_carts = carts.filter(date=date)
             date_carts.update(added_by=None, order=obj)
             obj.save()
-            invoice_amount = (obj.final_price * company_allowance) / 100
+            invoice_amount = obj.company_due_amount
             company.invoice_amount += invoice_amount
             company.ordered_amount += obj.final_price
             company.save()
@@ -582,6 +582,7 @@ class ConfirmUserCartUpdate(graphene.Mutation):
             cart.save()
             cart.added_for.add(obj.base.added_for)
             obj.previous_cart.added_for.remove(obj.base.added_for)
+            obj.previous_cart.cancelled_by.add(obj.base.added_for)
             obj.previous_cart.cancelled += 1
             obj.previous_cart.save()
             cart.order.save()

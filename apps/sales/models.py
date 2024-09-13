@@ -234,14 +234,17 @@ class Order(BaseWithoutID, SoftDeletion):
 
     @property
     def company_due_amount(self):
-        return (self.final_price * self.company_allowance / 100) - self.paid_amount
+        return (self.final_price - self.employee_due_amount) - self.paid_amount
 
     @property
     def employee_due_amount(self):
         paid_amount = UserCart.objects.filter(
             cart__in=self.order_carts.all()
         ).aggregate(paid=models.Sum('paid_amount'))['paid'] or 0
-        return (self.final_price * (100 - self.company_allowance) / 100) - paid_amount
+        staff_amount = 0
+        for cart in self.order_carts.all():
+            staff_amount += (cart.price_with_tax * (100 - self.company_allowance) / 100) * cart.added_for.count()
+        return staff_amount - paid_amount
 
     def get_payment_status(self, final_price, company_allowance, paid_amount):
         return (final_price * company_allowance / 100) <= paid_amount
