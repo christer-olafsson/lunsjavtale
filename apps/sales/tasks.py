@@ -198,12 +198,12 @@ def make_previous_payment(id):
             for order in obj.orders.all().order_by('created_on'):
                 # final_price = order.final_price * order.company_allowance / 100
                 # if paid_amount >= final_price - order.paid_amount:
-                if paid_amount > obj.company_due_amount:
+                if paid_amount > order.company_due_amount:
                     if order.status == InvoiceStatusChoices.PAYMENT_PENDING:
                         order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
-                    order.paid_amount = obj.company_due_amount
+                    order.paid_amount = order.company_due_amount
                     order.save()
-                    paid_amount -= obj.company_due_amount
+                    paid_amount -= order.company_due_amount
                 else:
                     order.paid_amount += paid_amount
                     order.save()
@@ -214,15 +214,15 @@ def make_previous_payment(id):
                 c_due=F('final_price') - F('paid_amount')
             ).filter(c_due__gt=0)
             for order in orders.order_by('created_on'):
-                if obj.company_due_amount > 0:
+                if order.company_due_amount > 0:
                     obj.orders.add(order)
                     # final_price = order.final_price * order.company_allowance / 100
-                    if paid_amount > obj.company_due_amount:
+                    if paid_amount > order.company_due_amount:
                         if order.status == InvoiceStatusChoices.PAYMENT_PENDING:
                             order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
-                        order.paid_amount = obj.company_due_amount
+                        order.paid_amount = order.company_due_amount
                         order.save()
-                        paid_amount -= obj.company_due_amount
+                        paid_amount -= order.company_due_amount
                     else:
                         order.paid_amount += paid_amount
                         order.save()
