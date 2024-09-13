@@ -6,6 +6,7 @@ from graphene_django.filter import DjangoFilterConnectionField
 
 # local imports
 from apps.sales.filters import (
+    AlterCartFilters,
     BillingAddressFilters,
     OrderFilters,
     OrderPaymentFilters,
@@ -19,6 +20,7 @@ from backend.count_connection import CountConnection
 
 from ..users.object_types import VendorType
 from .models import (
+    AlterCart,
     BillingAddress,
     Order,
     OrderPayment,
@@ -84,6 +86,20 @@ class UserCartType(DjangoObjectType):
 
     def resolve_is_full_paid(self, info, **kwargs):
         return self.is_full_paid
+
+
+class AlterCartType(DjangoObjectType):
+    """
+        define django object type for UserCart model with UserCart filter-set
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = AlterCart
+        filterset_class = AlterCartFilters
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
 
 
 class OrderType(DjangoObjectType):

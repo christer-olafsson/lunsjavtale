@@ -5,6 +5,7 @@ from django.db.models import Q
 from apps.bases.filters import BaseFilterOrderBy
 
 from .models import (
+    AlterCart,
     BillingAddress,
     Order,
     OrderPayment,
@@ -82,6 +83,18 @@ class UserCartFilters(BaseFilterOrderBy):
 
     class Meta:
         model = UserCart
+        fields = [
+            'id',
+        ]
+
+
+class AlterCartFilters(BaseFilterOrderBy):
+    """
+        AlterCart Filters will define here
+    """
+
+    class Meta:
+        model = AlterCart
         fields = [
             'id',
         ]

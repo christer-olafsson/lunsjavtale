@@ -681,18 +681,25 @@ class MakeOnlinePaymentMutation(DjangoFormMutation):
     class Meta:
         form_class = CompanyOrderPaymentForm
 
-    @is_company_user
+    @is_authenticated
     def mutate_and_get_payload(self, info, **input):
         user = info.context.user
         form = CompanyOrderPaymentForm(data=input)
         if form.is_valid():
+            if user.company != form.cleaned_data.get('company'):
+                raise_graphql_error("Please select valid company.", field_name="company")
+            if user != form.cleaned_data.get('payment_for'):
+                raise_graphql_error("User not permitted.", field_name="paymentFor")
             orders = form.cleaned_data.pop('orders')
+            user_carts = form.cleaned_data.pop('user_carts')
             obj = form.save(commit=False)
             obj.created_by = user
             obj.payment_type = PaymentTypeChoices.ONLINE
             obj.save()
             if orders:
                 obj.orders.add(*Order.objects.filter(id__in=orders))
+            if user_carts:
+                obj.user_carts.add(*UserCart.objects.filter(id__in=user_carts))
             payment_url = make_online_payment(obj.id)
         else:
             error_data = {}
