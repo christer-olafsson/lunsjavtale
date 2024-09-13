@@ -192,12 +192,12 @@ def make_previous_payment(id):
                     break
     else:
         company = obj.company
-        company.paid_amount += paid_amount
-        company.save()
+        total_due = 0
         if obj.orders.exists():
             for order in obj.orders.all().order_by('created_on'):
                 # final_price = order.final_price * order.company_allowance / 100
                 # if paid_amount >= final_price - order.paid_amount:
+                total_due += order.company_due_amount
                 if paid_amount > order.company_due_amount:
                     if order.status == InvoiceStatusChoices.PAYMENT_PENDING:
                         order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
@@ -215,6 +215,7 @@ def make_previous_payment(id):
             ).filter(c_due__gt=0)
             for order in orders.order_by('created_on'):
                 if order.company_due_amount > 0:
+                    total_due += order.company_due_amount
                     obj.orders.add(order)
                     # final_price = order.final_price * order.company_allowance / 100
                     if paid_amount > order.company_due_amount:
@@ -228,3 +229,6 @@ def make_previous_payment(id):
                         order.save()
                         paid_amount -= paid_amount
                         break
+
+        company.paid_amount += total_due
+        company.save()

@@ -223,9 +223,7 @@ class Order(BaseWithoutID, SoftDeletion):
             self.actual_price = self.order_carts.aggregate(tot=models.Sum('total_price'))['tot']
             self.final_price = self.order_carts.aggregate(
                 tot=models.Sum('total_price_with_tax'))['tot'] - self.discount_amount + self.shipping_charge
-        self.is_full_paid = self.get_payment_status(
-            self.final_price, self.company_allowance, self.paid_amount
-        )
+        self.is_full_paid = self.company_due_amount <= self.paid_amount
         super(Order, self).save(*args, **kwargs)
 
     @property
@@ -246,8 +244,8 @@ class Order(BaseWithoutID, SoftDeletion):
             staff_amount += (cart.price_with_tax * (100 - self.company_allowance) / 100) * cart.added_for.count()
         return staff_amount - paid_amount
 
-    def get_payment_status(self, final_price, company_allowance, paid_amount):
-        return (final_price * company_allowance / 100) <= paid_amount
+    # def get_payment_status(self, final_price, company_allowance, paid_amount):
+    #     return (final_price * company_allowance / 100) <= paid_amount
 
 
 class BillingAddress(BaseWithoutID):
