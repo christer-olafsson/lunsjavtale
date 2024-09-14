@@ -223,7 +223,7 @@ class Order(BaseWithoutID, SoftDeletion):
             self.actual_price = self.order_carts.aggregate(tot=models.Sum('total_price'))['tot']
             self.final_price = self.order_carts.aggregate(
                 tot=models.Sum('total_price_with_tax'))['tot'] - self.discount_amount + self.shipping_charge
-        self.is_full_paid = self.company_due_amount <= self.paid_amount
+            self.is_full_paid = self.company_due_amount <= self.paid_amount
         super(Order, self).save(*args, **kwargs)
 
     @property
@@ -331,6 +331,7 @@ class OrderPayment(BaseWithoutID, SoftDeletion):
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     note = models.TextField(blank=True, null=True)
     payment_info = models.JSONField(blank=True, null=True)
+    deduction = models.JSONField(blank=True, null=True, default=list)
     created_by = models.ForeignKey(to='users.User', on_delete=models.DO_NOTHING, related_name='created_payments')
     status = models.CharField(
         max_length=32, choices=PaymentStatusChoices.choices, default=PaymentStatusChoices.PENDING)

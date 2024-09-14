@@ -689,8 +689,6 @@ class MakeOnlinePaymentMutation(DjangoFormMutation):
         if form.is_valid():
             if user.company != form.cleaned_data.get('company'):
                 raise_graphql_error("Please select valid company.", field_name="company")
-            if user != form.cleaned_data.get('payment_for'):
-                raise_graphql_error("User not permitted.", field_name="paymentFor")
             orders = form.cleaned_data.pop('orders')
             user_carts = form.cleaned_data.pop('user_carts')
             obj = form.save(commit=False)
