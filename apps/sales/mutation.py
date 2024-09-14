@@ -581,12 +581,14 @@ class ConfirmUserCartUpdate(graphene.Mutation):
                 cart.quantity += 1
             cart.save()
             cart.added_for.add(obj.base.added_for)
+            obj.base.cart = cart
+            obj.base.save()
             obj.previous_cart.added_for.remove(obj.base.added_for)
             obj.previous_cart.cancelled_by.add(obj.base.added_for)
             obj.previous_cart.cancelled += 1
             obj.previous_cart.save()
             cart.order.save()
-            add_user_carts.delay(cart.id)
+            # ToDo:: Need to send staff notification
             OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.UPDATED)
         return ConfirmUserCartUpdate(
             success=True,

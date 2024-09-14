@@ -142,8 +142,8 @@ class UserCart(BaseWithoutID):
 
 
 class AlterCart(BaseWithoutID):
-    base = models.ForeignKey(
-        to=UserCart, on_delete=models.CASCADE, related_name='alter_histories'
+    base = models.OneToOneField(
+        to=UserCart, on_delete=models.CASCADE, related_name='alter_cart'
     )
     previous_cart = models.ForeignKey(
         to=SellCart, on_delete=models.DO_NOTHING, related_name='previous_used_carts'
