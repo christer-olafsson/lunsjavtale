@@ -575,7 +575,7 @@ class ConfirmUserCartUpdate(graphene.Mutation):
             raise_graphql_error("Invalid action")
         if status == DecisionChoices.ACCEPTED:
             cart, c = SellCart.objects.get_or_create(
-                order=obj.previous_cart.order, item=obj.item
+                order=obj.previous_cart.order, item=obj.item, date=obj.previous_cart.date
             )
             if c:
                 cart.price = obj.item.actual_price
@@ -593,7 +593,7 @@ class ConfirmUserCartUpdate(graphene.Mutation):
             cart.order.save()
             obj.status = DecisionChoices.ACCEPTED
             obj.save()
-            OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.UPDATED)
+            OrderStatus.objects.create(order=cart.order, status=InvoiceStatusChoices.UPDATED)
             user_cart_update_confirmed_notification.delay(obj.id)
         else:
             obj.status = DecisionChoices.REJECTED

@@ -1,5 +1,3 @@
-from time import sleep
-
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -115,7 +113,7 @@ def make_online_payment(payment_id):
 
 @app.task
 def trigger_payment(id):
-    sleep(300)  # seconds
+    # sleep(300)  # seconds
     get_payment_info(id)
 
 
@@ -206,7 +204,7 @@ def make_previous_payment(id):
             for order in obj.orders.all().order_by('created_on'):
                 # final_price = order.final_price * order.company_allowance / 100
                 # if paid_amount >= final_price - order.paid_amount:
-                if paid_amount > order.company_due_amount:
+                if paid_amount >= order.company_due_amount:
                     total_due += order.company_due_amount
                     if order.status == InvoiceStatusChoices.PAYMENT_PENDING:
                         order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
@@ -231,7 +229,7 @@ def make_previous_payment(id):
                 if order.company_due_amount > 0:
                     obj.orders.add(order)
                     # final_price = order.final_price * order.company_allowance / 100
-                    if paid_amount > order.company_due_amount:
+                    if paid_amount >= order.company_due_amount:
                         if order.status == InvoiceStatusChoices.PAYMENT_PENDING:
                             order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
                         order.paid_amount = order.company_due_amount
