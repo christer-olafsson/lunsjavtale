@@ -18,6 +18,7 @@ from apps.notifications.tasks import (
     notify_order_placed,
     send_admin_notification_and_save,
     send_admin_sell_order_mail,
+    user_cart_update_confirmed_notification,
     user_cart_update_notification,
 )
 from apps.scm.models import Ingredient, Product
@@ -590,8 +591,13 @@ class ConfirmUserCartUpdate(graphene.Mutation):
             obj.previous_cart.cancelled += 1
             obj.previous_cart.save()
             cart.order.save()
-            # ToDo:: Need to send staff notification
+            obj.status = DecisionChoices.ACCEPTED
+            obj.save()
             OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.UPDATED)
+            user_cart_update_confirmed_notification.delay(obj.id)
+        else:
+            obj.status = DecisionChoices.REJECTED
+            obj.save()
         return ConfirmUserCartUpdate(
             success=True,
             message="Successfully updated",
