@@ -9,7 +9,7 @@ from graphene_django.filter.fields import DjangoFilterConnectionField
 from apps.scm.models import Product
 from apps.scm.object_types import ProductType
 from apps.users.choices import RoleTypeChoices
-from backend.permissions import is_authenticated
+from backend.permissions import is_authenticated, is_company_user
 
 from .models import Order, OrderPayment, PaymentMethod, ProductRating, SellCart
 from .object_types import (
@@ -46,6 +46,26 @@ class Query(graphene.ObjectType):
     product_rating = graphene.Field(ProductRatingType, id=graphene.ID())
     added_carts_list = graphene.List(AddedCartsListType)
     get_online_payment_info = GenericScalar(id=graphene.ID())
+    order_summary = GenericScalar(company_allowance=graphene.Int())
+
+    @is_company_user
+    def resolve_order_summary(self, info, company_allowance, **kwargs):
+        user = info.context.user
+        added_carts = SellCart.objects.filter(added_by=user, is_requested=False)
+        qty = added_carts.aggregate(t=Sum('quantity'))['t'] or 0
+        total_price = 0
+        sub_total_price = added_carts.aggregate(t=Sum('total_price'))['t'] or 0
+        total_price_with_tax = added_carts.aggregate(t=Sum('total_price_with_tax'))['t'] or 0
+        for cart in added_carts:
+            total_price += cart.total_price_with_tax - (cart.price_with_tax * (100 - company_allowance) / 100 * cart.added_for.count())
+        return {
+            'quantity': qty,
+            'subTotal': str(sub_total_price),
+            'companyAllowance': company_allowance,
+            'companyDue': str(total_price),
+            'employeeDue': str(total_price_with_tax - total_price),
+            'total': str(total_price_with_tax)
+        }
 
     def resolve_get_online_payment_info(self, info, id, **kwargs):
         online_payment = get_payment_info(id)

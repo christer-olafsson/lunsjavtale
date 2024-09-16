@@ -563,7 +563,7 @@ class ConfirmUserCartUpdate(graphene.Mutation):
 
     class Arguments:
         id = graphene.ID()
-        status = graphene.ID()
+        status = graphene.String()
 
     @is_company_user
     def mutate(self, info, id, status):
