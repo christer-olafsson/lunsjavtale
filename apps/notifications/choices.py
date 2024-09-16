@@ -19,3 +19,5 @@ class NotificationTypeChoice(models.TextChoices):
     ORDER_STATUS_CHANGED = 'order-status-changed'
     VENDOR_PRODUCT_ORDERED = 'vendor-product-ordered'
     COMPANY_REGISTERED = 'company-registered'
+    ORDER_CART_UPDATED = 'order-cart-updated'
+    ORDER_CART_UPDATE_CONFIRMED = 'order-cart-update-confirmed'

@@ -161,7 +161,7 @@ def make_previous_payment(id):
                     order = user_cart.cart.order
                     order.paid_amount += due
                     order.save()
-                    obj.deduction.append({'cart': user_cart.id, 'amount': due})
+                    obj.deduction.append({'cart': user_cart.id, 'amount': str(due)})
                     obj.save()
                     paid_amount -= due
                 else:
@@ -170,7 +170,7 @@ def make_previous_payment(id):
                     order = user_cart.cart.order
                     order.paid_amount += paid_amount
                     order.save()
-                    obj.deduction.append({'cart': user_cart.id, 'amount': paid_amount})
+                    obj.deduction.append({'cart': user_cart.id, 'amount': str(paid_amount)})
                     obj.save()
                     paid_amount -= paid_amount
                     break
@@ -187,7 +187,7 @@ def make_previous_payment(id):
                     order = user_cart.cart.order
                     order.paid_amount += due
                     order.save()
-                    obj.deduction.append({'cart': user_cart.id, 'amount': due})
+                    obj.deduction.append({'cart': user_cart.id, 'amount': str(due)})
                     obj.save()
                     paid_amount -= due
                 else:
@@ -196,7 +196,7 @@ def make_previous_payment(id):
                     order = user_cart.cart.order
                     order.paid_amount += paid_amount
                     order.save()
-                    obj.deduction.append({'cart': user_cart.id, 'amount': paid_amount})
+                    obj.deduction.append({'cart': user_cart.id, 'amount': str(paid_amount)})
                     obj.save()
                     paid_amount -= paid_amount
                     break
@@ -213,13 +213,13 @@ def make_previous_payment(id):
                         order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
                     order.paid_amount = order.company_due_amount
                     order.save()
-                    obj.deduction.append({'order': order.id, 'amount': order.company_due_amount})
+                    obj.deduction.append({'order': order.id, 'amount': str(order.company_due_amount)})
                     obj.save()
                     paid_amount -= order.company_due_amount
                 else:
                     order.paid_amount += paid_amount
                     order.save()
-                    obj.deduction += {'order': order.id, 'amount': paid_amount}
+                    obj.deduction += {'order': order.id, 'amount': str(paid_amount)}
                     obj.save()
                     paid_amount -= paid_amount
                     break
@@ -237,13 +237,13 @@ def make_previous_payment(id):
                             order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
                         order.paid_amount = order.company_due_amount
                         order.save()
-                        obj.deduction.append({'order': order.id, 'amount': order.company_due_amount})
+                        obj.deduction.append({'order': order.id, 'amount': str(order.company_due_amount)})
                         obj.save()
                         paid_amount -= order.company_due_amount
                     else:
                         order.paid_amount += paid_amount
                         order.save()
-                        obj.deduction.append({'order': order.id, 'amount': paid_amount})
+                        obj.deduction.append({'order': order.id, 'amount': str(paid_amount)})
                         obj.save()
                         paid_amount -= paid_amount
                         break

@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from apps.sales.choices import InvoiceStatusChoices
-from apps.sales.models import Order, SellCart
+from apps.sales.models import AlterCart, Order, SellCart, UserCart
 from apps.users.choices import DeviceTypeChoices, RoleTypeChoices
 from apps.users.models import Company, UserDeviceToken
 
@@ -96,6 +96,75 @@ def send_vendor_product_update_mail(email, status, product_name):
     </html>
     """.format(status, product_name)
     send_direct_mail_by_default_bcc("Vendor Product Updated", body, email)
+
+
+@app.task
+def user_cart_update_notification(id):
+    user_cart = UserCart.objects.get(id=id)
+    owner_and_managers = user_cart.added_for.company.users.filter(
+        role__in=[RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]
+    ).values_list('id', flat=True)
+    title = "Staff order updated"
+    message = f"'{user_cart.added_for.username}' updated the product '{user_cart.alter_cart.item.name}' for order id '{user_cart.cart.order.id}'"
+    send_bulk_notification_and_save(
+        user_ids=owner_and_managers,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_CART_UPDATED,
+        object_id=user_cart.cart.order.id
+    )
+    user_cart_update_mail(user_cart.added_for.company.working_email, title, message)
+
+
+@app.task
+def user_cart_update_mail(email, title, message):
+    """
+    """
+    body = """
+    <html>
+    <head></head>
+    <body>
+    <h3>{0}</h3>
+    <p>{1}</p>
+    <p>Sincerely,</p>
+    <p>Lunsjavtale Team</p>
+    </body>
+    </html>
+    """.format(title, message)
+    send_direct_mail_by_default_bcc(title, body, email)
+
+
+@app.task
+def user_cart_update_confirmed_notification(id):
+    alter_cart = AlterCart.objects.get(id=id)
+    title = "Order update confirmed"
+    message = f"'Order update for product '{alter_cart.base.alter_cart.item.name}' for order id '{alter_cart.base.cart.order.id}' was confirmed"
+    send_notification_and_save(
+        user_id=alter_cart.base.added_for.id,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_CART_UPDATED,
+        object_id=alter_cart.base.cart.order.id
+    )
+    user_cart_update_confirmed_mail(alter_cart.base.added_for.email, title, message)
+
+
+@app.task
+def user_cart_update_confirmed_mail(email, title, message):
+    """
+    """
+    body = """
+    <html>
+    <head></head>
+    <body>
+    <h3>{0}</h3>
+    <p>{1}</p>
+    <p>Sincerely,</p>
+    <p>Lunsjavtale Team</p>
+    </body>
+    </html>
+    """.format(title, message)
+    send_direct_mail_by_default_bcc(title, body, email)
 
 
 @app.task

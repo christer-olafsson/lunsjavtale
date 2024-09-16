@@ -18,6 +18,7 @@ from apps.notifications.tasks import (
     notify_order_placed,
     send_admin_notification_and_save,
     send_admin_sell_order_mail,
+    user_cart_update_notification,
 )
 from apps.scm.models import Ingredient, Product
 from apps.users.choices import RoleTypeChoices
@@ -518,8 +519,9 @@ class UserCartUpdate(graphene.Mutation):
         product = Product.objects.get(id=item, category=obj.item.category)
         user_cart = UserCart.objects.get(cart=obj, added_for=user)
         AlterCart.objects.get_or_create(
-            base=user_cart, cart=obj, item=product
+            base=user_cart, previous_cart=obj, item=product
         )
+        user_cart_update_notification.delay(user_cart.id)
         return UserCartUpdate(
             success=True,
             message="Successfully updated",
