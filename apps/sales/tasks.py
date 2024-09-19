@@ -5,7 +5,7 @@ from django.db.models import F
 
 from apps.notifications.tasks import notify_vendor_product
 from apps.sales.choices import InvoiceStatusChoices, PaymentStatusChoices
-from apps.sales.models import OnlinePayment, OrderPayment, SellCart, UserCart
+from apps.sales.models import OnlinePayment, Order, OrderPayment, SellCart, UserCart
 
 # local imports
 from backend.celery import app
@@ -125,10 +125,21 @@ def notify_user_carts(ids):
     for cart in carts:
         add_user_carts(cart.id)
         if cart.item.vendor:
+            # vendor = cart.item.vendor
+            # vendor.sold_amount += cart.total_price_with_tax
+            # vendor.save()
+            notify_vendor_product(cart.id)
+
+
+@app.task
+def vendor_sold_amount_calculation(id):
+    obj = Order.objects.get(id=id)
+    carts = SellCart.objects.filter(order=obj, item__vendor__isnull=False)
+    for cart in carts:
+        if cart.item.vendor:
             vendor = cart.item.vendor
             vendor.sold_amount += cart.total_price_with_tax
             vendor.save()
-            notify_vendor_product(cart.id)
 
 
 @app.task

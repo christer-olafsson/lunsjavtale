@@ -62,6 +62,7 @@ from .tasks import (
     make_online_payment,
     make_previous_payment,
     notify_user_carts,
+    vendor_sold_amount_calculation,
 )
 
 User = get_user_model()
@@ -421,6 +422,8 @@ class OrderStatusUpdate(graphene.Mutation):
             raise_graphql_error(f"Order status already in '{obj.status}'")
         OrderStatus.objects.create(order=obj, status=status, note=note)
         notify_company_order_update.delay(obj.id)
+        if obj.status == InvoiceStatusChoices.DELIVERED:
+            vendor_sold_amount_calculation.delay(obj.id)
         return OrderStatusUpdate(
             success=True,
             message="Successfully updated",
