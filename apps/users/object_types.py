@@ -1,9 +1,8 @@
 # at backend/users/schema.py
-import decimal
 
 import graphene
 from django.contrib.auth import get_user_model
-from django.db.models import Sum
+from django.db.models import F, Sum
 from graphene_django import DjangoObjectType
 
 # local imports
@@ -74,9 +73,11 @@ class UserType(DjangoObjectType):
 
     @staticmethod
     def resolve_due_amount(self, info, **kwargs):
-        paid_amount = self.cart_items.aggregate(paid=Sum('paid_amount'))['paid'] or decimal.Decimal(0)
-        order_amount = self.cart_items.aggregate(price=Sum('cart__price_with_tax'))['price'] or decimal.Decimal(0)
-        return order_amount - paid_amount
+        carts = self.cart_items.annotate(due=F('cart__price_with_tax') * (100 - F('cart__order__company_allowance')) / 100 - F('paid_amount'))
+        try:
+            return round(carts.aggregate(total_due=Sum('due'))['total_due'], 2)
+        except Exception:
+            return 0
 
 
 class LogType(DjangoObjectType):

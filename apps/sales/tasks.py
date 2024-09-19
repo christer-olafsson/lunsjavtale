@@ -150,7 +150,7 @@ def make_previous_payment(id):
         obj.deduction = []
     paid_amount = obj.paid_amount
     if obj.user_carts.exists():
-        for user_cart in obj.user_carts.all().order_by('created_on'):
+        for user_cart in obj.user_carts.all().order_by('cart__order__created_on'):
             due = (user_cart.cart.price_with_tax * (100 - user_cart.cart.order.company_allowance) / 100) - user_cart.paid_amount
             if paid_amount >= due:
                 user_cart.paid_amount = user_cart.cart.price_with_tax * (100 - user_cart.cart.order.company_allowance) / 100
@@ -175,7 +175,7 @@ def make_previous_payment(id):
         user_carts = obj.payment_for.cart_items.annotate(
             c_due=F('cart__price_with_tax') * (100 - F('cart__order__company_allowance')) / 100 - F('paid_amount')
         ).filter(c_due__gt=0)
-        for user_cart in user_carts.order_by('created_on'):
+        for user_cart in user_carts.order_by('cart__order__created_on'):
             obj.user_carts.add(user_cart)
             due = (user_cart.cart.price_with_tax * (100 - user_cart.cart.order.company_allowance) / 100) - user_cart.paid_amount
             if paid_amount >= due:
@@ -204,15 +204,16 @@ def make_previous_payment(id):
             for order in obj.orders.all().order_by('created_on'):
                 # final_price = order.final_price * order.company_allowance / 100
                 # if paid_amount >= final_price - order.paid_amount:
-                if paid_amount >= order.company_due_amount:
-                    total_due += order.company_due_amount
+                due = order.company_due_amount
+                if paid_amount >= due:
+                    total_due += due
                     if order.status == InvoiceStatusChoices.PAYMENT_PENDING:
                         order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
-                    order.paid_amount = order.company_due_amount
+                    order.paid_amount += due
                     order.save()
-                    obj.deduction.append({'order': order.id, 'amount': str(order.company_due_amount)})
+                    obj.deduction.append({'order': order.id, 'amount': str(due)})
                     obj.save()
-                    paid_amount -= order.company_due_amount
+                    paid_amount -= due
                 else:
                     order.paid_amount += paid_amount
                     order.save()
@@ -229,15 +230,16 @@ def make_previous_payment(id):
                 if order.company_due_amount > 0:
                     obj.orders.add(order)
                     # final_price = order.final_price * order.company_allowance / 100
-                    if paid_amount >= order.company_due_amount:
+                    due = order.company_due_amount
+                    if paid_amount >= due:
                         if order.status == InvoiceStatusChoices.PAYMENT_PENDING:
                             order.status = InvoiceStatusChoices.PAYMENT_COMPLETED
-                        order.paid_amount = order.company_due_amount
+                        order.paid_amount += due
                         order.save()
-                        obj.deduction.append({'order': order.id, 'amount': str(order.company_due_amount)})
+                        obj.deduction.append({'order': order.id, 'amount': str(due)})
                         obj.save()
-                        paid_amount -= order.company_due_amount
-                        total_due += order.company_due_amount
+                        paid_amount -= due
+                        total_due += due
                     else:
                         order.paid_amount += paid_amount
                         order.save()
