@@ -7,8 +7,12 @@ from graphql import GraphQLError
 # local imports
 from apps.bases.utils import camel_case_format, get_object_by_id, raise_graphql_error
 from apps.notifications.choices import NotificationTypeChoice
-from apps.notifications.tasks import send_admin_notification_and_save, send_admin_mail_for_vendor_product, \
-    send_notification_and_save, send_vendor_product_update_mail
+from apps.notifications.tasks import (
+    send_admin_mail_for_vendor_product,
+    send_admin_notification_and_save,
+    send_notification_and_save,
+    send_vendor_product_update_mail,
+)
 from backend.permissions import is_admin_user, is_authenticated, is_vendor_user
 
 from ..sales.models import SellCart
@@ -19,6 +23,7 @@ from .forms import (
     IngredientForm,
     ProductForm,
     VendorProductForm,
+    WeeklyVariantForm,
 )
 from .models import (
     Category,
@@ -27,8 +32,15 @@ from .models import (
     Ingredient,
     Product,
     ProductAttachment,
+    WeeklyVariant,
 )
-from .object_types import CategoryType, FoodMeetingType, IngredientType, ProductType
+from .object_types import (
+    CategoryType,
+    FoodMeetingType,
+    IngredientType,
+    ProductType,
+    WeeklyVariantType,
+)
 
 USE_me = True
 
@@ -103,6 +115,45 @@ class CategoryDeleteMutation(graphene.Mutation):
             obj.products.update(category=None)
         return CategoryDeleteMutation(
             success=True, message="Successfully deleted"
+        )
+
+
+class WeeklyVariantMutation(DjangoModelFormMutation):
+    """
+        update and create new WeeklyVariant information by some default fields.
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+    instance = graphene.Field(WeeklyVariantType)
+
+    class Meta:
+        form_class = WeeklyVariantForm
+
+    @is_admin_user
+    def mutate_and_get_payload(self, info, **input):
+        form = WeeklyVariantForm(data=input)
+        object_id = None
+        if form.data.get('id'):
+            object_id = form.data['id']
+            old_obj = get_object_by_id(WeeklyVariant, object_id)
+            form = WeeklyVariantForm(data=input, instance=old_obj)
+        form_data = form.data
+        if form.is_valid():
+            obj, created = WeeklyVariant.objects.update_or_create(id=object_id, defaults=form_data)
+        else:
+            error_data = {}
+            for error in form.errors:
+                for err in form.errors[error]:
+                    error_data[camel_case_format(error)] = err
+            raise GraphQLError(
+                message="Invalid input request.",
+                extensions={
+                    "errors": error_data,
+                    "code": "invalid_input"
+                }
+            )
+        return WeeklyVariantMutation(
+            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
         )
 
 
@@ -463,12 +514,36 @@ class FavoriteProductMutation(graphene.Mutation):
         )
 
 
+class WeeklyVariantProductMutation(graphene.Mutation):
+    """
+    """
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    class Arguments:
+        id = graphene.ID()
+        products = graphene.List(graphene.ID)
+
+    @is_admin_user
+    def mutate(self, info, id, products, **kwargs):
+        products = Product.objects.filter(id__in=products)
+        obj = WeeklyVariant.objects.get(id=id)
+        for p in products:
+            p.weekly_variants.add(obj)
+        for p in Product.objects.filter(weekly_variants=obj).exclude(id__in=products):
+            p.weekly_variants.remove(obj)
+        return WeeklyVariantProductMutation(
+            success=True, message="Successfully added"
+        )
+
+
 class Mutation(graphene.ObjectType):
     """
         define all the mutations by identifier name for query
     """
     category_mutation = CategoryMutation.Field()
     category_delete = CategoryDeleteMutation.Field()
+    weekly_variant_mutation = WeeklyVariantMutation.Field()
     ingredient_mutation = IngredientMutation.Field()
     ingredient_delete = IngredientDeleteMutation.Field()
     product_mutation = ProductMutation.Field()
@@ -479,3 +554,4 @@ class Mutation(graphene.ObjectType):
     food_meeting_resolve = FoodMeetingResolve.Field()
     food_meeting_delete = MeetingDeleteMutation.Field()
     favorite_product_mutation = FavoriteProductMutation.Field()
+    weekly_variant_products = WeeklyVariantProductMutation.Field()

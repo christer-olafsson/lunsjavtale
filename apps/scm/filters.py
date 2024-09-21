@@ -11,6 +11,7 @@ from .models import (
     Ingredient,
     Product,
     ProductAttachment,
+    WeeklyVariant,
 )
 
 
@@ -49,6 +50,24 @@ class CategoryFilters(BaseFilterOrderBy):
         ]
 
 
+class WeeklyVariantFilters(BaseFilterOrderBy):
+    """
+        WeeklyVariant Filters will define here
+    """
+    name = django_filters.CharFilter(
+        field_name='name',
+        lookup_expr='icontains'
+    )
+
+    class Meta:
+        model = WeeklyVariant
+        fields = [
+            'id',
+            'is_active',
+            'name',
+        ]
+
+
 class ProductFilters(BaseFilterOrderBy):
     """
         Product filters will be defined here
@@ -58,6 +77,9 @@ class ProductFilters(BaseFilterOrderBy):
     )
     category = django_filters.CharFilter(
         method='category_filter',
+    )
+    weekly_variants = django_filters.CharFilter(
+        field_name='weekly_variants__id', lookup_expr='exact'
     )
     vendor = django_filters.CharFilter(
         field_name='vendor__id', lookup_expr='exact'

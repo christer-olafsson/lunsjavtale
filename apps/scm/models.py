@@ -2,7 +2,11 @@ from django.conf import settings
 from django.db import models
 
 from apps.bases.models import BasePriceModel, BaseWithoutID, SoftDeletion
-from apps.scm.choices import MeetingStatusChoices, MeetingTypeChoices, ProductStatusChoices
+from apps.scm.choices import (
+    MeetingStatusChoices,
+    MeetingTypeChoices,
+    ProductStatusChoices,
+)
 
 
 class Ingredient(BaseWithoutID, SoftDeletion):
@@ -64,6 +68,29 @@ class Category(BaseWithoutID, SoftDeletion):
         return cls.objects.filter(is_deleted=False)
 
 
+class WeeklyVariantManager(models.Manager):
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
+class WeeklyVariant(BaseWithoutID, SoftDeletion):
+    """
+        Store category information by making a hierarchy of category and sub-category
+    """
+    name = models.CharField(max_length=64)  # define category name
+    description = models.TextField(
+        blank=True, null=True,
+    )
+    days = models.JSONField()
+    is_active = models.BooleanField(default=True)
+
+    objects = WeeklyVariantManager()
+
+    class Meta:
+        db_table = f"{settings.DB_PREFIX}_weekly_variant"  # define table name for database
+
+
 class ProductManager(models.Manager):
 
     def get_queryset(self):
@@ -80,6 +107,9 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
     category = models.ForeignKey(
         to=Category, on_delete=models.SET_NULL, related_name='products', null=True
     )  # define the category of the product
+    weekly_variants = models.ManyToManyField(
+        to=WeeklyVariant, related_name='products', blank=True
+    )  # define the weekly_variant of the product
     vendor = models.ForeignKey(
         to='users.Vendor', on_delete=models.SET_NULL, related_name='products', null=True, blank=True
     )  # define the category of the product

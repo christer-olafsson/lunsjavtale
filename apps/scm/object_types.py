@@ -11,6 +11,7 @@ from apps.scm.filters import (
     IngredientFilters,
     ProductAttachmentFilters,
     ProductFilters,
+    WeeklyVariantFilters,
 )
 from backend.count_connection import CountConnection
 
@@ -21,6 +22,7 @@ from .models import (
     Ingredient,
     Product,
     ProductAttachment,
+    WeeklyVariant,
 )
 
 
@@ -41,6 +43,21 @@ class CategoryType(DjangoObjectType):
     @staticmethod
     def resolve_products_added(self, info):
         return self.products.count()
+
+
+class WeeklyVariantType(DjangoObjectType):
+    """
+        define django object type for WeeklyVariant model with category filter-set
+    """
+    id = graphene.ID(required=True)
+
+    class Meta:
+        model = WeeklyVariant
+        filterset_class = WeeklyVariantFilters
+        exclude = ['is_deleted', 'deleted_on']
+        interfaces = (graphene.relay.Node,)
+        convert_choices_to_enum = False
+        connection_class = CountConnection
 
 
 class ProductType(DjangoObjectType):

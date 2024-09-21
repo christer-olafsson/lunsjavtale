@@ -7,13 +7,14 @@ from graphene_django.filter.fields import DjangoFilterConnectionField
 from backend.permissions import is_authenticated
 
 from .choices import MeetingTypeChoices
-from .models import Category, FoodMeeting, Product
+from .models import Category, FoodMeeting, Product, WeeklyVariant
 from .object_types import (
     CategoryType,
     FoodMeetingType,
     Ingredient,
     IngredientType,
     ProductType,
+    WeeklyVariantType,
 )
 
 # local imports
@@ -27,12 +28,20 @@ class CategoryQuery(graphene.ObjectType):
     """
     categories = DjangoFilterConnectionField(CategoryType)
     category = graphene.Field(CategoryType, id=graphene.ID())
+    weekly_variants = DjangoFilterConnectionField(WeeklyVariantType)
+    weekly_variant = graphene.Field(WeeklyVariantType, id=graphene.ID())
 
     def resolve_categories(self, info, **kwargs):
         return Category.queryset()
 
     def resolve_category(self, info, id, **kwargs):
         return Category.queryset().filter(id=id).last()
+
+    def resolve_weekly_variants(self, info, **kwargs):
+        return WeeklyVariant.objects.all()
+
+    def resolve_weekly_variant(self, info, id, **kwargs):
+        return WeeklyVariant.objects.all().filter(id=id).last()
 
 
 class Query(CategoryQuery, graphene.ObjectType):
