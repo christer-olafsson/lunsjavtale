@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
+from django.db.models import F, Sum
 from django.utils import timezone
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphql import GraphQLError
@@ -1511,6 +1512,15 @@ class UserDelete(graphene.Mutation):
                 user = User.objects.get(email=email)
             elif logged_in_user.role in [RoleTypeChoices.COMPANY_OWNER]:
                 user = User.objects.get(email=email, company=logged_in_user.company)
+                try:
+                    carts = user.cart_items.annotate(
+                        due=F('cart__price_with_tax') * (100 - F('cart__order__company_allowance')) / 100 - F(
+                            'paid_amount'))
+                    due = round(carts.aggregate(total_due=Sum('due'))['total_due'], 2)
+                    if due:
+                        raise_graphql_error("User has pending payment.")
+                except Exception:
+                    pass
             else:
                 raise_graphql_error("User not permitted.", "not_permitted")
             user.is_active = False
