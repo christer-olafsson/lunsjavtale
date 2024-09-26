@@ -325,6 +325,7 @@ class VendorDelete(graphene.Mutation):
     def mutate(self, info, id):
         try:
             obj = Vendor.objects.get(id=id, is_deleted=False)
+            obj.name = f"deleted_{obj.id} {obj.name}"
             obj.email = f"deleted_{obj.id}_{obj.email}"
             obj.is_deleted = True
             obj.deleted_on = timezone.now()
@@ -336,6 +337,7 @@ class VendorDelete(graphene.Mutation):
                 user.deleted_on = timezone.now()
                 user.deactivation_reason = None
                 user.email = f"deleted_{user.id}_{user.email}"
+                user.username = f"deleted_{user.id}_{user.username}"
                 user.deleted_phone = user.phone
                 user.phone = None
                 user.save()
@@ -392,6 +394,7 @@ class CompanyDelete(graphene.Mutation):
     def mutate(self, info, id):
         try:
             obj = Company.objects.get(id=id, is_deleted=False)
+            obj.name = f"deleted_{obj.id} {obj.name}"
             obj.working_email = f"deleted_{obj.id}_{obj.working_email}"
             obj.is_deleted = True
             obj.deleted_on = timezone.now()
@@ -403,6 +406,7 @@ class CompanyDelete(graphene.Mutation):
                 user.deleted_on = timezone.now()
                 user.deactivation_reason = None
                 user.email = f"deleted_{user.id}_{user.email}"
+                user.username = f"deleted_{user.id}_{user.username}"
                 user.deleted_phone = user.phone
                 user.phone = None
                 user.save()
@@ -1495,12 +1499,13 @@ class UserDelete(graphene.Mutation):
             elif logged_in_user.role in [RoleTypeChoices.COMPANY_OWNER]:
                 user = User.objects.get(email=email, company=logged_in_user.company)
             else:
-                user = User.objects.get(id=None)
+                raise_graphql_error("User not permitted.", "not_permitted")
             user.is_active = False
             user.is_expired = True
             user.is_deleted = True
             user.deleted_on = timezone.now()
             user.deactivation_reason = None
+            user.username = f"deleted_{user.id}_{user.username}"
             user.email = f"deleted_{user.id}_{email}"
             user.deleted_phone = user.phone
             user.phone = None
