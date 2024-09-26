@@ -1,6 +1,7 @@
 # at backend/users/schema.py
 
 import graphene
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
@@ -73,7 +74,7 @@ from .object_types import (
     UserType,
     VendorType,
 )
-from .tasks import send_account_activation_mail, send_email_on_delay
+from .tasks import send_email_on_delay
 
 User = get_user_model()  # variable taken for User model
 
@@ -1046,9 +1047,11 @@ class PasswordResetMail(graphene.Mutation):
 
         link = set_absolute_uri(f"password-reset/?email={email}&token={token}")
         context = {
-            'link': link
+            'user_name': user.full_name,
+            'link': link,
+            'year': timezone.now().year
         }
-        template = 'emails/reset_password.html'
+        template = 'emails/reset_password1.html'
         subject = 'Password Reset'
         send_email_on_delay.delay(template, context, subject, email)  # will add later for sending verification
         UnitOfHistory.user_history(
@@ -1408,7 +1411,17 @@ class EmailVerify(graphene.Mutation):
             if user_exist.filter(is_email_verified=True, is_verified=True):
                 raise_graphql_error("User already verified.")
             user_exist.update(is_email_verified=True, is_verified=True, activation_token=None)
-            send_account_activation_mail.delay(user.email, user.username)
+            # send_account_activation_mail.delay(user.email, user.username)
+            link = settings.SUPPLIER_SITE_URL if user.vendor else settings.SITE_URL
+            send_email_on_delay.delay(
+                'emails/greeting.html',
+                {
+                    'user_name': user.full_name, 'year': timezone.now().year,
+                    'link': link
+                },
+                'Account activated',
+                user.email
+            )
         else:
             raise_graphql_error("Invalid token!", "invalid_token")
         return EmailVerify(
