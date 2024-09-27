@@ -79,7 +79,7 @@ class ProductFilters(BaseFilterOrderBy):
         method='category_filter',
     )
     weekly_variants = django_filters.CharFilter(
-        field_name='weekly_variants__id', lookup_expr='exact'
+        method='weekly_variants_filter',
     )
     vendor = django_filters.CharFilter(
         field_name='vendor__id', lookup_expr='exact'
@@ -112,6 +112,13 @@ class ProductFilters(BaseFilterOrderBy):
         else:
             qs = qs.filter(category__id=value)
         return qs
+
+    def weekly_variants_filter(self, qs, name, value):
+        try:
+            values = str(value).split(',')
+            return qs.filter(weekly_variants__in=WeeklyVariant.objects.filter(id__in=values))
+        except Exception:
+            return qs.filter(weekly_variants__isnull=True)
 
     def title_filter(self, qs, name, value):
         if value:
