@@ -516,10 +516,13 @@ class UserCartUpdate(graphene.Mutation):
     def mutate(self, info, id, item):
         user = info.context.user
         obj = SellCart.objects.get(
-            id=id, added_for=user, order__status__in=[
-                InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING
-            ]
+            id=id, added_for=user
         )
+        if obj.order.status not in [
+            InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING,
+            InvoiceStatusChoices.PAYMENT_COMPLETED
+        ]:
+            raise_graphql_error(f"Order already in '{obj.order.status}'")
         product = Product.objects.get(id=item, category=obj.item.category)
         user_cart = UserCart.objects.get(cart=obj, added_for=user)
         AlterCart.objects.get_or_create(
@@ -574,6 +577,11 @@ class ConfirmUserCartUpdate(graphene.Mutation):
         obj = AlterCart.objects.get(
             id=id, base__added_for__company=user.company
         )
+        if obj.base.cart.order.status not in [
+            InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING,
+            InvoiceStatusChoices.PAYMENT_COMPLETED
+        ]:
+            raise_graphql_error(f"Order already in '{obj.order.status}'")
         if status not in [DecisionChoices.ACCEPTED, DecisionChoices.REJECTED]:
             raise_graphql_error("Invalid action")
         if status == DecisionChoices.ACCEPTED:

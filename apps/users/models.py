@@ -374,21 +374,25 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         self.save()
         context = {
             'username': self.username,
+            'user_name': self.full_name,
             'email': self.email,
             'password': password,
-            'link': settings.SITE_URL
+            'link': settings.SITE_URL,
+            'year': timezone.now().year
         }
         if self.role == RoleTypeChoices.COMPANY_MANAGER:
-            template = 'emails/manager_verification.html'
-            context['link'] = "https://lunsjavtale.no/login"
+            template = 'emails/manager_verification1.html'
+            context['link'] = settings.SITE_URL
+            context['company_name'] = self.company.name
         elif self.role == RoleTypeChoices.COMPANY_EMPLOYEE:
-            template = 'emails/staff_verification.html'
-            context['link'] = "https://lunsjavtale.no/login"
+            template = 'emails/staff_verification1.html'
+            context['link'] = settings.SITE_URL
+            context['company_name'] = self.company.name
         elif self.role == RoleTypeChoices.VENDOR:
-            template = 'emails/supplier_verification.html'
-            context['link'] = "https://supplier.lunsjavtale.no/login"
+            template = 'emails/supplier_verification1.html'
+            context['link'] = settings.SUPPLIER_SITE_URL
         else:
-            template = 'emails/verification.html'
+            template = 'emails/verification1.html'
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 
@@ -398,9 +402,11 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         self.save()
         link = set_absolute_uri(f"email-verification/?token={token}")
         context = {
-            'link': link
+            'link': link,
+            'user_name': self.full_name,
+            'year': timezone.now().year
         }
-        template = 'emails/email_verification.html'
+        template = 'emails/email_verification1.html'
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 
@@ -410,21 +416,23 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         self.save()
         context = {
             'username': self.username,
+            'user_name': self.full_name,
             'email': self.email,
-            'password': password
+            'password': password,
+            'year': timezone.now().year
         }
         if self.role == RoleTypeChoices.VENDOR:
-            template = 'emails/supplier_verification.html'
-            context['link'] = "https://supplier.lunsjavtale.no/login"
+            template = 'emails/supplier_verification1.html'
+            context['link'] = settings.SUPPLIER_SITE_URL
         elif self.role in [
             RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN, RoleTypeChoices.SEO_MANAGER, RoleTypeChoices.EDITOR,
             RoleTypeChoices.DEVELOPER, RoleTypeChoices.SYSTEM_MANAGER
         ]:
-            template = 'emails/verification.html'
-            context['link'] = "https://admin.lunsjavtale.no"
+            template = 'emails/verification1.html'
+            context['link'] = settings.ADMIN_SITE_URL
         else:
-            template = 'emails/verification.html'
-            context['link'] = "https://lunsjavtale.no"
+            template = 'emails/verification1.html'
+            context['link'] = settings.SITE_URL
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 

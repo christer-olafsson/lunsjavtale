@@ -256,8 +256,8 @@ def make_previous_payment(id):
                         order.save()
                         obj.deduction.append({'order': order.id, 'amount': str(paid_amount)})
                         obj.save()
-                        paid_amount -= paid_amount
                         total_due += paid_amount
+                        paid_amount -= paid_amount
                         break
 
         company.paid_amount += total_due

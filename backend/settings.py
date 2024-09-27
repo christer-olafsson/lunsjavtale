@@ -191,6 +191,8 @@ TAX_PERCENTAGE = config('TAX_PERCENTAGE', default=15, cast=float)
 EXPIRY_LIMIT_DAYS = config('EXPIRY_LIMIT_DAYS', default=30, cast=int)
 ACCESS_TOKEN_EXPIRY_LIMIT = config('ACCESS_TOKEN_EXPIRY_LIMIT', default=7, cast=int)
 SITE_URL = config('SITE_URL', 'https://lunsjavtale.no')
+SUPPLIER_SITE_URL = config('SUPPLIER_SITE_URL', 'https://supplier.lunsjavtale.no')
+ADMIN_SITE_URL = config('ADMIN_SITE_URL', 'https://admin.lunsjavtale.no')
 COUPON_ERROR_MESSAGE = "Invalid code"
 DEFAULT_BCC_EMAIL = ""
 
@@ -232,18 +234,18 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'logfile': {
-            'class': 'logging.FileHandler',
-            'filename': 'server.log',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['logfile'],
-        },
-    },
-}
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'handlers': {
+#         'logfile': {
+#             'class': 'logging.FileHandler',
+#             'filename': 'server.log',
+#         },
+#     },
+#     'loggers': {
+#         'django': {
+#             'handlers': ['logfile'],
+#         },
+#     },
+# }

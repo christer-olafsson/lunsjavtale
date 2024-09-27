@@ -1,9 +1,11 @@
 # at backend/users/schema.py
 
 import graphene
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
+from django.db.models import F, Sum
 from django.utils import timezone
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphql import GraphQLError
@@ -73,7 +75,7 @@ from .object_types import (
     UserType,
     VendorType,
 )
-from .tasks import send_account_activation_mail, send_email_on_delay
+from .tasks import send_email_on_delay
 
 User = get_user_model()  # variable taken for User model
 
@@ -325,6 +327,7 @@ class VendorDelete(graphene.Mutation):
     def mutate(self, info, id):
         try:
             obj = Vendor.objects.get(id=id, is_deleted=False)
+            obj.name = f"deleted_{obj.id} {obj.name}"
             obj.email = f"deleted_{obj.id}_{obj.email}"
             obj.is_deleted = True
             obj.deleted_on = timezone.now()
@@ -336,6 +339,7 @@ class VendorDelete(graphene.Mutation):
                 user.deleted_on = timezone.now()
                 user.deactivation_reason = None
                 user.email = f"deleted_{user.id}_{user.email}"
+                user.username = f"deleted_{user.id}_{user.username}"
                 user.deleted_phone = user.phone
                 user.phone = None
                 user.save()
@@ -392,6 +396,7 @@ class CompanyDelete(graphene.Mutation):
     def mutate(self, info, id):
         try:
             obj = Company.objects.get(id=id, is_deleted=False)
+            obj.name = f"deleted_{obj.id} {obj.name}"
             obj.working_email = f"deleted_{obj.id}_{obj.working_email}"
             obj.is_deleted = True
             obj.deleted_on = timezone.now()
@@ -403,6 +408,7 @@ class CompanyDelete(graphene.Mutation):
                 user.deleted_on = timezone.now()
                 user.deactivation_reason = None
                 user.email = f"deleted_{user.id}_{user.email}"
+                user.username = f"deleted_{user.id}_{user.username}"
                 user.deleted_phone = user.phone
                 user.phone = None
                 user.save()
@@ -1042,9 +1048,11 @@ class PasswordResetMail(graphene.Mutation):
 
         link = set_absolute_uri(f"password-reset/?email={email}&token={token}")
         context = {
-            'link': link
+            'user_name': user.full_name,
+            'link': link,
+            'year': timezone.now().year
         }
-        template = 'emails/reset_password.html'
+        template = 'emails/reset_password1.html'
         subject = 'Password Reset'
         send_email_on_delay.delay(template, context, subject, email)  # will add later for sending verification
         UnitOfHistory.user_history(
@@ -1404,7 +1412,17 @@ class EmailVerify(graphene.Mutation):
             if user_exist.filter(is_email_verified=True, is_verified=True):
                 raise_graphql_error("User already verified.")
             user_exist.update(is_email_verified=True, is_verified=True, activation_token=None)
-            send_account_activation_mail.delay(user.email, user.username)
+            # send_account_activation_mail.delay(user.email, user.username)
+            link = settings.SUPPLIER_SITE_URL if user.vendor else settings.SITE_URL
+            send_email_on_delay.delay(
+                'emails/greeting.html',
+                {
+                    'user_name': user.full_name, 'year': timezone.now().year,
+                    'link': link
+                },
+                'Account activated',
+                user.email
+            )
         else:
             raise_graphql_error("Invalid token!", "invalid_token")
         return EmailVerify(
@@ -1494,13 +1512,23 @@ class UserDelete(graphene.Mutation):
                 user = User.objects.get(email=email)
             elif logged_in_user.role in [RoleTypeChoices.COMPANY_OWNER]:
                 user = User.objects.get(email=email, company=logged_in_user.company)
+                try:
+                    carts = user.cart_items.annotate(
+                        due=F('cart__price_with_tax') * (100 - F('cart__order__company_allowance')) / 100 - F(
+                            'paid_amount'))
+                    due = round(carts.aggregate(total_due=Sum('due'))['total_due'], 2)
+                    if due:
+                        raise_graphql_error("User has pending payment.")
+                except Exception:
+                    pass
             else:
-                user = User.objects.get(id=None)
+                raise_graphql_error("User not permitted.", "not_permitted")
             user.is_active = False
             user.is_expired = True
             user.is_deleted = True
             user.deleted_on = timezone.now()
             user.deactivation_reason = None
+            user.username = f"deleted_{user.id}_{user.username}"
             user.email = f"deleted_{user.id}_{email}"
             user.deleted_phone = user.phone
             user.phone = None
