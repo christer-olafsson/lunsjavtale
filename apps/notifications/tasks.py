@@ -25,7 +25,7 @@ def notify_company_order_update(id):
     users = list(order.company.users.filter(
         role__in=[RoleTypeChoices.COMPANY_MANAGER, RoleTypeChoices.COMPANY_OWNER]).values_list('id', flat=True))
     title = "Order status update."
-    message = f"Your order (#{order.id}) status was updated to '{str(order.status).replace('-', ' ')}'"
+    message = f"Your order (ID: #{order.id}) status has been updated to '{str(order.status).replace('-', ' ')}'."
     send_bulk_notification_and_save(
         user_ids=users,
         title=title,
@@ -33,7 +33,7 @@ def notify_company_order_update(id):
         n_type=NotificationTypeChoice.ORDER_STATUS_CHANGED,
         object_id=order.id
     )
-    send_order_update_mail(order.company.working_email, title, message, order.status)
+    send_order_update_mail(order.company.working_email, title, message, str(order.status).replace('-', ' '))
 
 
 @app.task
