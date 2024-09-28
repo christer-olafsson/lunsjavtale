@@ -409,6 +409,7 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         context = {
             'link': link,
             'user_name': self.full_name,
+            'email': self.email,
             'year': timezone.now().year
         }
         template = 'emails/email_verification1.html'
