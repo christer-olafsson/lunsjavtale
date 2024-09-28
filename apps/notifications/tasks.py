@@ -282,6 +282,38 @@ def notify_order_placed(id, orders=[]):
 
 
 @app.task
+def notify_employee_cart(id):
+    user_cart = UserCart.objects.get(id=id)
+    users = list(User.objects.filter(id=user_cart.added_for.id).values_list('id', flat=True))
+    title = "Food order added."
+    message = f"Food has been ordered for you. Order: #{user_cart.cart.order.id}; Product: {user_cart.cart.item.name}"
+    send_bulk_notification_and_save(
+        user_ids=users,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_STATUS_CHANGED,
+        object_id=user_cart.cart.order.id
+    )
+    notify_employee_cart_mail(user_cart.cart.order.company.working_email, title, message)
+
+
+@app.task
+def notify_employee_cart_mail(email, title, message):
+    """
+        send mail to user for sell-order cart added
+    """
+    send_mail_from_template(
+        'order_employee_cart.html',
+        {
+            'year': timezone.now().year,
+            'message': message,
+        },
+        title,
+        email
+    )
+
+
+@app.task
 def send_user_notification(token, title, message, notification_type):
     """
         send notification to single user

@@ -509,7 +509,7 @@ class VendorWithdrawRequest(graphene.Mutation):
             if not user.is_vendor:
                 raise_graphql_error("User not permitted.")
             vendor = user.vendor
-            if withdraw_amount > vendor.balance:
+            if not withdraw_amount or withdraw_amount > vendor.balance:
                 raise_graphql_error("Amount is not available.", field_name="withdraw_amount")
             WithdrawRequest.objects.create(vendor=vendor, withdraw_amount=withdraw_amount, note=note)
             msg = 'added'

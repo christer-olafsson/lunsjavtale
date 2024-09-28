@@ -77,7 +77,7 @@ class UserType(DjangoObjectType):
         try:
             return round(carts.aggregate(total_due=Sum('due'))['total_due'], 2)
         except Exception:
-            return "0"
+            return "0.00"
 
 
 class LogType(DjangoObjectType):
