@@ -1,11 +1,9 @@
 
 from logging import getLogger
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from apps.sales.choices import InvoiceStatusChoices
 from apps.sales.models import AlterCart, Order, SellCart, UserCart
 from apps.users.choices import DeviceTypeChoices, RoleTypeChoices
 from apps.users.models import Company, UserDeviceToken
@@ -13,7 +11,7 @@ from apps.users.models import Company, UserDeviceToken
 # local imports
 from backend.celery import app
 from backend.fcm import ExFCMNotification
-from backend.mail import send_direct_mail_by_default_bcc, send_mail_from_template
+from backend.mail import send_mail_from_template
 
 from .choices import AudienceTypeChoice, NotificationTypeChoice
 from .models import Notification, NotificationViewer
@@ -43,18 +41,15 @@ def send_order_update_mail(email, title, message):
     """
         send mail to user for sell-order update
     """
-    body = """
-    <html>
-    <head></head>
-    <body>
-    <h3>{0}</h3>
-    <p>Thank you for ordering.</p>
-    <p>Sincerely,</p>
-    <p>Lunsjavtale Team</p>
-    </body>
-    </html>
-    """.format(message)
-    send_direct_mail_by_default_bcc(title, body, email)
+    send_mail_from_template(
+        'order_status_update.html',
+        {
+            'year': timezone.now().year,
+            'message': message
+        },
+        title,
+        email
+    )
 
 
 @app.task
@@ -62,17 +57,13 @@ def send_admin_mail_for_vendor_product(vendor_name, product_name):
     """
         send mail to admin for vendor product added
     """
-    body = """
-    <html>
-    <head></head>
-    <body>
-    <h3>New vendor product added by {0}.</h3>
-    <p>Product name: {1}</p>
-    </body>
-    </html>
-    """.format(vendor_name, product_name)
-    send_direct_mail_by_default_bcc(
-        "Vendor Product Added", body,
+    send_mail_from_template(
+        'vendor_product_added.html',
+        {
+            'year': timezone.now().year,
+            'message': f"New vendor product added by {vendor_name}, named {product_name}"
+        },
+        "Vendor Product Added",
         list(User.objects.filter(
             role__in=[RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN]
         ).values_list('email', flat=True))
@@ -84,18 +75,15 @@ def send_vendor_product_update_mail(email, status, product_name):
     """
         send mail to vendor for vendor product update
     """
-    body = """
-    <html>
-    <head></head>
-    <body>
-    <h3>Your product was {0} by admins.</h3>
-    <p>Product name: {1}</p>
-    <p>Sincerely,</p>
-    <p>Lunsjavtale Team</p>
-    </body>
-    </html>
-    """.format(status, product_name)
-    send_direct_mail_by_default_bcc("Vendor Product Updated", body, email)
+    send_mail_from_template(
+        'vendor_product_updated.html',
+        {
+            'year': timezone.now().year,
+            'message': f"Your product was {status} by admins. Product name: {product_name}"
+        },
+        "Vendor Product Updated",
+        email
+    )
 
 
 @app.task
@@ -120,18 +108,15 @@ def user_cart_update_notification(id):
 def user_cart_update_mail(email, title, message):
     """
     """
-    body = """
-    <html>
-    <head></head>
-    <body>
-    <h3>{0}</h3>
-    <p>{1}</p>
-    <p>Sincerely,</p>
-    <p>Lunsjavtale Team</p>
-    </body>
-    </html>
-    """.format(title, message)
-    send_direct_mail_by_default_bcc(title, body, email)
+    send_mail_from_template(
+        'staff_order_update.html',
+        {
+            'year': timezone.now().year,
+            'message': message
+        },
+        title,
+        email
+    )
 
 
 @app.task
@@ -153,18 +138,15 @@ def user_cart_update_confirmed_notification(id):
 def user_cart_update_confirmed_mail(email, title, message):
     """
     """
-    body = """
-    <html>
-    <head></head>
-    <body>
-    <h3>{0}</h3>
-    <p>{1}</p>
-    <p>Sincerely,</p>
-    <p>Lunsjavtale Team</p>
-    </body>
-    </html>
-    """.format(title, message)
-    send_direct_mail_by_default_bcc(title, body, email)
+    send_mail_from_template(
+        'staff_order_update_confirmed.html',
+        {
+            'year': timezone.now().year,
+            'message': message
+        },
+        title,
+        email
+    )
 
 
 @app.task
@@ -296,49 +278,6 @@ def notify_order_placed(id, orders=[]):
         'sell_order_mail.html', {'message': message, 'orders': orders},
         title, company.working_email
     )
-    # send_sell_order_mail(company.working_email, title, message, orders)
-
-
-@app.task
-def send_sell_order_mail(email, title, message):
-    """
-        send mail to user for sell-order update
-    """
-    body = """
-    <html>
-    <head></head>
-    <body>
-    <h3>{0}</h3>
-    <p>Thank you for ordering.</p>
-    <p>Sincerely,</p>
-    <p>Lunsjavtale Team</p>
-    </body>
-    </html>
-    """.format(message)
-    send_direct_mail_by_default_bcc(title, body, email)
-
-
-@app.task
-def send_other_mail(email, title, message, link=None):
-    """
-        send mail to user for advertise update
-    """
-    if not link:
-        link = f"{settings.SITE_URL}"
-    body = """
-    <html>
-    <head></head>
-    <body>
-    <h3>{0}</h3>
-    <p>Please check below link-</p>
-    <p><a href='{1}'>{2}</a></p>
-    <p>Thank you for staying with us.</p>
-    <p>Sincerely,</p>
-    <p>Lunsjavtale Team</p>
-    </body>
-    </html>
-    """.format(message, link, link)
-    send_direct_mail_by_default_bcc(title, body, email)
 
 
 @app.task
@@ -435,73 +374,6 @@ def send_admin_notification(instance, created):
             getLogger().error("No admin device token found.")
     else:
         getLogger().error("No admin found for receiving notification.")
-
-
-@app.task
-def notify_sell_order(instance_id, created):
-    """
-        send notification to user while order updated
-    """
-    instance = Order.objects.get(id=instance_id)
-    title = None
-    message = None
-    if instance.status == InvoiceStatusChoices.PLACED:
-        title = "Sell order placed"
-        message = "Your Sell order was successfully placed."
-    elif instance.status not in [
-        InvoiceStatusChoices.CANCELLED, InvoiceStatusChoices.ERRORED
-    ]:
-        title = f"Sell order {instance.status}"
-        message = f"Your sell-order was {instance.status}."
-    elif instance.status == InvoiceStatusChoices.CANCELLED:
-        title = "Sell order cancelled"
-        message = f"Your Sell order was cancelled for '{instance.reject_reason}'."
-    if instance.status == InvoiceStatusChoices.PLACED:
-        send_admin_notification(instance, created)
-        send_order_creation_mail(instance_id)
-    else:
-        send_sell_order_mail(str(instance.id), title, message)
-    send_notification_and_save(
-        instance.b2b_customer.user.id, title, message, NotificationTypeChoice.ADVERTISE, str(instance.id))
-
-
-@app.task
-def send_order_creation_mail(order_id):
-    """
-        send mail for account activation
-    """
-    print("Order created")
-    order = Order.objects.get(id=order_id)
-    SUBJECT = "Successful order creation"
-    # The HTML body of the email.
-    body = """
-    <html>
-    <head></head>
-    <body>
-      <p>Subject: Your Order {0} has been placed successfully</p>
-      <p><b>Lunsjavtale</b></p>
-      <p>Dear Valued Customer,</p>
-      <p>Thank you for your order! We hope you have enjoyed shopping with us.</p>
-      <p>Your order will be delivered within 24 to 48 hours.</p>
-      <p>Order number: {0}</p>
-      <p>Creation: {1}</p>
-      <p>Customer ID: {2}</p>
-      <p>Customer name: {3}</p>
-      <p>Shipping address: {4}</p>
-      <p>Order status: {5}</p>
-      <p>Regards,</p>
-      <p>Lunsjavtale</p>
-    </body>
-    </html>
-    """.format(
-        order.id,
-        order.created_on.strftime('%d/%m/%Y %I:%M %p'),
-        order.company.id,
-        order.company.name,
-        order.shipping_address.address,
-        "Placed",
-    )
-    send_direct_mail_by_default_bcc(SUBJECT, body, order.b2b_customer.user.email)
 
 
 @app.task

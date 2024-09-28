@@ -364,7 +364,12 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
 
     @property
     def full_name(self):
-        return f"{self.first_name} {self.last_name}"
+        full_name = ""
+        if self.first_name:
+            full_name += self.first_name
+        if self.last_name:
+            full_name += f" {self.last_name}"
+        return full_name
 
     def send_email_verified(self):
         password = create_password()
@@ -404,6 +409,7 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
         context = {
             'link': link,
             'user_name': self.full_name,
+            'email': self.email,
             'year': timezone.now().year
         }
         template = 'emails/email_verification1.html'

@@ -200,12 +200,15 @@ class EditCartMutation(graphene.Mutation):
     @is_company_user
     def mutate(self, info, id, quantity, added_for, **kwargs):
         user = info.context.user
+        company = user.company
         carts = SellCart.objects.filter(Q(added_by=user) | Q(order__company=user.company))
         obj = carts.get(
             Q(order__isnull=True) | Q(order__status__in=[
                 InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING
             ]), id=id
         )
+        company_due_amount = obj.order.company_due_amount
+
         staffs = User.objects.filter(company=user.company, id__in=added_for)
         if staffs.count() > quantity:
             raise_graphql_error("Quantity is not valid for the added employees.")
@@ -216,6 +219,8 @@ class EditCartMutation(graphene.Mutation):
         if obj.order:
             obj.order.save()
             OrderStatus.objects.create(order=obj.order, status=InvoiceStatusChoices.UPDATED)
+        company.invoice_amount += obj.order.company_due_amount - company_due_amount
+        company.save()
         add_user_carts.delay(obj.id)
         return EditCartMutation(
             success=True,
@@ -574,8 +579,9 @@ class ConfirmUserCartUpdate(graphene.Mutation):
     @is_company_user
     def mutate(self, info, id, status):
         user = info.context.user
+        company = user.company
         obj = AlterCart.objects.get(
-            id=id, base__added_for__company=user.company
+            id=id, base__added_for__company=company
         )
         if obj.base.cart.order.status not in [
             InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING,
@@ -585,6 +591,7 @@ class ConfirmUserCartUpdate(graphene.Mutation):
         if status not in [DecisionChoices.ACCEPTED, DecisionChoices.REJECTED]:
             raise_graphql_error("Invalid action")
         if status == DecisionChoices.ACCEPTED:
+            company_due_amount = obj.previous_cart.order.company_due_amount
             cart, c = SellCart.objects.get_or_create(
                 order=obj.previous_cart.order, item=obj.item, date=obj.previous_cart.date
             )
@@ -605,6 +612,10 @@ class ConfirmUserCartUpdate(graphene.Mutation):
             obj.status = DecisionChoices.ACCEPTED
             obj.save()
             OrderStatus.objects.create(order=cart.order, status=InvoiceStatusChoices.UPDATED)
+
+            company.invoice_amount += cart.order.company_due_amount - company_due_amount
+            company.save()
+
             user_cart_update_confirmed_notification.delay(obj.id)
         else:
             obj.status = DecisionChoices.REJECTED

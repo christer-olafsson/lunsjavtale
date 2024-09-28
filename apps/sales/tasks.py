@@ -50,7 +50,8 @@ def get_payment_info(payment_id):
             order_payment = online_payment.order_payment
             order_payment.status = PaymentStatusChoices.COMPLETED
             order_payment.save()
-            make_previous_payment.delay(order_payment.id)
+            if not order_payment.deduction:
+                make_previous_payment.delay(order_payment.id)
     else:
         print("Status Code", response.status_code)
         print("JSON Response ", response.json())
@@ -75,8 +76,8 @@ def make_online_payment(payment_id):
     }
     data = {
         "merchantInfo": {
-            "callbackUrl": f"{settings.SITE_URL}/dashboard/orders/payment-success/?ref={online_payment.id}",
-            "returnUrl": f"{settings.SITE_URL}/dashboard/orders/payment-success/?ref={online_payment.id}",
+            "callbackUrl": f"{settings.SITE_URL}/{settings.PAYMENT_CALLBACK_EXTENSION}/?ref={online_payment.id}",
+            "returnUrl": f"{settings.SITE_URL}/{settings.PAYMENT_CALLBACK_EXTENSION}/?ref={online_payment.id}",
             "callbackAuthorizationToken": "",
             "termsAndConditionsUrl": f"{settings.SITE_URL}/dadmin"
         },
@@ -101,7 +102,6 @@ def make_online_payment(payment_id):
         online_payment.save()
         trigger_payment.delay(online_payment.id)
         if online_payment.response_data.get('checkoutFrontendUrl') and online_payment.response_data.get('token'):
-            print(True)
             return f"{online_payment.response_data.get('checkoutFrontendUrl')}?token={online_payment.response_data.get('token')}"
         return None
     else:
