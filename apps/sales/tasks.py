@@ -75,8 +75,8 @@ def make_online_payment(payment_id):
     }
     data = {
         "merchantInfo": {
-            "callbackUrl": f"{settings.SITE_URL}/dashboard/orders/payment-success/?ref={online_payment.id}",
-            "returnUrl": f"{settings.SITE_URL}/dashboard/orders/payment-success/?ref={online_payment.id}",
+            "callbackUrl": f"{settings.SITE_URL}/{settings.PAYMENT_CALLBACK_EXTENSION}/?ref={online_payment.id}",
+            "returnUrl": f"{settings.SITE_URL}/{settings.PAYMENT_CALLBACK_EXTENSION}/?ref={online_payment.id}",
             "callbackAuthorizationToken": "",
             "termsAndConditionsUrl": f"{settings.SITE_URL}/dadmin"
         },
