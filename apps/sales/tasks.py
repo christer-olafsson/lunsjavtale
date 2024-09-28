@@ -50,7 +50,8 @@ def get_payment_info(payment_id):
             order_payment = online_payment.order_payment
             order_payment.status = PaymentStatusChoices.COMPLETED
             order_payment.save()
-            make_previous_payment.delay(order_payment.id)
+            if not order_payment.deduction:
+                make_previous_payment.delay(order_payment.id)
     else:
         print("Status Code", response.status_code)
         print("JSON Response ", response.json())
@@ -101,7 +102,6 @@ def make_online_payment(payment_id):
         online_payment.save()
         trigger_payment.delay(online_payment.id)
         if online_payment.response_data.get('checkoutFrontendUrl') and online_payment.response_data.get('token'):
-            print(True)
             return f"{online_payment.response_data.get('checkoutFrontendUrl')}?token={online_payment.response_data.get('token')}"
         return None
     else:

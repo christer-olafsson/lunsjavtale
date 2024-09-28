@@ -574,8 +574,9 @@ class ConfirmUserCartUpdate(graphene.Mutation):
     @is_company_user
     def mutate(self, info, id, status):
         user = info.context.user
+        company = user.company
         obj = AlterCart.objects.get(
-            id=id, base__added_for__company=user.company
+            id=id, base__added_for__company=company
         )
         if obj.base.cart.order.status not in [
             InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING,
@@ -594,6 +595,7 @@ class ConfirmUserCartUpdate(graphene.Mutation):
             else:
                 cart.quantity += 1
             cart.save()
+            company_due_amount = cart.order.company_due_amount
             cart.added_for.add(obj.base.added_for)
             obj.base.cart = cart
             obj.base.save()
@@ -605,6 +607,10 @@ class ConfirmUserCartUpdate(graphene.Mutation):
             obj.status = DecisionChoices.ACCEPTED
             obj.save()
             OrderStatus.objects.create(order=cart.order, status=InvoiceStatusChoices.UPDATED)
+
+            company.invoice_amount += cart.order.company_due_amount - company_due_amount
+            company.save()
+
             user_cart_update_confirmed_notification.delay(obj.id)
         else:
             obj.status = DecisionChoices.REJECTED
