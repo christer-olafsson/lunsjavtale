@@ -147,6 +147,7 @@ def add_user_carts(id):
     cart = SellCart.objects.get(id=id)
     for user in cart.added_for.all():
         user_cart, c = UserCart.objects.get_or_create(added_for=user, cart=cart)
+        # notify staffs
         if cart.order.statuses.filter(status=InvoiceStatusChoices.PAYMENT_COMPLETED).exists():
             user_cart.paid_amount = cart.price_with_tax * cart.order.company_allowance / 100
             user_cart.save()

@@ -25,7 +25,7 @@ def notify_company_order_update(id):
     users = list(order.company.users.filter(
         role__in=[RoleTypeChoices.COMPANY_MANAGER, RoleTypeChoices.COMPANY_OWNER]).values_list('id', flat=True))
     title = "Order status update."
-    message = f"Order status was updated to '{str(order.status).replace('-', ' ')}'"
+    message = f"Your order (#{order.id}) status was updated to '{str(order.status).replace('-', ' ')}'"
     send_bulk_notification_and_save(
         user_ids=users,
         title=title,
@@ -33,11 +33,11 @@ def notify_company_order_update(id):
         n_type=NotificationTypeChoice.ORDER_STATUS_CHANGED,
         object_id=order.id
     )
-    send_order_update_mail(order.company.working_email, title, message)
+    send_order_update_mail(order.company.working_email, title, message, order.status)
 
 
 @app.task
-def send_order_update_mail(email, title, message):
+def send_order_update_mail(email, title, message, status):
     """
         send mail to user for sell-order update
     """
@@ -45,7 +45,8 @@ def send_order_update_mail(email, title, message):
         'order_status_update.html',
         {
             'year': timezone.now().year,
-            'message': message
+            'message': message,
+            'status': status
         },
         title,
         email
@@ -252,7 +253,7 @@ def send_admin_sell_order_mail(company_id, orders):
     company = Company.objects.get(id=company_id)
     send_mail_from_template(
         'admin_sell_order_mail.html', {
-            'message': f"New orders placed by '{company.name}'", 'orders': orders
+            'message': f"New orders placed by '{company.name}'", 'orders': orders, 'year': timezone.now().year
         }, "New Order placed", list(User.objects.filter(
             role__in=[RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN]
         ).values_list('email', flat=True))
@@ -275,7 +276,7 @@ def notify_order_placed(id, orders=[]):
     )
     orders = Order.objects.filter(id__in=orders)
     send_mail_from_template(
-        'sell_order_mail.html', {'message': message, 'orders': orders},
+        'sell_order_mail.html', {'message': message, 'orders': orders, 'year': timezone.now().year},
         title, company.working_email
     )
 
