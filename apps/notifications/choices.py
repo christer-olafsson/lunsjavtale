@@ -21,3 +21,5 @@ class NotificationTypeChoice(models.TextChoices):
     COMPANY_REGISTERED = 'company-registered'
     ORDER_CART_UPDATED = 'order-cart-updated'
     ORDER_CART_UPDATE_CONFIRMED = 'order-cart-update-confirmed'
+    ORDER_CART_ADDED = 'order-cart-added'
+    ORDER_CART_CONFIRMED = 'order-cart-update-confirmed'

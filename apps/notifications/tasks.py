@@ -88,6 +88,39 @@ def send_vendor_product_update_mail(email, status, product_name):
 
 
 @app.task
+def user_cart_added_notification(id):
+    cart = SellCart.objects.get(id=id)
+    owner_and_managers = cart.added_by.company.users.filter(
+        role__in=[RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]
+    ).values_list('id', flat=True)
+    title = "Staff order request"
+    message = f"New food order request has been added by {cart.added_by.full_name}"
+    send_bulk_notification_and_save(
+        user_ids=owner_and_managers,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_CART_ADDED,
+        object_id=cart.id
+    )
+    user_cart_added_mail(cart.added_by.company.working_email, title, message)
+
+
+@app.task
+def user_cart_added_mail(email, title, message):
+    """
+    """
+    send_mail_from_template(
+        'staff_order_added.html',
+        {
+            'year': timezone.now().year,
+            'message': message
+        },
+        title,
+        email
+    )
+
+
+@app.task
 def user_cart_update_notification(id):
     user_cart = UserCart.objects.get(id=id)
     owner_and_managers = user_cart.added_for.company.users.filter(
@@ -141,6 +174,35 @@ def user_cart_update_confirmed_mail(email, title, message):
     """
     send_mail_from_template(
         'staff_order_update_confirmed.html',
+        {
+            'year': timezone.now().year,
+            'message': message
+        },
+        title,
+        email
+    )
+
+
+@app.task
+def user_cart_request_confirmed_notification(user_id, product_name):
+    user = User.objects.get(id=user_id)
+    title = "Order request confirmed"
+    message = f"Your food order request for '{product_name}' has been confirmed."
+    send_notification_and_save(
+        user_id=user.id,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_CART_CONFIRMED,
+    )
+    user_cart_request_confirmed_mail(user.email, title, message)
+
+
+@app.task
+def user_cart_request_confirmed_mail(email, title, message):
+    """
+    """
+    send_mail_from_template(
+        'staff_order_request_confirmed.html',
         {
             'year': timezone.now().year,
             'message': message

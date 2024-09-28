@@ -18,6 +18,8 @@ from apps.notifications.tasks import (
     notify_order_placed,
     send_admin_notification_and_save,
     send_admin_sell_order_mail,
+    user_cart_added_notification,
+    user_cart_request_confirmed_notification,
     user_cart_update_confirmed_notification,
     user_cart_update_notification,
 )
@@ -242,6 +244,7 @@ class SendCartRequest(graphene.Mutation):
         if not carts.exists():
             raise_graphql_error("No item added.")
         carts.update(is_requested=True)
+        user_cart_added_notification.delay(carts.last().id)
         return SendCartRequest(
             success=True,
             message="Successfully requested",
@@ -294,6 +297,8 @@ class ApproveCart(graphene.Mutation):
         if not carts:
             raise_graphql_error("No carts found.", field_name="ids")
         for qt in carts:
+            if request_status == DecisionChoices.ACCEPTED:
+                user_cart_request_confirmed_notification.delay(qt.added_by.id, qt.item.name)
             cart, created = SellCart.objects.get_or_create(item=qt.item, added_by=user, date=qt.date)
             cart.quantity = 1 if created else cart.quantity + 1
             cart.price = qt.item.actual_price
