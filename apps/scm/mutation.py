@@ -400,13 +400,13 @@ class VendorProductMutation(graphene.Mutation):
                         is_cover=attach.get('is_cover')
                     )
             send_admin_notification_and_save.delay(
-                title="New vendor product",
-                message=f"New product added by '{obj.vendor.name}'",
+                title="Vendor product update" if input.get('id') else "New vendor product",
+                message=f"Vendor product updated by '{obj.vendor.name}'" if input.get('id') else f"New product added by '{obj.vendor.name}'",
                 object_id=str(obj.id),
                 n_type=NotificationTypeChoice.VENDOR_PRODUCT_ADDED
             )
             send_admin_mail_for_vendor_product.delay(
-                obj.vendor.name, obj.name
+                obj.vendor.name, obj.name, input.get('id')
             )
         else:
             error_data = {}

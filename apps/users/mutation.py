@@ -662,6 +662,12 @@ class UserCreationMutation(DjangoModelFormMutation):
                 for err in form.errors[error]:
                     error_data[camel_case_format(error)] = err
             raise_graphql_error_with_fields("Invalid input request.", error_data)
+        UnitOfHistory.user_history(
+            action=HistoryActions.USER_CREATE,
+            user=user,
+            perform_for=obj,
+            request=info.context
+        )
         return UserCreationMutation(
             success=True, message="Successfully added", user=obj
         )

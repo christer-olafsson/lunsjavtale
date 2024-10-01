@@ -54,17 +54,21 @@ def send_order_update_mail(email, title, message, status):
 
 
 @app.task
-def send_admin_mail_for_vendor_product(vendor_name, product_name):
+def send_admin_mail_for_vendor_product(vendor_name, product_name, product_id):
     """
         send mail to admin for vendor product added
     """
+    if product_id:
+        message = f"Vendor product '{product_name}' updated by '{vendor_name}'"
+    else:
+        message = f"New vendor product added by '{vendor_name}', named '{product_name}'"
     send_mail_from_template(
         'vendor_product_added.html',
         {
             'year': timezone.now().year,
-            'message': f"New vendor product added by {vendor_name}, named {product_name}"
+            'message': message
         },
-        "Vendor Product Added",
+        "Vendor Product Updated" if product_id else "Vendor Product Added",
         list(User.objects.filter(
             role__in=[RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN]
         ).values_list('email', flat=True))
@@ -94,7 +98,7 @@ def user_cart_added_notification(id):
         role__in=[RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]
     ).values_list('id', flat=True)
     title = "Staff order request"
-    message = f"New food order request has been added by {cart.added_by.full_name}"
+    message = f"New food order request has been added by '{cart.added_by.full_name}'"
     send_bulk_notification_and_save(
         user_ids=owner_and_managers,
         title=title,

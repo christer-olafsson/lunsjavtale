@@ -22,4 +22,4 @@ class NotificationTypeChoice(models.TextChoices):
     ORDER_CART_UPDATED = 'order-cart-updated'
     ORDER_CART_UPDATE_CONFIRMED = 'order-cart-update-confirmed'
     ORDER_CART_ADDED = 'order-cart-added'
-    ORDER_CART_CONFIRMED = 'order-cart-update-confirmed'
+    ORDER_CART_CONFIRMED = 'order-cart-confirmed'
