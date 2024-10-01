@@ -6,84 +6,97 @@
     <title>Your Login Credentials</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #e9ecef; /* Light gray background */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
             margin: 0;
             padding: 0;
         }
         .container {
-            max-width: 600px;
-            margin: 20px auto; /* Added margin for spacing */
+            max-width: 650px;
+            margin: 40px auto;
             background-color: #ffffff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            border-top: 5px solid #007bff; /* Blue top border */
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
         }
         .logo {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 35px;
         }
         .logo img {
-            max-width: 150px; /* Adjust as needed */
+            max-width: 140px;
         }
         h1 {
-            color: #007bff; /* Primary blue color for headings */
+            color: #333333;
             text-align: center;
+            font-size: 32px;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            font-weight: bold;
         }
         h2 {
-            color: #dc3545; /* Red color for subheading */
+            color: #cc3300; /* Deep red for the subheading */
             text-align: center;
+            font-size: 22px;
+            font-weight: normal;
+            margin-bottom: 20px;
         }
         p {
-            color: #555555; /* Darker gray for text */
+            color: #555555;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
         }
         .credentials {
-            background-color: #f0f8ff; /* Alice Blue for credentials background */
-            border: 1px solid #007bff; /* Blue border color */
-            border-radius: 5px;
-            padding: 15px;
+            background: #f3f6fa; /* Very light gray/blue background */
+            border-radius: 12px;
+            padding: 20px;
             margin-top: 20px;
+            border: 1px solid #cccccc;
         }
         .credentials p {
-            color: #333333; /* Darker text for credentials */
+            color: #333333;
+            font-weight: 600;
         }
         .highlight {
-            color: #dc3545; /* Red color for highlighted text */
+            color: #6f42c1; /* Purple for highlight */
             font-weight: bold;
         }
         .button {
             display: inline-block;
-            background-color: #007bff; /* Blue button */
+            background-color: #0066cc; /* Blue button */
             color: white;
-            padding: 12px 25px;
+            padding: 15px 30px;
             text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-top: 25px;
             font-weight: bold;
-            transition: background-color 0.3s ease;
-            text-align: center; /* Center the text */
+            text-align: center;
+            transition: transform 0.2s ease, background-color 0.3s ease;
         }
         .button:hover {
-            background-color: #0056b3; /* Darker blue on hover */
+            background-color: #004a99; /* Darker blue on hover */
+            transform: translateY(-3px); /* Lift effect */
         }
         .footer {
-            margin-top: 30px;
-            font-size: 12px;
-            color: #888888;
-            text-align: center; /* Centered footer text */
+            margin-top: 40px;
+            font-size: 14px;
+            color: #999999;
+            text-align: center;
         }
         .footer a {
-            color: #007bff; /* Footer link color */
+            color: #6f42c1;
             text-decoration: none;
         }
         .footer a:hover {
-            text-decoration: underline; /* Underline on hover */
+            text-decoration: underline;
         }
         .greeting {
-            background-color: #ffebcd; /* Blanched Almond for greeting background */
-            padding: 10px;
-            border-radius: 5px;
+            background-color: #f8f8f8;
+            padding: 20px;
+            border-left: 4px solid #6f42c1; /* Purple left border */
+            border-radius: 8px;
             margin: 20px 0;
         }
     </style>
@@ -101,26 +114,26 @@
 
     <div class="greeting">
         <p>Dear {{user_name}},</p>
-        <p>We hope this message finds you well! You're invited to join as a Supplier on <strong>Lunsjavtale</strong>.</p>
+        <p>We’re excited to have you join us as a Supplier on <strong>Lunsjavtale</strong>.</p>
     </div>
 
-    <p>Below are your login credentials:</p>
+    <p>Here are your login credentials:</p>
 
     <div class="credentials">
         <p><strong>Email:</strong> <span class="highlight">{{email}}</span></p>
         <p><strong>Password:</strong> <span class="highlight">{{password}}</span></p>
     </div>
 
-    <a href="{{link}}" class="button" style="background-color: #28a745; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin-top: 20px; font-weight: bold; display: inline-block; transition: background-color 0.3s ease;">Visit Supplier Website</a>
+    <a href="{{link}}" class="button">Visit Supplier Website</a>
 
-    <p>Please keep your credentials safe and do not share them with anyone. If you have any questions or need assistance, feel free to reach out to us at <a href="mailto:lunsjavtale@gmail.com">lunsjavtale@gmail.com</a>.</p>
+    <p>Make sure to store your credentials safely. If you need any help, feel free to contact us at <a href="mailto:lunsjavtale@gmail.com">lunsjavtale@gmail.com</a>.</p>
 
     <p>Sincerely,<br>
     Lunsjavtale Team</p>
 
     <div class="footer">
         &copy; {{year}} Lunsjavtale. All rights reserved.<br>
-        <a href="https://lunsjavtale.com">Visit our website</a>
+        <a href="https://lunsjavtale.no">Visit website</a>
     </div>
 </div>
 

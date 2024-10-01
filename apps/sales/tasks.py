@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import F
 
-from apps.notifications.tasks import notify_vendor_product
+from apps.notifications.tasks import notify_employee_cart, notify_vendor_product
 from apps.sales.choices import InvoiceStatusChoices, PaymentStatusChoices
 from apps.sales.models import OnlinePayment, Order, OrderPayment, SellCart, UserCart
 
@@ -147,6 +147,9 @@ def add_user_carts(id):
     cart = SellCart.objects.get(id=id)
     for user in cart.added_for.all():
         user_cart, c = UserCart.objects.get_or_create(added_for=user, cart=cart)
+        # notify staffs
+        if c:
+            notify_employee_cart(user_cart.id)
         if cart.order.statuses.filter(status=InvoiceStatusChoices.PAYMENT_COMPLETED).exists():
             user_cart.paid_amount = cart.price_with_tax * cart.order.company_allowance / 100
             user_cart.save()

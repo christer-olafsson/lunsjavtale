@@ -25,7 +25,7 @@ def notify_company_order_update(id):
     users = list(order.company.users.filter(
         role__in=[RoleTypeChoices.COMPANY_MANAGER, RoleTypeChoices.COMPANY_OWNER]).values_list('id', flat=True))
     title = "Order status update."
-    message = f"Order status was updated to '{str(order.status).replace('-', ' ')}'"
+    message = f"Your order (ID: #{order.id}) status has been updated to '{str(order.status).replace('-', ' ')}'."
     send_bulk_notification_and_save(
         user_ids=users,
         title=title,
@@ -33,11 +33,11 @@ def notify_company_order_update(id):
         n_type=NotificationTypeChoice.ORDER_STATUS_CHANGED,
         object_id=order.id
     )
-    send_order_update_mail(order.company.working_email, title, message)
+    send_order_update_mail(order.company.working_email, title, message, str(order.status).replace('-', ' '))
 
 
 @app.task
-def send_order_update_mail(email, title, message):
+def send_order_update_mail(email, title, message, status):
     """
         send mail to user for sell-order update
     """
@@ -45,7 +45,8 @@ def send_order_update_mail(email, title, message):
         'order_status_update.html',
         {
             'year': timezone.now().year,
-            'message': message
+            'message': message,
+            'status': status
         },
         title,
         email
@@ -53,17 +54,21 @@ def send_order_update_mail(email, title, message):
 
 
 @app.task
-def send_admin_mail_for_vendor_product(vendor_name, product_name):
+def send_admin_mail_for_vendor_product(vendor_name, product_name, product_id):
     """
         send mail to admin for vendor product added
     """
+    if product_id:
+        message = f"Vendor product '{product_name}' updated by '{vendor_name}'"
+    else:
+        message = f"New vendor product added by '{vendor_name}', named '{product_name}'"
     send_mail_from_template(
         'vendor_product_added.html',
         {
             'year': timezone.now().year,
-            'message': f"New vendor product added by {vendor_name}, named {product_name}"
+            'message': message
         },
-        "Vendor Product Added",
+        "Vendor Product Updated" if product_id else "Vendor Product Added",
         list(User.objects.filter(
             role__in=[RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN]
         ).values_list('email', flat=True))
@@ -82,6 +87,39 @@ def send_vendor_product_update_mail(email, status, product_name):
             'message': f"Your product was {status} by admins. Product name: {product_name}"
         },
         "Vendor Product Updated",
+        email
+    )
+
+
+@app.task
+def user_cart_added_notification(id):
+    cart = SellCart.objects.get(id=id)
+    owner_and_managers = cart.added_by.company.users.filter(
+        role__in=[RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]
+    ).values_list('id', flat=True)
+    title = "Staff order request"
+    message = f"New food order request has been added by '{cart.added_by.full_name}'"
+    send_bulk_notification_and_save(
+        user_ids=owner_and_managers,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_CART_ADDED,
+        object_id=cart.id
+    )
+    user_cart_added_mail(cart.added_by.company.working_email, title, message)
+
+
+@app.task
+def user_cart_added_mail(email, title, message):
+    """
+    """
+    send_mail_from_template(
+        'staff_order_added.html',
+        {
+            'year': timezone.now().year,
+            'message': message
+        },
+        title,
         email
     )
 
@@ -140,6 +178,35 @@ def user_cart_update_confirmed_mail(email, title, message):
     """
     send_mail_from_template(
         'staff_order_update_confirmed.html',
+        {
+            'year': timezone.now().year,
+            'message': message
+        },
+        title,
+        email
+    )
+
+
+@app.task
+def user_cart_request_confirmed_notification(user_id, product_name):
+    user = User.objects.get(id=user_id)
+    title = "Order request confirmed"
+    message = f"Your food order request for '{product_name}' has been confirmed."
+    send_notification_and_save(
+        user_id=user.id,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_CART_CONFIRMED,
+    )
+    user_cart_request_confirmed_mail(user.email, title, message)
+
+
+@app.task
+def user_cart_request_confirmed_mail(email, title, message):
+    """
+    """
+    send_mail_from_template(
+        'staff_order_request_confirmed.html',
         {
             'year': timezone.now().year,
             'message': message
@@ -252,7 +319,7 @@ def send_admin_sell_order_mail(company_id, orders):
     company = Company.objects.get(id=company_id)
     send_mail_from_template(
         'admin_sell_order_mail.html', {
-            'message': f"New orders placed by '{company.name}'", 'orders': orders
+            'message': f"New orders placed by '{company.name}'", 'orders': orders, 'year': timezone.now().year
         }, "New Order placed", list(User.objects.filter(
             role__in=[RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN]
         ).values_list('email', flat=True))
@@ -275,8 +342,40 @@ def notify_order_placed(id, orders=[]):
     )
     orders = Order.objects.filter(id__in=orders)
     send_mail_from_template(
-        'sell_order_mail.html', {'message': message, 'orders': orders},
+        'sell_order_mail.html', {'message': message, 'orders': orders, 'year': timezone.now().year},
         title, company.working_email
+    )
+
+
+@app.task
+def notify_employee_cart(id):
+    user_cart = UserCart.objects.get(id=id)
+    users = list(User.objects.filter(id=user_cart.added_for.id).values_list('id', flat=True))
+    title = "Food order added."
+    message = f"Food has been ordered for you. Order: #{user_cart.cart.order.id}; Product: {user_cart.cart.item.name}"
+    send_bulk_notification_and_save(
+        user_ids=users,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_STATUS_CHANGED,
+        object_id=user_cart.cart.order.id
+    )
+    notify_employee_cart_mail(user_cart.cart.order.company.working_email, title, message)
+
+
+@app.task
+def notify_employee_cart_mail(email, title, message):
+    """
+        send mail to user for sell-order cart added
+    """
+    send_mail_from_template(
+        'order_employee_cart.html',
+        {
+            'year': timezone.now().year,
+            'message': message,
+        },
+        title,
+        email
     )
 
 

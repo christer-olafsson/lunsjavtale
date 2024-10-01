@@ -110,6 +110,9 @@ class OrderFilters(BaseFilterOrderBy):
     company_name_email = django_filters.CharFilter(
         method="company_name_email_filter"
     )
+    added_for = django_filters.CharFilter(
+        method="added_for_filter"
+    )
     delivery_date_start = django_filters.CharFilter(
         field_name='delivery_date', lookup_expr='gte'
     )
@@ -119,6 +122,11 @@ class OrderFilters(BaseFilterOrderBy):
 
     def company_name_email_filter(self, qs, name, value):
         return qs.filter(Q(company__name__icontains=value) | Q(company__working_email__icontains=value) | Q(id__icontains=value))
+
+    def added_for_filter(self, qs, name, value):
+        orders = UserCart.objects.filter(
+            added_for__id=value).order_by('cart__order_id').values_list('cart__order_id', flat=True).distinct()
+        return qs.filter(id__in=orders)
 
     class Meta:
         model = Order

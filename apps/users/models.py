@@ -476,13 +476,13 @@ class UnitOfHistory(models.Model):
         auto_now_add=True
     )
     old_meta = models.JSONField(
-        null=True
+        null=True, blank=True
     )  # we store data what was the scenario before perform this action.
     new_meta = models.JSONField(
-        null=True
+        null=True, blank=True
     )  # we store data after perform this action.
     header = models.JSONField(
-        null=True
+        null=True, blank=True
     )  # request header that will provide user browser
     # information and others details.
     user = models.ForeignKey(
@@ -494,7 +494,7 @@ class UnitOfHistory(models.Model):
     perform_for = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
-        null=True,
+        null=True, blank=True,
         related_name="perform_for"
     )  # sometime admin/superior  will perform some
     # specific action for employee/or user e.g. payroll change.

@@ -3,11 +3,13 @@
 import graphene
 from django.contrib.auth import get_user_model
 from django.db.models import F, Sum
+from graphene.types.generic import GenericScalar
 from graphene_django import DjangoObjectType
 
 # local imports
 from backend.count_connection import CountConnection
 
+from ..bases.constant import HistoryActions
 from .filters import (
     AddressFilters,
     ClientDetailsFilters,
@@ -60,6 +62,7 @@ class UserType(DjangoObjectType):
     id = graphene.ID(required=True)
     is_admin = graphene.Boolean()
     due_amount = graphene.Decimal()
+    added_by = GenericScalar()
 
     class Meta:
         model = User
@@ -77,7 +80,15 @@ class UserType(DjangoObjectType):
         try:
             return round(carts.aggregate(total_due=Sum('due'))['total_due'], 2)
         except Exception:
-            return "0"
+            return "0.00"
+
+    @staticmethod
+    def resolve_added_by(self, info):
+        added_by = UnitOfHistory.objects.filter(action=HistoryActions.USER_CREATE, perform_for=self).last()
+        return {
+            'id': added_by.user.id, 'email': added_by.user.email, 'fullName': added_by.user.full_name,
+            'username': added_by.user.username
+        } if added_by and added_by.user else None
 
 
 class LogType(DjangoObjectType):

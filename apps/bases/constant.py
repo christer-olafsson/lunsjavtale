@@ -35,6 +35,7 @@ class HistoryActions(models.TextChoices):
     ACCEPTED_TERMS_AND_CONDITIONS = 'accepted-terms-and-conditions'
     ACCEPTED_PRIVACY_POLICY = 'accepted-privacy-policy'
     USER_UPDATE = 'user-update'
+    USER_CREATE = 'user-create'
     RESEND_ACTIVATION = 'resend-email-activation'
     DOCUMENT_UPLOADED = 'document-uploaded'
     CV_VERIFIED = 'cv-verified'
@@ -59,50 +60,6 @@ class HistoryActions(models.TextChoices):
     CATEGORY_CREATED = 'category-created'
     CATEGORY_UPDATED = 'category-updated'
     CATEGORY_DELETED = 'category-deleted'
-    CITY_CREATED = 'city-created'
-    CITY_UPDATED = 'city-updated'
-    CITY_DELETED = 'city-deleted'
-    ADVERTISE_CREATED = 'advertise-created'
-    ADVERTISE_UPDATED = 'advertise-updated'
-    ADVERTISE_APPROVED = 'advertise-approved'
-    ADVERTISE_REJECTED = 'advertise-rejected'
-    ADVERTISE_VISITED = 'advertise-visited'
-    ADVERTISE_DELETED = 'advertise-deleted'
-    CHAT_CREATED = "chat-created"
-    ADDRESS_UPDATE = 'address-update'
-    INVOICE_CREATED = 'invoice-created'
-    INVOICE_UPDATED = 'invoice-updated'
-    SELL_CART_DELETED = 'sell-cart-deleted'
-    INVOICE_RECEIPT_CREATED = 'invoice-receipt-created'
-    INVOICE_RECEIPT_UPDATED = 'invoice-receipt-updated'
-    INVOICE_PAYMENT_DELETED = 'invoice-payment-deleted'
-    SALES_RETURN_CREATED = 'sales-return-created'
-    SALES_RETURN_UPDATED = 'sales-return-updated'
-    LOCKER_ADDED = 'locker-added'
-    LOCKER_UPDATED = 'locker-updated'
-    LOCKER_DELETED = 'locker-deleted'
-    LOCKER_ASSIGNED = 'locker-assigned'
-    LOCKER_ASSIGN_UPDATED = 'locker-assign-updated'
-    LOCKER_UNASSIGNED = 'locker-unassigned'
-    BANK_ADDED = 'bank-added'
-    BANK_UPDATED = 'bank-updated'
-
-
-class AdvertiseActions(models.TextChoices):
-    """
-        define selection fields for advertise activity choice
-    """
-    CATEGORY_CREATED = 'category-created'
-    CATEGORY_UPDATED = 'category-updated'
-    CATEGORY_DELETED = 'category-deleted'
-    CITY_CREATED = 'city-created'
-    CITY_UPDATED = 'city-updated'
-    CITY_DELETED = 'city-deleted'
-    ADVERTISE_CREATED = 'advertise-created'
-    ADVERTISE_UPDATED = 'advertise-updated'
-    ADVERTISE_APPROVED = 'advertise-approved'
-    ADVERTISE_REJECTED = 'advertise-rejected'
-    ADVERTISE_VISITED = 'advertise-visited'
 
 
 class PropertySellerTypeChoice(models.TextChoices):
