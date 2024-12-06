@@ -89,6 +89,7 @@ class WeeklyVariant(BaseWithoutID, SoftDeletion):
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_weekly_variant"  # define table name for database
+        ordering = ['id']  # define default order as id in descending
 
 
 class ProductManager(models.Manager):

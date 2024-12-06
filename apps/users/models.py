@@ -284,8 +284,8 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
     )  # this flag will define user delete stop this all token for a while
 
     phone_regex = RegexValidator(
-        regex=r"^\+?1?\d{9,15}$",
-        message="Enter Valid Phone number with country code"
+        regex=r"^\+?1?\d{7,15}$",
+        message="Enter Valid Phone number with minimum 8 numbers."
     )  # phone number validator.
     phone = models.CharField(
         _("phone number"),
@@ -386,18 +386,18 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
             'year': timezone.now().year
         }
         if self.role == RoleTypeChoices.COMPANY_MANAGER:
-            template = 'emails/manager_verification1.html'
+            template = 'apps/users/templates/emails/manager_verification1.html'
             context['link'] = settings.SITE_URL
             context['company_name'] = self.company.name
         elif self.role == RoleTypeChoices.COMPANY_EMPLOYEE:
-            template = 'emails/staff_verification1.html'
+            template = 'apps/users/templates/emails/staff_verification1.html'
             context['link'] = settings.SITE_URL
             context['company_name'] = self.company.name
         elif self.role == RoleTypeChoices.VENDOR:
-            template = 'emails/supplier_verification1.html'
+            template = 'apps/users/templates/emails/supplier_verification1.html'
             context['link'] = settings.SUPPLIER_SITE_URL
         else:
-            template = 'emails/verification1.html'
+            template = 'apps/users/templates/emails/verification1.html'
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 
@@ -412,7 +412,7 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
             'email': self.email,
             'year': timezone.now().year
         }
-        template = 'emails/email_verification1.html'
+        template = 'apps/users/templates/emails/email_verification1.html'
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
 
@@ -428,16 +428,16 @@ class User(BaseWithoutID, AbstractBaseUser, SoftDeletion, PermissionsMixin):
             'year': timezone.now().year
         }
         if self.role == RoleTypeChoices.VENDOR:
-            template = 'emails/supplier_verification1.html'
+            template = 'apps/users/templates/emails/supplier_verification1.html'
             context['link'] = settings.SUPPLIER_SITE_URL
         elif self.role in [
             RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN, RoleTypeChoices.SEO_MANAGER, RoleTypeChoices.EDITOR,
             RoleTypeChoices.DEVELOPER, RoleTypeChoices.SYSTEM_MANAGER
         ]:
-            template = 'emails/verification1.html'
+            template = 'apps/users/templates/emails/verification1.html'
             context['link'] = settings.ADMIN_SITE_URL
         else:
-            template = 'emails/verification1.html'
+            template = 'apps/users/templates/emails/verification1.html'
             context['link'] = settings.SITE_URL
         subject = 'Email Verification'
         send_email_on_delay.delay(template, context, subject, self.email)  # will add later for sending verification
