@@ -1,7 +1,6 @@
 import graphene
 from graphene_django.forms.mutation import DjangoModelFormMutation
 from graphene_django.forms.types import DjangoFormInputObjectType
-from graphql import GraphQLError
 
 # local imports
 from apps.bases.utils import (
@@ -11,6 +10,7 @@ from apps.bases.utils import (
     raise_graphql_error_with_fields,
 )
 from backend.permissions import is_admin_user, is_authenticated
+from backend.utils import translate_text
 
 from .forms import (
     AddressTypeForm,
@@ -77,10 +77,10 @@ class ValidAreaMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
+                    error_data[camel_case_format(error)] = translate_text(err)
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         return ValidAreaMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -101,7 +101,7 @@ class ValidAreaDelete(graphene.Mutation):
             obj.delete()
             return ValidAreaDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except ValidArea.DoesNotExist:
             raise_graphql_error("Valid Area not found.", "valid_area_not_exist")
@@ -130,10 +130,10 @@ class AddressTypeMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
+                    error_data[camel_case_format(error)] = translate_text(err)
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         return AddressTypeMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -157,7 +157,7 @@ class AddressTypeDelete(graphene.Mutation):
                 obj.delete()
             return AddressTypeDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except TypeOfAddress.DoesNotExist:
             raise_graphql_error("Address Type not found.", "address_type_not_exist")
@@ -186,10 +186,10 @@ class LanguageMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
+                    error_data[camel_case_format(error)] = translate_text(err)
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         return LanguageMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -210,7 +210,7 @@ class LanguageDelete(graphene.Mutation):
             obj.delete()
             return LanguageDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except Language.DoesNotExist:
             raise_graphql_error("Language not found.", "language_not_exist")
@@ -239,16 +239,10 @@ class FAQCategoryMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return FAQCategoryMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -269,7 +263,7 @@ class FAQCategoryDelete(graphene.Mutation):
             obj.delete()
             return FAQCategoryDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except FAQCategory.DoesNotExist:
             raise_graphql_error("FAQ Category not found.", "FAQ_category_not_exist")
@@ -298,16 +292,10 @@ class FAQMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return FAQMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -328,7 +316,7 @@ class FAQDelete(graphene.Mutation):
             obj.delete()
             return FAQDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except FAQ.DoesNotExist:
             raise_graphql_error("FAQ not found.", "FAQ_not_exist")
@@ -354,16 +342,10 @@ class SupportedBrandMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return SupportedBrandMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -384,7 +366,7 @@ class SupportedBrandDelete(graphene.Mutation):
             obj.delete()
             return SupportedBrandDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except SupportedBrand.DoesNotExist:
             raise_graphql_error("SupportedBrand not found.", "supported_brand_not_exist")
@@ -410,16 +392,10 @@ class PartnerMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return PartnerMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -440,7 +416,7 @@ class PartnerDelete(graphene.Mutation):
             obj.delete()
             return PartnerDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except Partner.DoesNotExist:
             raise_graphql_error("Partner not found.", "partner_not_exist")
@@ -466,16 +442,10 @@ class FollowUsMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return FollowUsMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -496,7 +466,7 @@ class FollowUsDelete(graphene.Mutation):
             obj.delete()
             return FollowUsDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except FollowUs.DoesNotExist:
             raise_graphql_error("Follow Us not found.", "follow_us_not_exist")
@@ -521,16 +491,10 @@ class PromotionMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return PromotionMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -551,7 +515,7 @@ class PromotionDelete(graphene.Mutation):
             obj.delete()
             return PromotionDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except Promotion.DoesNotExist:
             raise_graphql_error("Promotion not found.", "promotion_not_exist")
@@ -576,16 +540,10 @@ class ContactUsMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return ContactUsMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -626,16 +584,10 @@ class WhoUAreMutation(graphene.Mutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return WhoUAreMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -657,7 +609,7 @@ class WhoUAreDelete(graphene.Mutation):
             obj.delete()
             return WhoUAreDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except WhoUAre.DoesNotExist:
             raise_graphql_error("Who U Are not found.", "who_u_are_not_exist")

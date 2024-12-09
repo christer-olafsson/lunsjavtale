@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from graphql import GraphQLError
 
 from apps.bases.constant import ignorable_field_types
+from backend.utils import translate_text
 
 
 def build_absolute_uri(path, host) -> str:
@@ -302,6 +303,7 @@ def raise_graphql_error(message: str, code="invalid_request", field_name=None):
     """
         Raise graphql error by message and code
     """
+    message = translate_text(message)
     extensions = {'code': code}
     if field_name:
         extensions['errors'] = {field_name: message}
@@ -318,7 +320,7 @@ def raise_graphql_error_with_fields(message, errors: dict, code="invalid_request
         Raise graphql error by message, code and list of errors
     """
     raise GraphQLError(
-        message=message,
+        message=translate_text(message),
         extensions={
             'errors': errors,
             'code': code

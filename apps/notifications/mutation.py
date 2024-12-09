@@ -11,6 +11,7 @@ from graphql import GraphQLError
 from apps.bases.utils import camel_case_format, get_object_by_id, raise_graphql_error
 from apps.users.models import User, UserDeviceToken
 from backend.permissions import is_admin_user
+from backend.utils import translate_text
 
 from .choices import AudienceTypeChoice, NotificationTypeChoice
 from .forms import NotificationForm, NotificationTemplateForm
@@ -55,9 +56,9 @@ class NotificationMutation(DjangoModelFormMutation):
         elif form.data['audience_type'] == AudienceTypeChoice.CUSTOM:
             if not form.data.get('users'):
                 raise GraphQLError(
-                    message="Invalid input request.",
+                    message=translate_text("Invalid input request."),
                     extensions={
-                        "errors": {"users": "User list required for custom audience type."},
+                        "errors": {"users": translate_text("User list required for custom audience type.")},
                         "code": "invalid_input"
                     }
                 )
@@ -103,9 +104,9 @@ class NotificationMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
+                    error_data[camel_case_format(error)] = translate_text(err)
             raise GraphQLError(
-                message="Invalid input request.",
+                message=translate_text("Invalid input request."),
                 extensions={
                     "errors": error_data,
                     "code": "invalid_input"
@@ -113,7 +114,8 @@ class NotificationMutation(DjangoModelFormMutation):
             )
         return NotificationMutation(
             success=True, notification=obj,
-            message=f"Successfully {'updated' if input.get('id') else 'added' }")
+            message=translate_text(f"Successfully {'updated' if input.get('id') else 'added' }")
+        )
 
 
 class NotificationTemplateMutation(DjangoModelFormMutation):
@@ -139,9 +141,9 @@ class NotificationTemplateMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
+                    error_data[camel_case_format(error)] = translate_text(err)
             raise GraphQLError(
-                message="Invalid request.",
+                message=translate_text("Invalid request."),
                 extensions={
                     "errors": error_data,
                     "code": "invalid_input"
@@ -150,7 +152,7 @@ class NotificationTemplateMutation(DjangoModelFormMutation):
         return NotificationTemplateMutation(
             success=True,
             object=obj,
-            message=f"Successfully {'updated' if not created else 'added' }"
+            message=translate_text(f"Successfully {'updated' if not created else 'added' }")
         )
 
 
@@ -171,7 +173,7 @@ class NotificationTemplateDeleteMutation(graphene.Mutation):
         obj.delete()
         return NotificationTemplateDeleteMutation(
             success=True,
-            message="Notification template was deleted successfully."
+            message=translate_text("Notification template was deleted successfully.")
         )
 
 
@@ -197,7 +199,7 @@ class NotificationDeleteMutation(graphene.Mutation):
         notifications.delete()
         return NotificationDeleteMutation(
             success=True,
-            message="Notification was deleted successfully."
+            message=translate_text("Notification was deleted successfully.")
         )
 
 

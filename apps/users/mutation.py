@@ -30,6 +30,7 @@ from backend.permissions import (
     is_company_user,
     is_super_admin,
 )
+from backend.utils import translate_text
 
 from ..notifications.tasks import notify_company_registration
 from .choices import RoleTypeChoices, WithdrawRequestChoices
@@ -117,7 +118,7 @@ class CompanyMutationForAdmin(DjangoModelFormMutation):
                 for error in form.errors:
                     for err in form.errors[error]:
                         error_data[camel_case_format(error)] = err
-                raise_graphql_error_with_fields("Invalid input request.", error_data)
+                raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         else:
             user_input = {
                 'email': input.get('working_email'),
@@ -138,16 +139,16 @@ class CompanyMutationForAdmin(DjangoModelFormMutation):
             else:
                 for error in form.errors:
                     for err in form.errors[error]:
-                        error_data[camel_case_format(error)] = err
+                        error_data[camel_case_format(error)] = translate_text(err)
                 for error in user_form.errors:
                     for err in user_form.errors[error]:
                         if error == 'phone':
-                            error_data['contact'] = err
+                            error_data['contact'] = translate_text(err)
                         else:
-                            error_data[camel_case_format(error)] = err
-                raise_graphql_error_with_fields("Invalid input request.", error_data)
+                            error_data[camel_case_format(error)] = translate_text(err)
+                raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         return CompanyMutationForAdmin(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -171,10 +172,10 @@ class CompanyMutation(DjangoFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         return CompanyMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -216,16 +217,16 @@ class ValidCompanyMutation(DjangoFormMutation):
         else:
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
+                    error_data[camel_case_format(error)] = translate_text(err)
             for error in user_form.errors:
                 for err in user_form.errors[error]:
                     if error == 'phone':
-                        error_data['contact'] = err
+                        error_data['contact'] = translate_text(err)
                     else:
-                        error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                        error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         return ValidCompanyMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -267,16 +268,16 @@ class VendorMutation(DjangoFormMutation):
         else:
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
+                    error_data[camel_case_format(error)] = translate_text(err)
             for error in user_form.errors:
                 for err in user_form.errors[error]:
                     if error == 'phone':
-                        error_data['contact'] = err
+                        error_data['contact'] = translate_text(err)
                     else:
-                        error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                        error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         return VendorMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -306,10 +307,10 @@ class VendorUpdateMutation(DjangoModelFormMutation):
         else:
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         return VendorUpdateMutation(
-            success=True, message="Successfully updated", instance=obj
+            success=True, message=translate_text("Successfully updated"), instance=obj
         )
 
 
@@ -345,7 +346,7 @@ class VendorDelete(graphene.Mutation):
                 user.save()
             return VendorDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except Vendor.DoesNotExist:
             raise_graphql_error("Vendor not found.", "vendor_not_exist")
@@ -376,7 +377,7 @@ class CompanyBlockUnBlock(graphene.Mutation):
             obj.save()
             return CompanyBlockUnBlock(
                 success=True,
-                message=f"Successfully {msg}",
+                message=translate_text(f"Successfully {msg}"),
             )
         except Company.DoesNotExist:
             raise_graphql_error("Company not found.", "company_not_exist")
@@ -414,7 +415,7 @@ class CompanyDelete(graphene.Mutation):
                 user.save()
             return CompanyDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except Company.DoesNotExist:
             raise_graphql_error("Company not found.", "company_not_exist")
@@ -441,7 +442,7 @@ class ChangeCompanyStatus(graphene.Mutation):
             obj.save()
             return ChangeCompanyStatus(
                 success=True,
-                message="Successfully updated",
+                message=translate_text("Successfully updated"),
             )
         except Company.DoesNotExist:
             raise_graphql_error("Company not found.", "company_not_exist")
@@ -472,7 +473,7 @@ class VendorBlockUnBlock(graphene.Mutation):
             obj.save()
             return VendorBlockUnBlock(
                 success=True,
-                message=f"Successfully {msg}",
+                message=translate_text(f"Successfully {msg}"),
             )
         except Vendor.DoesNotExist:
             raise_graphql_error("Vendor not found.", "company_not_exist")
@@ -515,7 +516,7 @@ class VendorWithdrawRequest(graphene.Mutation):
             msg = 'added'
         return VendorWithdrawRequest(
             success=True,
-            message=f"Successfully {msg}",
+            message=translate_text(translate_text(f"Successfully {msg}")),
         )
 
 
@@ -559,7 +560,7 @@ class VendorWithdrawRequest(graphene.Mutation):
 #             for error in form.errors:
 #                 for err in form.errors[error]:
 #                     error_data[camel_case_format(error)] = err
-#             raise_graphql_error_with_fields("Invalid input request.", error_data)
+#             raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
 #         return CompanyOwnerRegistration(
 #             success=True,
 #             message="User registration was successful.",
@@ -604,11 +605,11 @@ class CompanyOwnerRegistration(graphene.Mutation):
             error_data = errors
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         return CompanyOwnerRegistration(
             success=True,
-            message="User registration was successful.",
+            message=translate_text("User registration was successful."),
             user=user
         )
 
@@ -660,8 +661,8 @@ class UserCreationMutation(DjangoModelFormMutation):
         else:
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         UnitOfHistory.user_history(
             action=HistoryActions.USER_CREATE,
             user=user,
@@ -669,7 +670,7 @@ class UserCreationMutation(DjangoModelFormMutation):
             request=info.context
         )
         return UserCreationMutation(
-            success=True, message="Successfully added", user=obj
+            success=True, message=translate_text("Successfully added"), user=obj
         )
 
 
@@ -691,7 +692,7 @@ class AddressMutation(DjangoModelFormMutation):
             try:
                 Company.objects.get(id=input.get('company'))
             except Exception:
-                error_data['company'] = "This field is required."
+                error_data['company'] = translate_text("This field is required.")
         elif user.role in [RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]:
             input['company'] = user.company.id
         else:
@@ -708,10 +709,10 @@ class AddressMutation(DjangoModelFormMutation):
         else:
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         return AddressMutation(
-            success=True, instance=obj, message="Successfully updated"
+            success=True, instance=obj, message=translate_text("Successfully updated")
         )
 
 
@@ -734,7 +735,7 @@ class AddressDelete(graphene.Mutation):
             obj.save()
             return AddressDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except Address.DoesNotExist:
             raise_graphql_error("Address not found.", "address_not_exist")
@@ -766,10 +767,10 @@ class CompanyBillingAddressMutation(DjangoFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         return CompanyBillingAddressMutation(
-            success=True, instance=obj, message="Successfully updated"
+            success=True, instance=obj, message=translate_text("Successfully updated")
         )
 
 
@@ -808,8 +809,8 @@ class UserMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         UnitOfHistory.user_history(
             action=HistoryActions.USER_UPDATE,
             old_meta=old_data,
@@ -818,7 +819,7 @@ class UserMutation(DjangoModelFormMutation):
             request=info.context
         )
         return UserMutation(
-            success=True, user=User.objects.get(id=user.id), message="Successfully updated"
+            success=True, user=User.objects.get(id=user.id), message=translate_text("Successfully updated")
         )
 
 
@@ -854,8 +855,8 @@ class UserAccountMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         UnitOfHistory.user_history(
             action=HistoryActions.USER_UPDATE,
             old_meta=old_data,
@@ -864,7 +865,7 @@ class UserAccountMutation(DjangoModelFormMutation):
             request=info.context
         )
         return UserAccountMutation(
-            success=True, user=obj, message="Successfully updated"
+            success=True, user=obj, message=translate_text("Successfully updated")
         )
 
 
@@ -988,7 +989,7 @@ class ExpiredAllToken(graphene.Mutation):
         AccessToken.objects.filter(user=user).delete()
         UserDeviceToken.objects.filter(user=user).delete()
         return ExpiredAllToken(
-            message="Successfully Logout",
+            message=translate_text("Successfully Logout"),
             success=True
         )
 
@@ -1027,7 +1028,7 @@ class PasswordChange(graphene.Mutation):
         )
         return PasswordChange(
             success=True,
-            message="Password successfully changed",
+            message=translate_text("Password successfully changed"),
             user=user
         )
 
@@ -1094,7 +1095,7 @@ class EmailVericationMail(graphene.Mutation):
         )
         return EmailVericationMail(
             success=True,
-            message="Verification mail was sent successfully"
+            message=translate_text("Verification mail was sent successfully")
         )
 
 
@@ -1143,7 +1144,7 @@ class PasswordReset(graphene.Mutation):
         )
         return PasswordReset(
             success=True,
-            message="Password reset successful",
+            message=translate_text("Password reset successful"),
         )
 
 
@@ -1192,7 +1193,7 @@ class UserPasswordReset(graphene.Mutation):
         )
         return UserPasswordReset(
             success=True,
-            message="Password reset successful",
+            message=translate_text("Password reset successful"),
         )
 
 
@@ -1239,7 +1240,7 @@ class PasswordResetAdmin(graphene.Mutation):
         )
         return PasswordResetAdmin(
             success=True,
-            message="Password reset successful",
+            message=translate_text("Password reset successful"),
         )
 
 
@@ -1287,7 +1288,7 @@ class PasswordResetCompany(graphene.Mutation):
         )
         return PasswordResetCompany(
             success=True,
-            message="Password reset successful",
+            message=translate_text("Password reset successful"),
         )
 
 
@@ -1321,7 +1322,7 @@ class ProfilePictureUpload(graphene.Mutation):
         )
         return ProfilePictureUpload(
             success=True,
-            message="profile picture uploaded successfully",
+            message=translate_text("Profile picture uploaded successfully"),
             user=user
         )
 
@@ -1354,7 +1355,7 @@ class ProfileDeactivation(graphene.Mutation):
         )
         return ProfileDeactivation(
             success=True,
-            message="Deactivation successful"
+            message=translate_text("Deactivation successful")
         )
 
 
@@ -1395,7 +1396,7 @@ class DeviceToken(graphene.Mutation):
         )
         return DeviceToken(
             success=True, user=user,
-            message="Token added successfully"
+            message=translate_text("Token added successfully")
         )
 
 
@@ -1433,7 +1434,7 @@ class EmailVerify(graphene.Mutation):
             raise_graphql_error("Invalid token!", "invalid_token")
         return EmailVerify(
             success=True,
-            message="Email verification was successful."
+            message=translate_text("Email verification was successful.")
         )
 
 
@@ -1450,7 +1451,7 @@ class VerifyAccess(graphene.Mutation):
     def mutate(self, info, **kwargs):
         return VerifyAccess(
             success=True,
-            message="User has access."
+            message=translate_text("User has access.")
         )
 
 
@@ -1490,7 +1491,7 @@ class UserBlockUnBlock(graphene.Mutation):
             )
             return UserBlockUnBlock(
                 success=True,
-                message=f"Successfully {msg}",
+                message=translate_text(f"Successfully {msg}"),
                 user=user
             )
         except User.DoesNotExist:
@@ -1549,7 +1550,7 @@ class UserDelete(graphene.Mutation):
             )
             return UserDelete(
                 success=True,
-                message=f"Successfully {msg}",
+                message=translate_text(f"Successfully {msg}"),
                 user=user
             )
         except User.DoesNotExist:
@@ -1605,7 +1606,7 @@ class VerifyProfilePicture(graphene.Mutation):
                 return VerifyProfilePicture(
                     user=user,
                     success=True,
-                    message=f"Successfully {'verified' if not reason else 'rejected'}"
+                    message=translate_text(f"Successfully {'verified' if not reason else 'rejected'}")
                 )
             raise_graphql_error("Photo not uploaded.", "no_photo")
         except User.DoesNotExist:
@@ -1660,8 +1661,8 @@ class AddAdministrator(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         UnitOfHistory.user_history(
             action=HistoryActions.NEW_ADMIN_ADDED,
             user=info.context.user,
@@ -1669,7 +1670,7 @@ class AddAdministrator(DjangoModelFormMutation):
             request=info.context
         )
         return AddAdministrator(
-            message="New administrator successfully added.",
+            message=translate_text("New administrator successfully added."),
             success=True,
             user=user
         )
@@ -1704,15 +1705,15 @@ class AgreementMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         UnitOfHistory.user_history(
             action=HistoryActions.AGREEMENT_ADDED if created else HistoryActions.AGREEMENT_UPDATED,
             user=info.context.user,
             request=info.context
         )
         return AgreementMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", agreement=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), agreement=obj
         )
 
 
@@ -1740,7 +1741,7 @@ class AcceptAgreementMutation(graphene.Mutation):
             user.privacy_policy_accepted = True
             action = HistoryActions.ACCEPTED_PRIVACY_POLICY
         else:
-            raise_graphql_error(f"Select a valid choice. '{action}' is not one of the available choices.")
+            raise_graphql_error(translate_text(f"Select a valid choice. '{action}' is not one of the available choices."))
         user.save()
         UnitOfHistory.user_history(
             action=action,
@@ -1749,7 +1750,7 @@ class AcceptAgreementMutation(graphene.Mutation):
         )
         return AcceptAgreementMutation(
             success=True,
-            message="Successfully Created"
+            message=translate_text("Successfully Created")
         )
 
 
@@ -1766,6 +1767,7 @@ class DefaultMutation(graphene.Mutation):
         email = graphene.String()
         logo_url = graphene.String()
         cover_photo_url = graphene.String()
+        cover_video_url = graphene.String()
         logo_file_id = graphene.String()
         cover_photo_file_id = graphene.String()
         address = graphene.String()
@@ -1780,7 +1782,7 @@ class DefaultMutation(graphene.Mutation):
         ClientDetails.objects.filter(id=client.id).update(**input)
         return DefaultMutation(
             success=True,
-            message="Successfully updated"
+            message=translate_text("Successfully updated")
         )
 
 
@@ -1806,7 +1808,7 @@ class CouponMutation(DjangoModelFormMutation):
             obj = get_object_by_id(Coupon, form.data['id'])
             form = CouponForm(data=input, instance=obj)
         if form.data.get("start_date") >= form.data.get("end_date"):
-            errors['startDate'] = "Start-date should be less than end-date."
+            errors['startDate'] = translate_text("Start-date should be less than end-date.")
         if form.is_valid() and not errors:
             added_for = form.cleaned_data.pop('added_for', [])
             obj, created = Coupon.objects.update_or_create(id=form.data.get('id'), defaults=form.cleaned_data)
@@ -1816,10 +1818,10 @@ class CouponMutation(DjangoModelFormMutation):
             error_data = errors
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise_graphql_error_with_fields("Invalid input request.", error_data)
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Ugyldig inndataforespørsel.", error_data)
         return CouponMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -1842,7 +1844,7 @@ class CouponDelete(graphene.Mutation):
             obj.save()
             return CouponDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except Coupon.DoesNotExist:
             raise_graphql_error("Coupon not found.", "coupon_not_exist")
@@ -1870,10 +1872,10 @@ class WithdrawRequestDelete(graphene.Mutation):
                 obj.save()
             return WithdrawRequestDelete(
                 success=True,
-                message="Successfully deleted",
+                message=translate_text("Successfully deleted"),
             )
         except WithdrawRequest.DoesNotExist:
-            raise_graphql_error("Coupon not found.", "coupon_not_exist")
+            raise_graphql_error("Withdraw not found.", "withdraw_not_exist")
 
 
 class ApplyCouponMutation(graphene.Mutation):
@@ -1896,7 +1898,7 @@ class ApplyCouponMutation(graphene.Mutation):
         except Exception as e:
             error = list(map(str, e))
             raise GraphQLError(
-                message="Invalid promo-code.",
+                message=translate_text("Invalid promo-code."),
                 extensions={
                     "errors": {"coupon": error}
                 }
@@ -1909,7 +1911,7 @@ class ApplyCouponMutation(graphene.Mutation):
             discounted_value=discounted_value
         )
         return ApplyCouponMutation(
-            success=True, message="Successfully applied", data=data
+            success=True, message=translate_text("Successfully applied"), data=data
         )
 
 

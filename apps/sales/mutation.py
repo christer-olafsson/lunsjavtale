@@ -5,7 +5,6 @@ from django.db.models import Q
 from django.utils import timezone
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
 from graphene_django.forms.types import DjangoFormInputObjectType
-from graphql import GraphQLError
 
 # local imports
 from apps.bases.utils import (
@@ -25,10 +24,11 @@ from apps.notifications.tasks import (
 )
 from apps.scm.models import Ingredient, Product
 from apps.users.choices import RoleTypeChoices
+from apps.users.models import Coupon
 from backend.permissions import is_admin_user, is_authenticated, is_company_user
+from backend.utils import translate_text
 
 from ..notifications.choices import NotificationTypeChoice
-from ..users.models import Coupon
 from .choices import (
     DecisionChoices,
     InvoiceStatusChoices,
@@ -98,16 +98,10 @@ class PaymentMethodMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return PaymentMethodMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -127,7 +121,7 @@ class PaymentMethodDeleteMutation(graphene.Mutation):
         obj.deleted_on = timezone.now()
         obj.save()
         return PaymentMethodDeleteMutation(
-            success=True, message="Successfully deleted"
+            success=True, message=translate_text("Successfully deleted")
         )
 
 
@@ -183,7 +177,7 @@ class RemoveCart(graphene.Mutation):
         obj.delete()
         return RemoveCart(
             success=True,
-            message="Successfully removed",
+            message=translate_text("Successfully removed"),
         )
 
 
@@ -226,7 +220,7 @@ class EditCartMutation(graphene.Mutation):
         add_user_carts.delay(obj.id)
         return EditCartMutation(
             success=True,
-            message="Successfully updated",
+            message=translate_text("Successfully updated"),
         )
 
 
@@ -247,7 +241,7 @@ class SendCartRequest(graphene.Mutation):
         user_cart_added_notification.delay(carts.last().id)
         return SendCartRequest(
             success=True,
-            message="Successfully requested",
+            message=translate_text("Successfully requested"),
         )
 
 
@@ -269,7 +263,7 @@ class RemoveProductCart(graphene.Mutation):
         obj.delete()
         return RemoveProductCart(
             success=True,
-            message="Successfully removed",
+            message=translate_text("Successfully removed"),
         )
 
 
@@ -310,7 +304,7 @@ class ApproveCart(graphene.Mutation):
             qt.delete()
         return ApproveCart(
             success=True,
-            message="Item added to cart.",
+            message=translate_text("Item added to cart."),
         )
 
 
@@ -348,7 +342,7 @@ class OrderCreation(graphene.Mutation):
             error_data = {}
             for error in billing_form.errors:
                 for err in billing_form.errors[error]:
-                    error_data[camel_case_format(error)] = err
+                    error_data[camel_case_format(error)] = translate_text(err)
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         billing_form_data = billing_form.data
         dates = set(list(carts.values_list('date', flat=True)))
@@ -436,7 +430,7 @@ class OrderStatusUpdate(graphene.Mutation):
             vendor_sold_amount_calculation.delay(obj.id)
         return OrderStatusUpdate(
             success=True,
-            message="Successfully updated",
+            message=translate_text("Successfully updated"),
         )
 
 
@@ -461,7 +455,7 @@ class OrderHistoryDelete(graphene.Mutation):
         obj.save()
         return OrderHistoryDelete(
             success=True,
-            message="Successfully deleted",
+            message=translate_text("Successfully deleted"),
         )
 
 
@@ -484,7 +478,7 @@ class PaymentHistoryDelete(graphene.Mutation):
         payments.update(is_deleted=True, deleted_on=timezone.now())
         return PaymentHistoryDelete(
             success=True,
-            message="Successfully deleted",
+            message=translate_text("Successfully deleted"),
         )
 
 
@@ -507,7 +501,7 @@ class SalesHistoryDelete(graphene.Mutation):
         qs.update(is_deleted=True, deleted_on=timezone.now())
         return SalesHistoryDelete(
             success=True,
-            message="Successfully deleted",
+            message=translate_text("Successfully deleted"),
         )
 
 
@@ -541,7 +535,7 @@ class UserCartUpdate(graphene.Mutation):
         user_cart_update_notification.delay(user_cart.id)
         return UserCartUpdate(
             success=True,
-            message="Successfully updated",
+            message=translate_text("Successfully updated"),
         )
 
 
@@ -566,7 +560,7 @@ class UserCartIngredientUpdate(graphene.Mutation):
         obj.ingredients.add(*Ingredient.objects.filter(id__in=ingredients))
         return UserCartIngredientUpdate(
             success=True,
-            message="Successfully updated",
+            message=translate_text("Successfully updated"),
         )
 
 
@@ -627,7 +621,7 @@ class ConfirmUserCartUpdate(graphene.Mutation):
             obj.save()
         return ConfirmUserCartUpdate(
             success=True,
-            message="Successfully updated",
+            message=translate_text("Successfully updated"),
         )
 
 
@@ -656,11 +650,11 @@ class AddProductRating(DjangoFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
+                    error_data[camel_case_format(error)] = translate_text(err)
             raise_graphql_error_with_fields("Invalid input request.", error_data)
         return AddProductRating(
             success=True,
-            message="Successfully added",
+            message=translate_text("Successfully added"),
             instance=obj
         )
 
@@ -694,16 +688,10 @@ class OrderPaymentMutation(DjangoFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return OrderPaymentMutation(
-            success=True, message="Successfully created", instance=obj
+            success=True, message=translate_text("Successfully created"), instance=obj
         )
 
 
@@ -741,16 +729,10 @@ class MakeOnlinePaymentMutation(DjangoFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return MakeOnlinePaymentMutation(
-            success=True, message="Successfully created", instance=obj, payment_url=payment_url
+            success=True, message=translate_text("Successfully created"), instance=obj, payment_url=payment_url
         )
 
 
@@ -771,7 +753,7 @@ class InitiatePendingPayment(graphene.Mutation):
         )
         payment_url = make_online_payment(payment.id)
         return InitiatePendingPayment(
-            success=True, message="Successfully initiated", payment_url=payment_url
+            success=True, message=translate_text("Successfully initiated"), payment_url=payment_url
         )
 
 
@@ -798,7 +780,7 @@ class ApplyCoupon(graphene.Mutation):
         order.coupon = coupon
         order.save()
         return ApplyCoupon(
-            success=True, message="Successfully applied"
+            success=True, message=translate_text("Successfully applied")
         )
 
 

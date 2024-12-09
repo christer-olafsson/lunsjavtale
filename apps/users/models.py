@@ -52,6 +52,10 @@ class ClientDetails(models.Model):
         blank=True,
         null=True
     )
+    cover_video_url = models.TextField(
+        blank=True,
+        null=True
+    )
     logo_file_id = models.TextField(
         blank=True,
         null=True
@@ -150,7 +154,10 @@ class Vendor(BaseWithoutID, SoftDeletion):
     email = models.EmailField(max_length=256, null=True, unique=True)
     contact = models.CharField(max_length=15, null=True)
     post_code = models.PositiveIntegerField(
-        blank=True, null=True
+        null=True
+    )
+    commission = models.PositiveIntegerField(
+        default=0
     )
     is_blocked = models.BooleanField(default=False)
     note = models.TextField(blank=True, null=True)
@@ -167,6 +174,11 @@ class Vendor(BaseWithoutID, SoftDeletion):
         blank=True, null=True
     )
     sold_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+    owner_commission = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=0
@@ -188,7 +200,7 @@ class Vendor(BaseWithoutID, SoftDeletion):
         pending_withdraw = self.withdraw_requests.filter(
             status=WithdrawRequestChoices.PENDING
         ).aggregate(tot=models.Sum('withdraw_amount'))['tot'] or 0
-        return self.sold_amount - self.withdrawn_amount - pending_withdraw
+        return self.sold_amount - self.owner_commission - self.withdrawn_amount - pending_withdraw
 
     @property
     def owner(self):

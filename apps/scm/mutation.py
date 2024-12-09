@@ -2,10 +2,14 @@ import graphene
 from django.utils import timezone
 from graphene_django.forms.mutation import DjangoModelFormMutation
 from graphene_django.forms.types import DjangoFormInputObjectType
-from graphql import GraphQLError
 
 # local imports
-from apps.bases.utils import camel_case_format, get_object_by_id, raise_graphql_error
+from apps.bases.utils import (
+    camel_case_format,
+    get_object_by_id,
+    raise_graphql_error,
+    raise_graphql_error_with_fields,
+)
 from apps.notifications.choices import NotificationTypeChoice
 from apps.notifications.tasks import (
     send_admin_mail_for_vendor_product,
@@ -14,6 +18,7 @@ from apps.notifications.tasks import (
     send_vendor_product_update_mail,
 )
 from backend.permissions import is_admin_user, is_authenticated, is_vendor_user
+from backend.utils import translate_text
 
 from ..sales.models import SellCart
 from .choices import MeetingStatusChoices, ProductStatusChoices
@@ -75,16 +80,10 @@ class CategoryMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return CategoryMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -114,7 +113,7 @@ class CategoryDeleteMutation(graphene.Mutation):
             obj.save()
             obj.products.update(category=None)
         return CategoryDeleteMutation(
-            success=True, message="Successfully deleted"
+            success=True, message=translate_text("Successfully deleted")
         )
 
 
@@ -144,16 +143,10 @@ class WeeklyVariantMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return WeeklyVariantMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -183,16 +176,10 @@ class IngredientMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return IngredientMutation(
-            success=True, message=f"Successfully {'added' if created else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if created else 'updated'}"), instance=obj
         )
 
 
@@ -212,7 +199,7 @@ class IngredientDeleteMutation(graphene.Mutation):
         obj.deleted_on = timezone.now()
         obj.save()
         return IngredientDeleteMutation(
-            success=True, message="Successfully deleted"
+            success=True, message=translate_text("Successfully deleted")
         )
 
 
@@ -244,16 +231,10 @@ class FoodMeetingMutation(DjangoModelFormMutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return FoodMeetingMutation(
-            success=True, message="Successfully added", instance=obj
+            success=True, message=translate_text("Successfully added"), instance=obj
         )
 
 
@@ -275,7 +256,7 @@ class FoodMeetingResolve(graphene.Mutation):
         obj.note = note
         obj.save()
         return FoodMeetingResolve(
-            success=True, message="Succesfully resolved"
+            success=True, message=translate_text("Succesfully resolved")
         )
 
 
@@ -293,7 +274,7 @@ class MeetingDeleteMutation(graphene.Mutation):
         obj = FoodMeeting.objects.get(id=id)
         obj.delete()
         return MeetingDeleteMutation(
-            success=True, message="Successfully deleted"
+            success=True, message=translate_text("Successfully deleted")
         )
 
 
@@ -344,16 +325,10 @@ class ProductMutation(graphene.Mutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return ProductMutation(
-            success=True, message=f"Successfully {'added' if input.get('id') else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if input.get('id') else 'updated'}"), instance=obj
         )
 
 
@@ -412,16 +387,10 @@ class VendorProductMutation(graphene.Mutation):
             error_data = {}
             for error in form.errors:
                 for err in form.errors[error]:
-                    error_data[camel_case_format(error)] = err
-            raise GraphQLError(
-                message="Invalid input request.",
-                extensions={
-                    "errors": error_data,
-                    "code": "invalid_input"
-                }
-            )
+                    error_data[camel_case_format(error)] = translate_text(err)
+            raise_graphql_error_with_fields("Invalid input request.", error_data)
         return VendorProductMutation(
-            success=True, message=f"Successfully {'added' if input.get('id') else 'updated'}", instance=obj
+            success=True, message=translate_text(f"Successfully {'added' if input.get('id') else 'updated'}"), instance=obj
         )
 
 
@@ -468,7 +437,7 @@ class VerifyVendorProduct(graphene.Mutation):
             return VerifyVendorProduct(
                 instance=obj,
                 success=True,
-                message=f"Successfully {'verified' if status == ProductStatusChoices.APPROVED else 'rejected'}"
+                message=translate_text(f"Successfully {'verified' if status == ProductStatusChoices.APPROVED else 'rejected'}")
             )
         except Product.DoesNotExist:
             raise_graphql_error("Product not found.", "user_not_exist")
@@ -491,7 +460,7 @@ class ProductDeleteMutation(graphene.Mutation):
         obj.save()
         obj.attachments.all().delete()
         return ProductDeleteMutation(
-            success=True, message="Successfully deleted"
+            success=True, message=translate_text("Successfully deleted")
         )
 
 
@@ -510,7 +479,7 @@ class FavoriteProductMutation(graphene.Mutation):
         obj = Product.objects.get(id=id)
         FavoriteProduct.objects.get_or_create(added_by=user, product=obj)
         return FavoriteProductMutation(
-            success=True, message="Successfully added"
+            success=True, message=translate_text("Successfully added")
         )
 
 
@@ -533,7 +502,7 @@ class WeeklyVariantProductMutation(graphene.Mutation):
         for p in Product.objects.filter(weekly_variants=obj).exclude(id__in=products):
             p.weekly_variants.remove(obj)
         return WeeklyVariantProductMutation(
-            success=True, message="Successfully added"
+            success=True, message=translate_text("Successfully added")
         )
 
 

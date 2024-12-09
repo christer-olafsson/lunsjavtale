@@ -61,6 +61,8 @@ class Query(CategoryQuery, graphene.ObjectType):
         qs = Product.queryset()
         if user and user.is_vendor:
             qs = qs.filter(vendor=user.vendor)
+        elif user and user.is_vendor:
+            qs = qs.filter(vendor=user.vendor)
         return qs
 
     def resolve_product(self, info, id, **kwargs):

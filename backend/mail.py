@@ -123,7 +123,7 @@ def send_mail_from_template(
     bcc=False,
     language="no"
 ) -> None:
-    subject = translate_text(language, subject)
+    subject = translate_text(subject, language)
     body = translate_template(template, context_data, language)
     getLogger().info(f"got template fo ln -> {language}")
     send_mail(subject, body, recipient_list, attachments, bcc=bcc)
