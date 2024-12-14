@@ -12,6 +12,7 @@ from apps.users.models import Company, UserDeviceToken
 from backend.celery import app
 from backend.fcm import ExFCMNotification
 from backend.mail import send_mail_from_template
+from backend.utils import translate_text
 
 from .choices import AudienceTypeChoice, NotificationTypeChoice
 from .models import Notification, NotificationViewer
@@ -247,8 +248,8 @@ def send_notification_and_save(user_id, title, message, n_type, object_id=None):
     token = getattr(user, 'device_tokens', None)
     notification = Notification.objects.create(
         # user=instance.sender,
-        title=title,
-        message=message,
+        title=translate_text(title),
+        message=translate_text(message),
         notification_type=n_type,
         object_id=object_id,
         audience_type=AudienceTypeChoice.USERS
@@ -271,8 +272,8 @@ def send_bulk_notification_and_save(user_ids, title, message, n_type=Notificatio
         user__in=users).order_by('device_token').values_list('device_token', flat=True).distinct())
     notification = Notification.objects.create(
         # user=instance.sender,
-        title=title,
-        message=message,
+        title=translate_text(title),
+        message=translate_text(message),
         notification_type=n_type,
         object_id=object_id,
         audience_type=audience_type
@@ -296,8 +297,8 @@ def send_admin_notification_and_save(
     users = User.objects.filter(email__in=[user[0] for user in admins])
     notification = Notification.objects.create(
         # user=instance.sender,
-        title=title,
-        message=message,
+        title=translate_text(title),
+        message=translate_text(message),
         notification_type=n_type,
         object_id=object_id,
         audience_type=audience_type

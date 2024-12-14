@@ -108,6 +108,13 @@ class SellCart(BaseWithoutID, SoftDeletion):
         paid_amount = self.users.aggregate(paid=models.Sum('paid_amount'))['paid'] or 0
         return self.total_price_with_tax - paid_amount
 
+    @property
+    def owner_commission(self):
+        try:
+            return self.total_price_with_tax * self.item.vendor.commission / 100
+        except Exception:
+            return "0.00"
+
 
 class UserCart(BaseWithoutID):
     cart = models.ForeignKey(
