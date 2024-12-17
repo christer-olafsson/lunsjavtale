@@ -125,9 +125,6 @@ def notify_user_carts(ids):
     for cart in carts:
         add_user_carts(cart.id)
         if cart.item.vendor:
-            # vendor = cart.item.vendor
-            # vendor.sold_amount += cart.total_price_with_tax
-            # vendor.save()
             notify_vendor_product(cart.id)
 
 

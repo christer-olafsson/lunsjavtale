@@ -1059,7 +1059,7 @@ class PasswordResetMail(graphene.Mutation):
             'link': link,
             'year': timezone.now().year
         }
-        template = 'emails/reset_password1.html'
+        template = 'apps/users/templates/emails/reset_password1.html'
         subject = 'Password Reset'
         send_email_on_delay.delay(template, context, subject, email)  # will add later for sending verification
         UnitOfHistory.user_history(
@@ -1422,7 +1422,7 @@ class EmailVerify(graphene.Mutation):
             # send_account_activation_mail.delay(user.email, user.username)
             link = settings.SUPPLIER_SITE_URL if user.vendor else settings.SITE_URL
             send_email_on_delay.delay(
-                'emails/greeting.html',
+                'apps/users/templates/emails/greeting.html',
                 {
                     'user_name': user.full_name, 'year': timezone.now().year,
                     'link': link

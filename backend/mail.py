@@ -129,7 +129,7 @@ def send_mail_from_template(
     send_mail(subject, body, recipient_list, attachments, bcc=bcc)
 
 
-def translate_template(template_directory, context_data, target_language="pt"):
+def translate_template(template_directory, context_data, target_language="no"):
     # Read the HTML template from the specified directory
     try:
         with open(template_directory, "r", encoding="utf-8") as file:

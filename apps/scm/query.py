@@ -59,12 +59,16 @@ class Query(CategoryQuery, graphene.ObjectType):
     def resolve_products(self, info, **kwargs):
         user = info.context.user
         qs = Product.queryset()
-        if user and user.is_vendor:
+        if user and user.is_admin:
+            qs = qs
+        elif user and user.is_vendor:
             qs = qs.filter(vendor=user.vendor)
         elif user and user.company:
-            qs = qs.filter(vendor__post_code=user.company.post_code)
+            qs = qs.filter(vendor__post_code=user.company.post_code, availability=True)
             if not qs.exists():
-                qs = Product.queryset().filter(vendor__isnull=True)
+                qs = Product.queryset().filter(vendor__isnull=True, availability=True)
+        else:
+            qs = qs.filter(availability=True)
         return qs
 
     def resolve_product(self, info, id, **kwargs):

@@ -43,7 +43,7 @@ def send_order_update_mail(email, title, message, status):
         send mail to user for sell-order update
     """
     send_mail_from_template(
-        'order_status_update.html',
+        'apps/sales/templates/order_status_update.html',
         {
             'year': timezone.now().year,
             'message': message,
@@ -64,7 +64,7 @@ def send_admin_mail_for_vendor_product(vendor_name, product_name, product_id):
     else:
         message = f"New vendor product added by '{vendor_name}', named '{product_name}'"
     send_mail_from_template(
-        'vendor_product_added.html',
+        'apps/sales/templates/vendor_product_added.html',
         {
             'year': timezone.now().year,
             'message': message
@@ -82,7 +82,7 @@ def send_vendor_product_update_mail(email, status, product_name):
         send mail to vendor for vendor product update
     """
     send_mail_from_template(
-        'vendor_product_updated.html',
+        'apps/sales/templates/vendor_product_updated.html',
         {
             'year': timezone.now().year,
             'message': f"Your product was {status} by admins. Product name: {product_name}"
@@ -115,7 +115,7 @@ def user_cart_added_mail(email, title, message):
     """
     """
     send_mail_from_template(
-        'staff_order_added.html',
+        'apps/sales/templates/staff_order_added.html',
         {
             'year': timezone.now().year,
             'message': message
@@ -148,7 +148,7 @@ def user_cart_update_mail(email, title, message):
     """
     """
     send_mail_from_template(
-        'staff_order_update.html',
+        'apps/sales/templates/staff_order_update.html',
         {
             'year': timezone.now().year,
             'message': message
@@ -178,7 +178,7 @@ def user_cart_update_confirmed_mail(email, title, message):
     """
     """
     send_mail_from_template(
-        'staff_order_update_confirmed.html',
+        'apps/sales/templates/staff_order_update_confirmed.html',
         {
             'year': timezone.now().year,
             'message': message
@@ -207,7 +207,7 @@ def user_cart_request_confirmed_mail(email, title, message):
     """
     """
     send_mail_from_template(
-        'staff_order_request_confirmed.html',
+        'apps/sales/templates/staff_order_request_confirmed.html',
         {
             'year': timezone.now().year,
             'message': message
@@ -221,14 +221,25 @@ def user_cart_request_confirmed_mail(email, title, message):
 def notify_vendor_product(id):
     cart = SellCart.objects.get(id=id)
     vendor = cart.item.vendor
+    title = "Product ordered"
+    message = f"Company '{cart.order.company.name}' ordered your product -> '{cart.item.name}'"
     if vendor.users.last():
         send_notification_and_save(
             user_id=vendor.users.last().id,
-            title="Product added",
-            message=f"Company '{cart.order.company.name}' ordered your product -> '{cart.item.name}'",
+            title=title,
+            message=message,
             n_type=NotificationTypeChoice.VENDOR_PRODUCT_ORDERED,
             object_id=cart.id
         )
+    send_mail_from_template(
+        'apps/sales/templates/order_added_supplier.html',
+        {
+            'year': timezone.now().year,
+            'message': message,
+        },
+        title,
+        vendor.email
+    )
 
 
 @app.task
@@ -319,7 +330,7 @@ def send_admin_sell_order_mail(company_id, orders):
     # print(101, orders)
     company = Company.objects.get(id=company_id)
     send_mail_from_template(
-        'admin_sell_order_mail.html', {
+        'apps/sales/templates/admin_sell_order_mail.html', {
             'message': f"New orders placed by '{company.name}'", 'orders': orders, 'year': timezone.now().year
         }, "New Order placed", list(User.objects.filter(
             role__in=[RoleTypeChoices.ADMIN, RoleTypeChoices.SUB_ADMIN]
@@ -343,7 +354,7 @@ def notify_order_placed(id, orders=[]):
     )
     orders = Order.objects.filter(id__in=orders)
     send_mail_from_template(
-        'sell_order_mail.html', {'message': message, 'orders': orders, 'year': timezone.now().year},
+        'apps/sales/templates/sell_order_mail.html', {'message': message, 'orders': orders, 'year': timezone.now().year},
         title, company.working_email
     )
 
@@ -370,7 +381,7 @@ def notify_employee_cart_mail(email, title, message):
         send mail to user for sell-order cart added
     """
     send_mail_from_template(
-        'order_employee_cart.html',
+        'apps/sales/templates/order_employee_cart.html',
         {
             'year': timezone.now().year,
             'message': message,
