@@ -81,6 +81,11 @@ class SellCart(BaseWithoutID, SoftDeletion):
         decimal_places=2,
         default=0
     )
+    owner_commission = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
     ingredients = models.ManyToManyField(
         to='scm.Ingredient', help_text="Allergies", blank=True
     )
@@ -97,6 +102,10 @@ class SellCart(BaseWithoutID, SoftDeletion):
     def save(self, *args, **kwargs):
         self.total_price = self.price * self.ordered_quantity
         self.total_price_with_tax = self.price_with_tax * self.ordered_quantity
+        try:
+            self.owner_commission = self.total_price_with_tax * (100 - self.item.vendor.commission) / 100
+        except Exception:
+            self.owner_commission = self.total_price_with_tax
         super(SellCart, self).save(*args, **kwargs)
 
     @property
@@ -109,11 +118,11 @@ class SellCart(BaseWithoutID, SoftDeletion):
         return self.total_price_with_tax - paid_amount
 
     @property
-    def owner_commission(self):
+    def vendor_commission(self):
         try:
-            return self.total_price_with_tax * self.item.vendor.commission / 100
+            return (self.owner_commission * 100) // self.total_price_with_tax
         except Exception:
-            return "0.00"
+            return None
 
 
 class UserCart(BaseWithoutID):

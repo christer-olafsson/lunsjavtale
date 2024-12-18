@@ -136,7 +136,7 @@ def vendor_sold_amount_calculation(id):
         if cart.item.vendor:
             vendor = cart.item.vendor
             vendor.sold_amount += cart.total_price_with_tax
-            vendor.owner_commission += (cart.total_price_with_tax * vendor.commission / 100)
+            vendor.owner_commission += cart.owner_commission
             vendor.save()
 
 

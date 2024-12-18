@@ -54,7 +54,7 @@ class SellCartType(DjangoObjectType):
     ordered_quantity = graphene.Int()
     due_amount = graphene.Decimal()
     vendor = graphene.Field(VendorType)
-    owner_commission = graphene.Decimal()
+    vendor_commission = graphene.Int()
 
     class Meta:
         model = SellCart

@@ -507,6 +507,7 @@ class VendorWithdrawRequest(graphene.Mutation):
                 obj.vendor.save()
             obj.save()
             msg = 'updated'
+            # need to send notification and mail
         else:
             if not user.is_vendor:
                 raise_graphql_error("User not permitted.")
@@ -515,6 +516,7 @@ class VendorWithdrawRequest(graphene.Mutation):
                 raise_graphql_error("Amount is not available.", field_name="withdraw_amount")
             WithdrawRequest.objects.create(vendor=vendor, withdraw_amount=withdraw_amount, note=note)
             msg = 'added'
+            # need to send notification and mail
         return VendorWithdrawRequest(
             success=True,
             message=translate_text(translate_text(f"Successfully {msg}")),
