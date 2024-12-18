@@ -22,7 +22,7 @@ from apps.bases.utils import (
     raise_graphql_error_with_fields,
     set_absolute_uri,
 )
-from apps.scm.models import Ingredient
+from apps.scm.models import Ingredient, Product
 from backend.authentication import TokenManager
 from backend.permissions import (
     is_admin_user,
@@ -344,6 +344,7 @@ class VendorDelete(graphene.Mutation):
                 user.deleted_phone = user.phone
                 user.phone = None
                 user.save()
+            Product.objects.filter(vendor=obj).update(vendor=None)
             return VendorDelete(
                 success=True,
                 message=translate_text("Successfully deleted"),

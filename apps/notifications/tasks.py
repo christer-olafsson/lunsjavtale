@@ -11,7 +11,7 @@ from apps.users.models import Company, UserDeviceToken
 # local imports
 from backend.celery import app
 from backend.fcm import ExFCMNotification
-from backend.mail import send_mail_from_template
+from backend.mail import send_mail_from_template, send_mail_from_template_after_render
 from backend.utils import translate_text
 
 from .choices import AudienceTypeChoice, NotificationTypeChoice
@@ -353,7 +353,7 @@ def notify_order_placed(id, orders=[]):
         object_id=None
     )
     orders = Order.objects.filter(id__in=orders)
-    send_mail_from_template(
+    send_mail_from_template_after_render(
         'apps/sales/templates/sell_order_mail.html', {'message': message, 'orders': orders, 'year': timezone.now().year},
         title, company.working_email
     )

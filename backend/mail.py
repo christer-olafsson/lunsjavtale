@@ -185,3 +185,78 @@ def translate_template(template_directory, context_data, target_language="no"):
     rendered_template = translated_template.render(Context(context_data))
 
     return rendered_template
+
+
+def send_mail_from_template_after_render(
+    template,
+    context_data,
+    subject,
+    recipient_list,
+    attachments=[],
+    bcc=False,
+    language="no"
+) -> None:
+    subject = translate_text(subject, language)
+    body = translate_template_after_render(template, context_data, language)
+    getLogger().info(f"got template fo ln -> {language}")
+    send_mail(subject, body, recipient_list, attachments, bcc=bcc)
+
+
+def translate_template_after_render(template_directory, context_data, target_language="no"):
+    # Read the HTML template from the specified directory
+    try:
+        with open(template_directory, "r", encoding="utf-8") as file:
+            html_content = file.read()
+    except FileNotFoundError:
+        getLogger().error(f"Error: The file at {template_directory} was not found.")
+        return None
+
+    # Load the HTML content as a Django template and render it with the context
+    try:
+        template = Template(html_content)
+        rendered_html = template.render(Context(context_data))
+    except Exception as e:
+        getLogger().error(f"Template rendering failed: {e}")
+        return None
+
+    # Parse the rendered HTML content with BeautifulSoup
+    soup = BeautifulSoup(rendered_html, "html.parser")
+
+    # Gather all text elements that need translation
+    texts_to_translate = []
+    elements_to_replace = []
+
+    for element in soup.find_all(text=True):
+        if element.parent.name not in ["script", "style"]:
+            original_text = element.strip()
+            if original_text:  # Avoid empty strings
+                texts_to_translate.append(original_text)
+                elements_to_replace.append(element)
+
+    # Translate all text in a single batch with error handling
+    try:
+        translations = GoogleTranslator(source='auto', target=target_language).translate_batch(texts_to_translate)
+    except Exception as e:
+        getLogger().error(f"Translation failed: {e}")
+        translations = texts_to_translate  # Fallback to original text if translation fails
+
+    # Replace each original text with the translated text
+    for element, translated_text in zip(elements_to_replace, translations):
+        if translated_text:  # Ensure the translated text is not None
+            element.replace_with(translated_text)
+        else:
+            getLogger().warning(f"Translation missing for: {element}")
+            element.replace_with(element)  # Fallback to original text
+
+    # Convert the translated HTML back to a string
+    translated_html = str(soup)
+
+    # Clean up unwanted prefixes or tags
+    if translated_html.lower().startswith("<html>"):
+        translated_html = translated_html[translated_html.find("<html>") + 6:].strip()
+    if translated_html.lower().startswith("html-&gt;"):
+        translated_html = translated_html.replace("html-&gt;", "", 1).strip()
+    if translated_html.lower().startswith("html"):
+        translated_html = translated_html[4:].strip()
+
+    return translated_html
