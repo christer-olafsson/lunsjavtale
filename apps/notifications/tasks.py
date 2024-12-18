@@ -325,11 +325,10 @@ def send_admin_notification_and_save(
 
 @app.task
 def send_admin_sell_order_mail(company_id, orders):
-    print(100, orders)
     # orders = Order.objects.filter(id__in=orders)
     # print(101, orders)
     company = Company.objects.get(id=company_id)
-    send_mail_from_template(
+    send_mail_from_template_after_render(
         'apps/sales/templates/admin_sell_order_mail.html', {
             'message': f"New orders placed by '{company.name}'", 'orders': orders, 'year': timezone.now().year
         }, "New Order placed", list(User.objects.filter(

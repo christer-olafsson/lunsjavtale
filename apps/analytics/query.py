@@ -8,6 +8,7 @@ from django.utils import timezone
 from graphene.types.generic import GenericScalar
 
 from apps.bases.utils import get_serialized_data, raise_graphql_error
+from apps.sales.choices import InvoiceStatusChoices
 from apps.sales.models import Order, ProductRating, SellCart
 from apps.scm.models import Product
 from apps.users.choices import RoleTypeChoices
@@ -90,9 +91,13 @@ class AdminDashboard:
     def get_sold_products(self):
         if self.date_range:
             date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
-            carts = SellCart.objects.filter(date__gte=date, order__isnull=False)
+            carts = SellCart.objects.filter(date__gte=date).exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
+            )
         else:
-            carts = SellCart.objects.filter(order__isnull=False)
+            carts = SellCart.objects.exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
+            )
         products = list(carts.filter(item__is_deleted=False).order_by('item').values_list('item_id', flat=True).distinct())
         sold_products = []
         for product_id in products:
@@ -126,11 +131,16 @@ class VendorDashboard:
         context = {
             'totalOrders': SellCart.objects.filter(
                 item__vendor=self.vendor
+            ).exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
             ).order_by('order').values_list('order', flat=True).distinct().count(),
-            'totalSales': str(SellCart.objects.filter(
-                item__vendor=self.vendor).aggregate(tot=Sum('total_price_with_tax'))['tot'] or '0.00'),
+            'totalSales': str(SellCart.objects.filter(item__vendor=self.vendor).exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
+            ).aggregate(tot=Sum('total_price_with_tax'))['tot'] or '0.00'),
             'salesToday': str(SellCart.objects.filter(
                 created_on__date=timezone.now().date(), item__vendor=self.vendor
+            ).exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
             ).aggregate(tot=Sum('total_price_with_tax'))['tot'] or '0.00'),
             'recentSales': self.get_recent_orders(),
             'recentReviews': self.get_recent_ratings(),
@@ -141,9 +151,13 @@ class VendorDashboard:
     def get_sold_products(self):
         if self.date_range:
             date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
-            carts = SellCart.objects.filter(date__gte=date, order__isnull=False, item__vendor=self.vendor)
+            carts = SellCart.objects.filter(date__gte=date, item__vendor=self.vendor).exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
+            )
         else:
-            carts = SellCart.objects.filter(order__isnull=False, item__vendor=self.vendor)
+            carts = SellCart.objects.filter(item__vendor=self.vendor).exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
+            )
         products = list(carts.filter(item__is_deleted=False).order_by('item').values_list('item_id', flat=True).distinct())
         sold_products = []
         for product_id in products:
@@ -163,7 +177,9 @@ class VendorDashboard:
 
     def get_recent_orders(self):
         return get_serialized_data(
-            SellCart.objects.filter(item__vendor=self.vendor).order_by('-created_on')[:4], fields=[
+            SellCart.objects.filter(item__vendor=self.vendor).exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
+            ).order_by('-created_on')[:4], fields=[
                 'order__company__name', 'total_price_with_tax', 'date'
             ]
         )

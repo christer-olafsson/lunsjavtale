@@ -177,7 +177,6 @@ def translate_template(template_directory, context_data, target_language="no"):
         translated_html = translated_html.replace("html-&gt;", "", 1).strip()
     if translated_html.lower().startswith("html"):
         translated_html = translated_html[4:].strip()
-    print(translated_html)
     # Load the translated HTML as a Django template
     translated_template = Template(translated_html)
 
