@@ -143,6 +143,7 @@ class VendorType(DjangoObjectType):
     id = graphene.ID(required=True)
     balance = graphene.Decimal()
     owner = graphene.Field(UserType)
+    post_code = graphene.List(graphene.Int)
 
     class Meta:
         model = Vendor
@@ -158,6 +159,10 @@ class VendorType(DjangoObjectType):
     @staticmethod
     def resolve_owner(self, info, **kwargs):
         return self.owner
+
+    @staticmethod
+    def resolve_post_code(self, info, **kwargs):
+        return [area.post_code for area in self.post_code.all()]
 
 
 class UserDeviceTokenType(DjangoObjectType):

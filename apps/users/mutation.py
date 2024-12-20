@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import F, Sum
 from django.utils import timezone
 from graphene_django.forms.mutation import DjangoFormMutation, DjangoModelFormMutation
+from graphene_django.forms.types import DjangoFormInputObjectType
 from graphql import GraphQLError
 
 # local imports
@@ -32,6 +33,7 @@ from backend.permissions import (
 )
 from backend.utils import translate_text
 
+from ..core.models import ValidArea
 from ..notifications.tasks import notify_company_registration
 from .choices import RoleTypeChoices, WithdrawRequestChoices
 from .forms import (
@@ -230,7 +232,13 @@ class ValidCompanyMutation(DjangoFormMutation):
         )
 
 
-class VendorMutation(DjangoFormMutation):
+class VendorCreateFormInput(DjangoFormInputObjectType):
+
+    class Meta:
+        form_class = VendorForm
+
+
+class VendorMutation(graphene.Mutation):
     """
         Users can create valid Vendor information through a form input.\n
         and owner account will be created
@@ -239,11 +247,12 @@ class VendorMutation(DjangoFormMutation):
     message = graphene.String()
     instance = graphene.Field(VendorType)
 
-    class Meta:
-        form_class = VendorForm
+    class Arguments:
+        input = VendorCreateFormInput()
+        post_code = graphene.List(graphene.Int)
 
     @transaction.atomic
-    def mutate_and_get_payload(self, info, **input):
+    def mutate(self, info, input, post_code, **kwargs):
         form = VendorForm(data=input)
         password = input.get('password')
         user_input = {
@@ -265,6 +274,10 @@ class VendorMutation(DjangoFormMutation):
             user.vendor = obj
             user.save()
             user.email_verification(password)
+            obj.post_code.clear()
+            for p in post_code:
+                area = ValidArea.objects.get_or_create(post_code=p)[0]
+                obj.post_code.add(area)
         else:
             for error in form.errors:
                 for err in form.errors[error]:
@@ -281,7 +294,13 @@ class VendorMutation(DjangoFormMutation):
         )
 
 
-class VendorUpdateMutation(DjangoModelFormMutation):
+class VendorUpdateFormInput(DjangoFormInputObjectType):
+
+    class Meta:
+        form_class = VendorUpdateForm
+
+
+class VendorUpdateMutation(graphene.Mutation):
     """
         Users can create valid Vendor information through a form input.\n
         and owner account will be created
@@ -290,11 +309,12 @@ class VendorUpdateMutation(DjangoModelFormMutation):
     message = graphene.String()
     instance = graphene.Field(VendorType)
 
-    class Meta:
-        form_class = VendorUpdateForm
+    class Arguments:
+        input = VendorUpdateFormInput()
+        post_code = graphene.List(graphene.Int)
 
     @transaction.atomic
-    def mutate_and_get_payload(self, info, **input):
+    def mutate(self, info, input, post_code, **kwargs):
         user = info.context.user
         if user.is_admin:
             obj = Vendor.objects.get(id=input['id'])
@@ -304,6 +324,10 @@ class VendorUpdateMutation(DjangoModelFormMutation):
         error_data = {}
         if form.is_valid():
             obj = form.save()
+            obj.post_code.clear()
+            for p in post_code:
+                area = ValidArea.objects.get_or_create(post_code=p)[0]
+                obj.post_code.add(area)
         else:
             for error in form.errors:
                 for err in form.errors[error]:

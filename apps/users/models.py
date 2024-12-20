@@ -153,9 +153,7 @@ class Vendor(BaseWithoutID, SoftDeletion):
     name = models.CharField(max_length=256, unique=True)
     email = models.EmailField(max_length=256, null=True, unique=True)
     contact = models.CharField(max_length=15, null=True)
-    post_code = models.PositiveIntegerField(
-        null=True
-    )
+    post_code = models.ManyToManyField('core.ValidArea', blank=True)
     commission = models.PositiveIntegerField(
         default=0
     )
