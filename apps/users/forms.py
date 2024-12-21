@@ -139,12 +139,12 @@ class ValidCompanyForm(forms.ModelForm):
 
 
 class VendorForm(forms.ModelForm):
-    first_name = forms.CharField()
+    first_name = forms.CharField()  # owner first-name
     password = forms.CharField()
 
     class Meta:
         model = Vendor
-        fields = ("name", "email", 'contact', 'post_code', 'commission')
+        fields = ("name", "email", 'contact', 'commission')
 
 
 class VendorUpdateForm(forms.ModelForm):
@@ -153,7 +153,7 @@ class VendorUpdateForm(forms.ModelForm):
     class Meta:
         model = Vendor
         fields = (
-            "name", "email", 'contact', 'post_code', 'logo_url', 'file_id', 'formation_date', 'social_media_links',
+            "name", "email", 'contact', 'logo_url', 'file_id', 'formation_date', 'social_media_links',
             'is_blocked', 'commission'
         )
 

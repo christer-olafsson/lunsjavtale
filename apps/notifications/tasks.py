@@ -1,12 +1,13 @@
 
 from logging import getLogger
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from apps.sales.models import AlterCart, Order, SellCart, UserCart
 from apps.users.choices import DeviceTypeChoices, RoleTypeChoices
-from apps.users.models import Company, UserDeviceToken
+from apps.users.models import Company, UserDeviceToken, WithdrawRequest
 
 # local imports
 from backend.celery import app
@@ -500,3 +501,66 @@ def make_seen_all_notifications(user_id):
         obj = NotificationViewer.objects.get_or_create(notification=ins, user=user)[0]
         obj.view_count += 1
         obj.save()
+
+
+@app.task
+def notify_admin_withdraw_request(id):
+    obj = WithdrawRequest.objects.get(id=id)
+    users = list(User.objects.filter(is_staff=True).values_list('id', flat=True))
+    title = "New withdraw request."
+    message = f"New Withdraw has been requested. Supplier: #{obj.vendor.name}; Amount: {obj.withdraw_amount}"
+    send_bulk_notification_and_save(
+        user_ids=users,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_STATUS_CHANGED,
+        object_id=obj.id
+    )
+    notify_admin_withdraw_request_mail(settings.ADMIN_EMAIL, title, message)
+
+
+@app.task
+def notify_admin_withdraw_request_mail(email, title, message):
+    """
+        send mail to user for sell-order cart added
+    """
+    send_mail_from_template(
+        'apps/sales/templates/admin_withdraw_request.html',
+        {
+            'year': timezone.now().year,
+            'message': message,
+        },
+        title,
+        email
+    )
+
+
+@app.task
+def notify_withdraw_request_status_update(id):
+    obj = WithdrawRequest.objects.get(id=id)
+    users = list(User.objects.filter(is_staff=True).values_list('id', flat=True))
+    title = "Withdraw Status updated."
+    message = f"Withdraw request status has been updated. Status: {obj.status}"
+    send_bulk_notification_and_save(
+        user_ids=users,
+        title=title,
+        message=message,
+        n_type=NotificationTypeChoice.ORDER_STATUS_CHANGED,
+        object_id=obj.id
+    )
+    notify_withdraw_request_status_update_mail(settings.ADMIN_EMAIL, title, message)
+
+
+@app.task
+def notify_withdraw_request_status_update_mail(email, title, message):
+    """
+    """
+    send_mail_from_template(
+        'apps/sales/templates/withdraw_request_status_update.html',
+        {
+            'year': timezone.now().year,
+            'message': message,
+        },
+        title,
+        email
+    )

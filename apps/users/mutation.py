@@ -34,7 +34,11 @@ from backend.permissions import (
 from backend.utils import translate_text
 
 from ..core.models import ValidArea
-from ..notifications.tasks import notify_company_registration
+from ..notifications.tasks import (
+    notify_admin_withdraw_request,
+    notify_company_registration,
+    notify_withdraw_request_status_update,
+)
 from .choices import RoleTypeChoices, WithdrawRequestChoices
 from .forms import (
     AddressForm,
@@ -524,23 +528,25 @@ class VendorWithdrawRequest(graphene.Mutation):
             obj = WithdrawRequest.objects.get(id=id)
             if status not in WithdrawRequestChoices:
                 raise_graphql_error("Status not valid.", field_name="status")
-            obj.status = status
-            obj.note = note
-            if status == WithdrawRequestChoices.ACCEPTED:
+            if status in [
+                WithdrawRequestChoices.ACCEPTED, WithdrawRequestChoices.COMPLETED
+            ] and obj.status not in [WithdrawRequestChoices.ACCEPTED, WithdrawRequestChoices.COMPLETED]:
                 obj.vendor.withdrawn_amount += obj.withdraw_amount
                 obj.vendor.save()
+            obj.status = status
+            obj.note = note
             obj.save()
             msg = 'updated'
-            # need to send notification and mail
+            notify_withdraw_request_status_update.delay(obj.id)
         else:
             if not user.is_vendor:
                 raise_graphql_error("User not permitted.")
             vendor = user.vendor
             if not withdraw_amount or withdraw_amount > vendor.balance:
                 raise_graphql_error("Amount is not available.", field_name="withdraw_amount")
-            WithdrawRequest.objects.create(vendor=vendor, withdraw_amount=withdraw_amount, note=note)
+            obj = WithdrawRequest.objects.create(vendor=vendor, withdraw_amount=withdraw_amount, note=note)
             msg = 'added'
-            # need to send notification and mail
+            notify_admin_withdraw_request.delay(obj.id)
         return VendorWithdrawRequest(
             success=True,
             message=translate_text(translate_text(f"Successfully {msg}")),

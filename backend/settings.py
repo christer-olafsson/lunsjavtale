@@ -196,6 +196,7 @@ ADMIN_SITE_URL = config('ADMIN_SITE_URL', 'https://admin.lunsjavtale.no')
 PAYMENT_CALLBACK_EXTENSION = config('PAYMENT_CALLBACK_EXTENSION', 'dashboard/payment-success')
 COUPON_ERROR_MESSAGE = "Invalid code"
 DEFAULT_BCC_EMAIL = ""
+ADMIN_EMAIL = config('ADMIN_EMAIL', None)
 
 # payment creds
 PAYMENT_SITE_URL = config("PAYMENT_SITE_URL", "https://apitest.vipps.no")
