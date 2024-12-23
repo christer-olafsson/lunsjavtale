@@ -64,7 +64,10 @@ class Query(CategoryQuery, graphene.ObjectType):
         elif user and user.is_vendor:
             qs = qs.filter(vendor=user.vendor)
         elif user and user.company:
-            qs = qs.filter(vendor__post_code__post_code=user.company.post_code, availability=True)
+            qs = qs.filter(
+                vendor__post_code__post_code=user.company.post_code, availability=True,
+                vendor__is_blocked=False
+            )
             if not qs.exists():
                 qs = Product.queryset().filter(vendor__isnull=True, availability=True)
         else:

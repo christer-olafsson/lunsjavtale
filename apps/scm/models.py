@@ -23,8 +23,9 @@ class Ingredient(BaseWithoutID, SoftDeletion):
         ordering = ['-id']  # define default order as id in descending
 
     @classmethod
-    def queryset(cls):
-        return cls.objects.filter(is_deleted=False)
+    def queryset(cls, **kwargs):
+        kwargs['is_deleted'] = False
+        return cls.objects.filter(**kwargs)
 
 
 class CategoryManager(models.Manager):
@@ -64,8 +65,9 @@ class Category(BaseWithoutID, SoftDeletion):
         unique_together = ('name', 'parent')
 
     @classmethod
-    def queryset(cls):
-        return cls.objects.filter(is_deleted=False)
+    def queryset(cls, **kwargs):
+        kwargs['is_deleted'] = False
+        return cls.objects.filter(**kwargs)
 
 
 class WeeklyVariantManager(models.Manager):
@@ -138,8 +140,9 @@ class Product(BaseWithoutID, BasePriceModel, SoftDeletion):
         return f"{self.name}"
 
     @classmethod
-    def queryset(cls):
-        return cls.objects.filter(is_deleted=False)
+    def queryset(cls, **kwargs):
+        kwargs['is_deleted'] = False
+        return cls.objects.filter(**kwargs)
 
 
 class ProductAttachment(models.Model):

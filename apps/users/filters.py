@@ -248,6 +248,9 @@ class VendorFilters(BaseFilterOrderBy):
     has_product = django_filters.BooleanFilter(
         method="has_product_filter",
     )
+    post_code = django_filters.CharFilter(
+        field_name="post_code__post_code", lookup_expr="exact"
+    )
 
     def title_filter(self, qs, name, value):
         if value:

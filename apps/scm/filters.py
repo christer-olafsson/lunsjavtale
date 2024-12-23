@@ -102,6 +102,12 @@ class ProductFilters(BaseFilterOrderBy):
     max_price = django_filters.CharFilter(
         field_name='price', lookup_expr='lte'
     )
+    post_code = django_filters.CharFilter(
+        field_name="vendor__post_code__post_code", lookup_expr="exact"
+    )
+    is_vendor_blocked = django_filters.CharFilter(
+        field_name="vendor__is_blocked", lookup_expr="exact"
+    )
     is_vendor_product = django_filters.BooleanFilter(
         method="is_vendor_product_filter"
     )

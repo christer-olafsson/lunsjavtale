@@ -424,16 +424,17 @@ class VerifyVendorProduct(graphene.Mutation):
                 obj.availability = True
             obj.note = note
             obj.save()
-            send_notification_and_save.delay(
-                user_id=obj.vendor.owner.id,
-                title=f"Vendor product {status}",
-                message=f"Your product '{obj.name}' is {status} by admins.",
-                object_id=str(obj.vendor.id),
-                n_type=NotificationTypeChoice.VENDOR_PRODUCT_UPDATED
-            )
-            send_vendor_product_update_mail.delay(
-                obj.vendor.email, status, obj.name
-            )
+            if obj.vendor:
+                send_notification_and_save.delay(
+                    user_id=obj.vendor.owner.id,
+                    title=f"Vendor product {status}",
+                    message=f"Your product '{obj.name}' is {status} by admins.",
+                    object_id=str(obj.vendor.id),
+                    n_type=NotificationTypeChoice.VENDOR_PRODUCT_UPDATED
+                )
+                send_vendor_product_update_mail.delay(
+                    obj.vendor.email, status, obj.name
+                )
             return VerifyVendorProduct(
                 instance=obj,
                 success=True,

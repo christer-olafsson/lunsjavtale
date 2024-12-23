@@ -42,7 +42,12 @@ class CategoryType(DjangoObjectType):
 
     @staticmethod
     def resolve_products_added(self, info):
-        return self.products.count()
+        user = info.context.user
+        if user and user.company:
+            return Product.queryset(
+                vendor__is_deleted=False, vendor__post_code__post_code=user.company.post_code, availability=True
+            ).count()
+        return Product.queryset().count()
 
 
 class WeeklyVariantType(DjangoObjectType):

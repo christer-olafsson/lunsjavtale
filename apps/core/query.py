@@ -3,6 +3,8 @@ import graphene
 from django.contrib.auth import get_user_model
 from graphene_django.filter.fields import DjangoFilterConnectionField
 
+from apps.users.models import Vendor
+
 from .models import (
     FAQ,
     ContactUs,
@@ -103,7 +105,10 @@ class Query(graphene.ObjectType):
         return obj
 
     def resolve_check_post_code(self, info, post_code, **kwargs):
-        return ValidArea.objects.filter(post_code=post_code, is_active=True).exists()
+        vendor_post_code = list(
+            Vendor.objects.order_by('post_code__post_code').values_list('post_code__post_code', flat=True).distinct())
+        return ValidArea.objects.filter(
+            post_code__in=vendor_post_code).filter(post_code=post_code, is_active=True).exists()
 
     def resolve_supported_brands(self, info, **kwargs):
         return SupportedBrand.objects.all()
