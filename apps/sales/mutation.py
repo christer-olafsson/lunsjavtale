@@ -292,16 +292,19 @@ class ApproveCart(graphene.Mutation):
             raise_graphql_error("No carts found.", field_name="ids")
         for qt in carts:
             if request_status == DecisionChoices.ACCEPTED:
-                user_cart_request_confirmed_notification.delay(qt.added_by.id, qt.item.name)
-            cart, created = SellCart.objects.get_or_create(item=qt.item, added_by=user, date=qt.date)
-            cart.quantity = 1 if created else cart.quantity + 1
-            cart.price = qt.item.actual_price
-            cart.price_with_tax = qt.item.price_with_tax
-            cart.request_status = request_status
-            cart.save()
-            cart.ingredients.add(*qt.item.ingredients.all())
-            cart.added_for.add(qt.added_by)
-            qt.delete()
+                cart, created = SellCart.objects.get_or_create(item=qt.item, added_by=user, date=qt.date)
+                cart.quantity = 1 if created else cart.quantity + 1
+                cart.price = qt.item.actual_price
+                cart.price_with_tax = qt.item.price_with_tax
+                cart.request_status = request_status
+                cart.save()
+                cart.ingredients.add(*qt.item.ingredients.all())
+                cart.added_for.add(qt.added_by)
+                qt.delete()
+            else:
+                qt.request_status = request_status
+                qt.save()
+            user_cart_request_confirmed_notification.delay(qt.added_by.id, qt.item.name, request_status)
         return ApproveCart(
             success=True,
             message=translate_text("Item added to cart."),

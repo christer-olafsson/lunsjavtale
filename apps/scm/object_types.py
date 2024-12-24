@@ -44,10 +44,16 @@ class CategoryType(DjangoObjectType):
     def resolve_products_added(self, info):
         user = info.context.user
         if user and user.company:
-            return Product.queryset(
-                vendor__is_deleted=False, vendor__post_code__post_code=user.company.post_code, availability=True
-            ).count()
-        return Product.queryset().count()
+            qs = Product.queryset(
+                vendor__post_code__post_code=user.company.post_code, availability=True,
+                vendor__is_blocked=False
+            )
+            if not qs.exists():
+                qs = Product.queryset(
+                    availability=True, vendor__isnull=True
+                )
+            return qs.filter(category=self).count()
+        return Product.queryset(category=self).count()
 
 
 class WeeklyVariantType(DjangoObjectType):

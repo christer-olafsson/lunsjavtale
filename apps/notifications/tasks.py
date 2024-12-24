@@ -100,7 +100,7 @@ def user_cart_added_notification(id):
         role__in=[RoleTypeChoices.COMPANY_OWNER, RoleTypeChoices.COMPANY_MANAGER]
     ).values_list('id', flat=True)
     title = "Staff order request"
-    message = f"New food order request has been added by '{cart.added_by.full_name}'"
+    message = f"New food order request has been added by '{cart.added_by.full_name or cart.added_by.username}'"
     send_bulk_notification_and_save(
         user_ids=owner_and_managers,
         title=title,
@@ -190,10 +190,10 @@ def user_cart_update_confirmed_mail(email, title, message):
 
 
 @app.task
-def user_cart_request_confirmed_notification(user_id, product_name):
+def user_cart_request_confirmed_notification(user_id, product_name, status):
     user = User.objects.get(id=user_id)
-    title = "Order request confirmed"
-    message = f"Your food order request for '{product_name}' has been confirmed."
+    title = f"Order request {status}"
+    message = f"Your food order request for '{product_name}' has been {status}."
     send_notification_and_save(
         user_id=user.id,
         title=title,
@@ -372,7 +372,7 @@ def notify_employee_cart(id):
         n_type=NotificationTypeChoice.ORDER_STATUS_CHANGED,
         object_id=user_cart.cart.order.id
     )
-    notify_employee_cart_mail(user_cart.cart.order.company.working_email, title, message)
+    notify_employee_cart_mail(user_cart.added_for.email, title, message)
 
 
 @app.task

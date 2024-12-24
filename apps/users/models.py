@@ -639,6 +639,9 @@ class AccessToken(BaseWithoutID):
         db_table = f"{settings.DB_PREFIX}_access_tokens"  # define table name for database
         ordering = ['-created_on']  # define default order as created in descending
 
+    def __str__(self):
+        return f"{self.user.email if self.user else self.pk}"
+
 
 class Address(BaseWithoutID, SoftDeletion):
     """
