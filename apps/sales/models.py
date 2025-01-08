@@ -50,7 +50,7 @@ class SellCart(BaseWithoutID, SoftDeletion):
     item = models.ForeignKey(
         to='scm.Product', on_delete=models.DO_NOTHING, related_name='product_carts'
     )
-    date = models.DateField()
+    date = models.DateTimeField()
     added_for = models.ManyToManyField(
         to='users.User', blank=True
     )
@@ -192,7 +192,7 @@ class Order(BaseWithoutID, SoftDeletion):
     payment_type = models.CharField(
         max_length=16, choices=OrderPaymentTypeChoices.choices, default=OrderPaymentTypeChoices.PAY_BY_INVOICE
     )
-    delivery_date = models.DateField()
+    delivery_date = models.DateTimeField()
     company_allowance = models.PositiveIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         default=0
@@ -279,6 +279,10 @@ class BillingAddress(BaseWithoutID):
     sector = models.CharField(max_length=128, blank=True, null=True)
     country = models.CharField(max_length=128, blank=True, null=True)
     phone = models.CharField(max_length=15, null=True, blank=True)
+    post_code = models.PositiveIntegerField(
+        null=True,
+        blank=True
+    )
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_billing_addresses"  # define table name for database

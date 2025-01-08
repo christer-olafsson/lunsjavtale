@@ -14,6 +14,7 @@ from apps.bases.utils import (
 )
 from apps.notifications.tasks import (
     notify_company_order_update,
+    notify_employee_cart,
     notify_order_placed,
     send_admin_notification_and_save,
     send_admin_sell_order_mail,
@@ -60,7 +61,6 @@ from .object_types import (
     ProductRatingType,
 )
 from .tasks import (
-    add_user_carts,
     make_online_payment,
     make_previous_payment,
     notify_user_carts,
@@ -126,7 +126,7 @@ class PaymentMethodDeleteMutation(graphene.Mutation):
 
 
 class CartInput(graphene.InputObjectType):
-    date = graphene.Date()
+    date = graphene.DateTime()
     quantity = graphene.Int()
     added_for = graphene.List(graphene.ID, required=False)
 
@@ -181,6 +181,11 @@ class RemoveCart(graphene.Mutation):
         )
 
 
+class AdderForInput(graphene.InputObjectType):
+    id = graphene.ID()
+    ingredients = graphene.List(graphene.ID)
+
+
 class EditCartMutation(graphene.Mutation):
     """
     """
@@ -190,25 +195,28 @@ class EditCartMutation(graphene.Mutation):
 
     class Arguments:
         id = graphene.ID()
+        date = graphene.DateTime()
         quantity = graphene.Int()
-        added_for = graphene.List(graphene.ID)
+        added_for = graphene.List(AdderForInput)
 
     @is_company_user
-    def mutate(self, info, id, quantity, added_for, **kwargs):
+    def mutate(self, info, id, date, quantity, added_for, **kwargs):
         user = info.context.user
         company = user.company
         carts = SellCart.objects.filter(Q(added_by=user) | Q(order__company=user.company))
         obj = carts.get(
             Q(order__isnull=True) | Q(order__status__in=[
-                InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING
+                InvoiceStatusChoices.PLACED, InvoiceStatusChoices.UPDATED, InvoiceStatusChoices.PAYMENT_PENDING,
+                InvoiceStatusChoices.PAYMENT_COMPLETED
             ]), id=id
         )
         company_due_amount = obj.order.company_due_amount
 
-        staffs = User.objects.filter(company=user.company, id__in=added_for)
+        staffs = User.objects.filter(company=user.company, id__in=list(map(lambda i: i['id'], added_for)))
         if staffs.count() > quantity:
             raise_graphql_error("Quantity is not valid for the added employees.")
         obj.quantity = quantity
+        obj.date = date
         obj.save()
         obj.added_for.clear()
         obj.added_for.add(*staffs)
@@ -217,7 +225,18 @@ class EditCartMutation(graphene.Mutation):
             OrderStatus.objects.create(order=obj.order, status=InvoiceStatusChoices.UPDATED)
         company.invoice_amount += obj.order.company_due_amount - company_due_amount
         company.save()
-        add_user_carts.delay(obj.id)
+        # add_user_carts.delay(obj.id)
+        for ad_dict in added_for:
+            user = User.objects.get(id=ad_dict.get('id'))
+            user_cart, c = UserCart.objects.get_or_create(added_for=user, cart=obj)
+            # notify staffs
+            if c:
+                notify_employee_cart.delay(user_cart.id)
+            if obj.order.statuses.filter(status=InvoiceStatusChoices.PAYMENT_COMPLETED).exists():
+                user_cart.paid_amount = obj.price_with_tax * obj.order.company_allowance / 100
+                user_cart.save()
+            user_cart.ingredients.add(*user.allergies.filter(id__in=ad_dict['ingredients']))
+        UserCart.objects.filter(cart=obj).exclude(added_for__in=obj.added_for.all()).delete()
         return EditCartMutation(
             success=True,
             message=translate_text("Successfully updated"),
