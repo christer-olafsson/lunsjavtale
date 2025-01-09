@@ -186,6 +186,6 @@ class ProductRatingType(DjangoObjectType):
 
 
 class AddedCartsListType(graphene.ObjectType):
-    date = graphene.Date()
+    date = graphene.DateTime()
     total_price = graphene.Decimal()
     carts = DjangoFilterConnectionField(SellCartType)
