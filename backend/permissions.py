@@ -85,3 +85,28 @@ def is_admin_user(func):
         return func(cls, info, **kwargs)
 
     return wrapper
+
+
+def is_admin_or_vendor(func):
+    def wrapper(cls, info, **kwargs):
+        if not info.context.user:
+            raise GraphQLError(
+                message="Du er ikke en autorisert bruker.",
+                extensions={
+                    "error": "Du er ikke en autorisert bruker.",
+                    "code": "unauthorized"
+                }
+            )
+        if info.context.user.is_admin or info.context.user.is_vendor:
+            pass
+        else:
+            raise GraphQLError(
+                message="Du er ikke autorisert til å utføre operasjoner.",
+                extensions={
+                    "error": "Du er ikke autorisert til å utføre operasjoner.",
+                    "code": "invalid_permission"
+                }
+            )
+        return func(cls, info, **kwargs)
+
+    return wrapper

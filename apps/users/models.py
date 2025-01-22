@@ -155,6 +155,7 @@ class Vendor(BaseWithoutID, SoftDeletion):
     contact = models.CharField(max_length=15, null=True)
     post_code = models.ManyToManyField('core.ValidArea', blank=True)
     commission = models.PositiveIntegerField(
+        _('Owner commission percentage'),
         default=0
     )
     is_blocked = models.BooleanField(default=False)
@@ -177,6 +178,7 @@ class Vendor(BaseWithoutID, SoftDeletion):
         default=0
     )
     owner_commission = models.DecimalField(
+        _('Total Owner commission'),
         max_digits=12,
         decimal_places=2,
         default=0

@@ -135,9 +135,10 @@ class VendorDashboard:
         total_sales = SellCart.objects.filter(item__vendor=self.vendor).exclude(
             order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
         ).aggregate(tot=Sum('total_price_with_tax'))['tot'] or 0
-        total_revenue = total_sales - (SellCart.objects.filter(item__vendor=self.vendor).exclude(
+        owner_revenue = total_sales - (SellCart.objects.filter(item__vendor=self.vendor).exclude(
             order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
         ).aggregate(tot=Sum('owner_commission'))['tot'] or 0)
+        total_revenue = total_sales - owner_revenue
         context = {
             'totalOrders': SellCart.objects.filter(item__vendor=self.vendor).exclude(
                 order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED

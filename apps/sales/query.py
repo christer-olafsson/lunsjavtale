@@ -95,6 +95,9 @@ class Query(graphene.ObjectType):
         qs = Order.objects.filter(is_deleted=False)
         if user.is_admin:
             qs = qs
+        elif user.is_vendor:
+            carts = SellCart.objects.filter(item__vendor=user.vendor, order__isnull=False, order__is_deleted=False)
+            qs = qs.filter(order_id__in=carts.values_list('order_id', flat=True))
         else:
             qs = qs.filter(company=user.company)
             if user.role == RoleTypeChoices.COMPANY_EMPLOYEE:

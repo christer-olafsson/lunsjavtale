@@ -113,11 +113,14 @@ class OrderFilters(BaseFilterOrderBy):
     added_for = django_filters.CharFilter(
         method="added_for_filter"
     )
+    delivery_date = django_filters.DateFilter(
+        field_name='delivery_date__date', lookup_expr='exact'
+    )
     delivery_date_start = django_filters.CharFilter(
-        field_name='delivery_date', lookup_expr='gte'
+        field_name='delivery_date__date', lookup_expr='gte'
     )
     delivery_date_end = django_filters.CharFilter(
-        field_name='delivery_date', lookup_expr='lte'
+        field_name='delivery_date__date', lookup_expr='lte'
     )
 
     def company_name_email_filter(self, qs, name, value):

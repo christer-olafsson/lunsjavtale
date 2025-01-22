@@ -52,6 +52,8 @@ def get_payment_info(payment_id):
             order_payment.save()
             if not order_payment.deduction:
                 make_previous_payment.delay(order_payment.id)
+                for order in order_payment.orders.all():
+                    vendor_sold_amount_calculation.delay(order.id)
     else:
         print("Status Code", response.status_code)
         print("JSON Response ", response.json())

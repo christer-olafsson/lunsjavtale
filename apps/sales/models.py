@@ -103,7 +103,7 @@ class SellCart(BaseWithoutID, SoftDeletion):
         self.total_price = self.price * self.ordered_quantity
         self.total_price_with_tax = self.price_with_tax * self.ordered_quantity
         try:
-            self.owner_commission = self.total_price_with_tax * (100 - self.item.vendor.commission) / 100
+            self.owner_commission = self.total_price_with_tax * self.item.vendor.commission / 100
         except Exception:
             self.owner_commission = self.total_price_with_tax
         super(SellCart, self).save(*args, **kwargs)
@@ -120,7 +120,7 @@ class SellCart(BaseWithoutID, SoftDeletion):
     @property
     def vendor_commission(self):
         try:
-            return (self.owner_commission * 100) // self.total_price_with_tax
+            return 100 - ((self.owner_commission * 100) // self.total_price_with_tax)
         except Exception:
             return None
 

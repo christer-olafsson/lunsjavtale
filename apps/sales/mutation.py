@@ -25,7 +25,12 @@ from apps.notifications.tasks import (
 from apps.scm.models import Ingredient, Product
 from apps.users.choices import RoleTypeChoices
 from apps.users.models import Coupon
-from backend.permissions import is_admin_user, is_authenticated, is_company_user
+from backend.permissions import (
+    is_admin_or_vendor,
+    is_admin_user,
+    is_authenticated,
+    is_company_user,
+)
 from backend.utils import translate_text
 
 from ..notifications.choices import NotificationTypeChoice
@@ -221,6 +226,7 @@ class EditCartMutation(graphene.Mutation):
         obj.save()
         obj.added_for.clear()
         obj.added_for.add(*staffs)
+        obj.ingredients.clear()
         obj.ingredients.add(*Ingredient.objects.filter(id__in=ingredients))
         if obj.order:
             obj.order.save()
@@ -374,25 +380,30 @@ class OrderCreation(graphene.Mutation):
         orders = []
         payment_url = None
         for date in dates:
-            obj = Order.objects.create(
-                company=company, created_by=user, payment_type=payment_type,
-                company_allowance=company_allowance, shipping_address=shipping_address,
-                delivery_date=date
-            )
-            orders.append(obj)
-            billing_form_data['order'] = obj
-            BillingAddress.objects.create(**billing_form_data)
-            OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PLACED)
             date_carts = carts.filter(date=date)
-            date_carts.update(added_by=None, order=obj)
-            obj.save()
-            invoice_amount = obj.company_due_amount
-            company.invoice_amount += invoice_amount
-            company.ordered_amount += obj.final_price
-            company.save()
-            total_invoice_amount += invoice_amount
-            if payment_type == OrderPaymentTypeChoices.ONLINE:
-                OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
+            suppliers = set(date_carts.values_list('item__vendor', flat=True))
+            for sp_id in suppliers:
+                sp_carts = date_carts.filter(item__vendor_id=sp_id)
+                obj = Order.objects.create(
+                    company=company, created_by=user, payment_type=payment_type,
+                    company_allowance=company_allowance, shipping_address=shipping_address,
+                    delivery_date=date
+                )
+                orders.append(obj)
+                billing_form_data['order'] = obj
+                BillingAddress.objects.create(**billing_form_data)
+                OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PLACED)
+
+                sp_carts.update(added_by=None, order=obj)
+                obj.save()
+
+                invoice_amount = obj.company_due_amount
+                company.invoice_amount += invoice_amount
+                company.ordered_amount += obj.final_price
+                company.save()
+                total_invoice_amount += invoice_amount
+                if payment_type == OrderPaymentTypeChoices.ONLINE:
+                    OrderStatus.objects.create(order=obj, status=InvoiceStatusChoices.PAYMENT_PENDING)
         if payment_type == OrderPaymentTypeChoices.ONLINE:
             payment = OrderPayment.objects.create(
                 company=company, payment_type=OrderPaymentTypeChoices.ONLINE, paid_amount=total_invoice_amount,
@@ -433,7 +444,7 @@ class OrderStatusUpdate(graphene.Mutation):
         status = graphene.String()
         note = graphene.String()
 
-    @is_admin_user
+    @is_admin_or_vendor
     def mutate(self, info, id, status="", note=""):
         # obj = Order.objects.get(
         #     id=id, status__in=[
@@ -445,7 +456,13 @@ class OrderStatusUpdate(graphene.Mutation):
         #     InvoiceStatusChoices.CONFIRMED, InvoiceStatusChoices.CANCELLED, InvoiceStatusChoices.DELIVERED
         # ]:
         #     raise_graphql_error("Status not valid.")
-        obj = Order.objects.get(id=id)
+        user = info.context.user
+        if user.is_admin:
+            obj = Order.objects.get(id=id)
+        else:
+            carts = SellCart.objects.filter(item__vendor=user.vendor, order__isnull=False, order__is_deleted=False)
+            qs = Order.objects.filter(order_id__in=carts.values_list('order_id', flat=True))
+            obj = qs.get(id=id)
         if obj.status in [InvoiceStatusChoices.CANCELLED, InvoiceStatusChoices.DELIVERED]:
             raise_graphql_error(f"Order status already in '{obj.status}'")
         OrderStatus.objects.create(order=obj, status=status, note=note)
@@ -707,6 +724,8 @@ class OrderPaymentMutation(DjangoFormMutation):
             obj.save()
             if orders:
                 obj.orders.add(*Order.objects.filter(id__in=orders))
+                for order in obj.orders.all():
+                    vendor_sold_amount_calculation.delay(order.id)
             make_previous_payment.delay(obj.id)
         else:
             error_data = {}

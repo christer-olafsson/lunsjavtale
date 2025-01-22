@@ -78,6 +78,7 @@ class UserCreateForm(forms.ModelForm):
 class UserAccountForm(forms.ModelForm):
     current_password = forms.CharField(required=False)
     password = forms.CharField(required=False)
+    username = forms.CharField(required=False)
 
     class Meta:
         model = User
