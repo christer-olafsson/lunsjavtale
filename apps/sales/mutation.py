@@ -461,7 +461,7 @@ class OrderStatusUpdate(graphene.Mutation):
             obj = Order.objects.get(id=id)
         else:
             carts = SellCart.objects.filter(item__vendor=user.vendor, order__isnull=False, order__is_deleted=False)
-            qs = Order.objects.filter(order_id__in=carts.values_list('order_id', flat=True))
+            qs = Order.objects.filter(id__in=carts.values_list('order_id', flat=True))
             obj = qs.get(id=id)
         if obj.status in [InvoiceStatusChoices.CANCELLED, InvoiceStatusChoices.DELIVERED]:
             raise_graphql_error(f"Order status already in '{obj.status}'")
@@ -568,7 +568,7 @@ class UserCartUpdate(graphene.Mutation):
             InvoiceStatusChoices.PAYMENT_COMPLETED
         ]:
             raise_graphql_error(f"Order already in '{obj.order.status}'")
-        product = Product.objects.get(id=item, category=obj.item.category)
+        product = Product.objects.get(id=item, category=obj.item.category, vendor=obj.item.vendor)
         user_cart = UserCart.objects.get(cart=obj, added_for=user)
         AlterCart.objects.get_or_create(
             base=user_cart, previous_cart=obj, item=product

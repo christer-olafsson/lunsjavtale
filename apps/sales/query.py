@@ -97,7 +97,7 @@ class Query(graphene.ObjectType):
             qs = qs
         elif user.is_vendor:
             carts = SellCart.objects.filter(item__vendor=user.vendor, order__isnull=False, order__is_deleted=False)
-            qs = qs.filter(order_id__in=carts.values_list('order_id', flat=True))
+            qs = qs.filter(id__in=carts.values_list('order_id', flat=True))
         else:
             qs = qs.filter(company=user.company)
             if user.role == RoleTypeChoices.COMPANY_EMPLOYEE:
@@ -113,6 +113,9 @@ class Query(graphene.ObjectType):
         if user.is_admin:
             qs = qs.filter(id=id)
             qs.update(is_checked=True)
+        elif user.is_vendor:
+            carts = SellCart.objects.filter(item__vendor=user.vendor, order__isnull=False, order__is_deleted=False)
+            qs = qs.filter(id__in=carts.values_list('order_id', flat=True), id=id)
         else:
             qs = qs.filter(company=user.company, id=id)
         return qs.last()
