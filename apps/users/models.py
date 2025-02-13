@@ -188,6 +188,7 @@ class Vendor(BaseWithoutID, SoftDeletion):
         decimal_places=2,
         default=0
     )
+    delivery_charge = models.JSONField(blank=True, null=True, default=dict)
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_vendors"  # define table name for database

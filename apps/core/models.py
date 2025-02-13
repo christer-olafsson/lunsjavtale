@@ -158,7 +158,6 @@ class Promotion(BaseWithoutID):
     class Meta:
         db_table = f"{settings.DB_PREFIX}_promotion"  # define table name for database
         ordering = ['-id']  # define default order as id in descending
-        verbose_name_plural = "Promotion"
 
 
 class ContactUs(BaseWithoutID):

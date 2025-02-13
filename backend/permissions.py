@@ -10,7 +10,7 @@ def is_authenticated(func):
                 message='Du er ikke en autorisert bruker.',
                 extensions={
                     "message": "Du er ikke en autorisert bruker.",
-                    "code": "unauthorised"
+                    "code": "unauthorized"
                 })
         return func(cls, info, **kwargs)
     return wrapper
@@ -24,7 +24,7 @@ def is_company_user(func):
                 message='Du er ikke en autorisert bruker.',
                 extensions={
                     "message": "Du er ikke en autorisert bruker.",
-                    "code": "unauthorised"
+                    "code": "unauthorized"
                 })
         return func(cls, info, **kwargs)
     return wrapper
@@ -38,7 +38,7 @@ def is_vendor_user(func):
                 message='Du er ikke en autorisert bruker.',
                 extensions={
                     "message": "Du er ikke en autorisert bruker.",
-                    "code": "unauthorised"
+                    "code": "unauthorized"
                 })
         return func(cls, info, **kwargs)
     return wrapper
@@ -51,7 +51,7 @@ def is_super_admin(func):
                 message='Du er ikke en autorisert bruker.',
                 extensions={
                     "message": "Du er ikke en autorisert bruker.",
-                    "code": "unauthorised"
+                    "code": "unauthorized"
                 })
         elif not info.context.user.is_superuser:
             raise GraphQLError(

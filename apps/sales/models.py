@@ -303,6 +303,7 @@ class OrderStatus(models.Model):
 
     class Meta:
         db_table = f"{settings.DB_PREFIX}_order_statuses"  # define table name for database
+        verbose_name_plural = "Order Statuses"
 
     def save(self, *args, **kwargs):
         super(OrderStatus, self).save(*args, **kwargs)
