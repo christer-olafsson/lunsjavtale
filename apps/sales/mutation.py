@@ -467,8 +467,8 @@ class OrderStatusUpdate(graphene.Mutation):
             raise_graphql_error(f"Order status already in '{obj.status}'")
         OrderStatus.objects.create(order=obj, status=status, note=note)
         notify_company_order_update.delay(obj.id)
-        if obj.status == InvoiceStatusChoices.DELIVERED:
-            vendor_sold_amount_calculation.delay(obj.id)
+        # if obj.status == InvoiceStatusChoices.DELIVERED:
+        #     vendor_sold_amount_calculation.delay(obj.id)
         return OrderStatusUpdate(
             success=True,
             message=translate_text("Successfully updated"),

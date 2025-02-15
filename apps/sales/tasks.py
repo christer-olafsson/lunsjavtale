@@ -1,11 +1,12 @@
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import F
+from django.db.models import F, Sum
 
 from apps.notifications.tasks import notify_employee_cart, notify_vendor_product
 from apps.sales.choices import InvoiceStatusChoices, PaymentStatusChoices
 from apps.sales.models import OnlinePayment, Order, OrderPayment, SellCart, UserCart
+from apps.users.models import Vendor
 
 # local imports
 from backend.celery import app
@@ -134,12 +135,24 @@ def notify_user_carts(ids):
 def vendor_sold_amount_calculation(id):
     obj = Order.objects.get(id=id)
     carts = SellCart.objects.filter(order=obj, item__vendor__isnull=False)
-    for cart in carts:
-        if cart.item.vendor:
-            vendor = cart.item.vendor
-            vendor.sold_amount += cart.total_price_with_tax
-            vendor.owner_commission += cart.owner_commission
-            vendor.save()
+    vendors = carts.order_by('item__vendor').values_list('item__vendor_id', flat=True).distinct()
+    for vendor in Vendor.objects.filter(id__in=vendors):
+        order_amount = carts.filter(item__vendor=vendor).aggregate(
+            tot=Sum('total_price_with_tax'))['tot'] or 0
+        owner_commission = carts.filter(item__vendor=vendor).aggregate(
+            tot=Sum('owner_commission'))['tot'] or 0
+        vendor.sold_amount += order_amount
+        vendor.owner_commission += owner_commission
+        if order_amount < vendor.delivery_charge.get(
+                'minimumAmountForFreeDelivery', 0) and vendor.delivery_charge.get('deliveryCharge', 0):
+            vendor.sold_amount += vendor.delivery_charge.get('deliveryCharge', 0)
+        vendor.save()
+    # for cart in carts:
+    #     if cart.item.vendor:
+    #         vendor = cart.item.vendor
+    #         vendor.sold_amount += cart.total_price_with_tax
+    #         vendor.owner_commission += cart.owner_commission
+    #         vendor.save()
 
 
 @app.task
@@ -228,6 +241,7 @@ def make_previous_payment(id):
                     obj.deduction.append({'order': order.id, 'amount': str(due)})
                     obj.save()
                     paid_amount -= due
+                    vendor_sold_amount_calculation.delay(order.id)
                 else:
                     order.paid_amount += paid_amount
                     order.save()
@@ -235,6 +249,7 @@ def make_previous_payment(id):
                     obj.save()
                     paid_amount -= paid_amount
                     total_due += paid_amount
+                    vendor_sold_amount_calculation.delay(order.id)
                     break
         else:
             orders = obj.company.orders.annotate(
@@ -254,6 +269,7 @@ def make_previous_payment(id):
                         obj.save()
                         paid_amount -= due
                         total_due += due
+                        vendor_sold_amount_calculation.delay(order.id)
                     else:
                         order.paid_amount += paid_amount
                         order.save()
@@ -261,6 +277,7 @@ def make_previous_payment(id):
                         obj.save()
                         total_due += paid_amount
                         paid_amount -= paid_amount
+                        vendor_sold_amount_calculation.delay(order.id)
                         break
 
         company.paid_amount += total_due

@@ -11,6 +11,7 @@ from apps.scm.object_types import ProductType
 from apps.users.choices import RoleTypeChoices
 from backend.permissions import is_authenticated, is_company_user
 
+from ..users.models import Vendor
 from .models import Order, OrderPayment, PaymentMethod, ProductRating, SellCart
 from .object_types import (
     AddedCartsListType,
@@ -58,13 +59,34 @@ class Query(graphene.ObjectType):
         total_price_with_tax = added_carts.aggregate(t=Sum('total_price_with_tax'))['t'] or 0
         for cart in added_carts:
             total_price += cart.total_price_with_tax - (cart.price_with_tax * (100 - company_allowance) / 100 * cart.added_for.count())
+        delivery_charges = []
+        total_delivery_charge = 0
+        date_list = added_carts.order_by('date').values_list('date', flat=True).distinct()
+        vendors = added_carts.order_by('item__vendor').values_list('item__vendor_id', flat=True).distinct()
+        for date in date_list:
+            for vendor in Vendor.objects.filter(id__in=vendors):
+                order_amount = added_carts.filter(item__vendor=vendor, date=date).aggregate(
+                    tot=Sum('total_price_with_tax'))['tot'] or 0
+                if order_amount < vendor.delivery_charge.get(
+                        'minimumAmountForFreeDelivery', 0) and vendor.delivery_charge.get('deliveryCharge', 0):
+                    delivery_charges.append({
+                        'date': str(date), 'deliveryCharge': vendor.delivery_charge.get('deliveryCharge', 0),
+                        'supplier': {'id': vendor.id}
+                    })
+                    total_delivery_charge += vendor.delivery_charge.get('deliveryCharge', 0)
+                else:
+                    delivery_charges.append({
+                        'date': str(date), 'deliveryCharge': 0, 'supplier': {'id': vendor.id}
+                    })
         return {
             'quantity': qty,
             'subTotal': str(sub_total_price),
             'companyAllowance': company_allowance,
             'companyDue': str(total_price),
             'employeeDue': str(total_price_with_tax - total_price),
-            'total': str(total_price_with_tax)
+            'total': str(total_price_with_tax),
+            'totalDeliveryCharge': str(total_delivery_charge),
+            'deliveryCharges': delivery_charges
         }
 
     def resolve_get_online_payment_info(self, info, id, **kwargs):

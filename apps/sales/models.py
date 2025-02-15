@@ -237,6 +237,7 @@ class Order(BaseWithoutID, SoftDeletion):
     def save(self, *args, **kwargs):
         if self.pk and self.order_carts.exists():
             self.actual_price = self.order_carts.aggregate(tot=models.Sum('total_price'))['tot']
+            self.shipping_charge = self.get_delivery_charge(self.actual_price)
             self.final_price = self.order_carts.aggregate(
                 tot=models.Sum('total_price_with_tax'))['tot'] - self.discount_amount + self.shipping_charge
             self.is_full_paid = self.company_due_amount <= self.paid_amount
@@ -259,6 +260,17 @@ class Order(BaseWithoutID, SoftDeletion):
         for cart in self.order_carts.all():
             staff_amount += (cart.price_with_tax * (100 - self.company_allowance) / 100) * cart.added_for.count()
         return staff_amount - paid_amount
+
+    def get_delivery_charge(self, actual_price):
+        if self.order_carts.exists():
+            try:
+                vendor_delivery_charge = self.order_carts.last().item.vendor.delivery_charge
+                return vendor_delivery_charge.get(
+                    'deliveryCharge', 0) if vendor_delivery_charge.get(
+                    'minimumAmountForFreeDelivery', 0) > actual_price - self.discount_amount else 0
+            except Exception:
+                return 0
+        return 0
 
     # def get_payment_status(self, final_price, company_allowance, paid_amount):
     #     return (final_price * company_allowance / 100) <= paid_amount
