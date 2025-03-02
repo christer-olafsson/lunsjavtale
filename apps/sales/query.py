@@ -62,21 +62,36 @@ class Query(graphene.ObjectType):
         delivery_charges = []
         total_delivery_charge = 0
         date_list = added_carts.order_by('date').values_list('date', flat=True).distinct()
-        vendors = added_carts.order_by('item__vendor').values_list('item__vendor_id', flat=True).distinct()
         for date in date_list:
+            vendors = added_carts.filter(date=date).order_by('item__vendor').values_list(
+                'item__vendor_id', flat=True).distinct()
             for vendor in Vendor.objects.filter(id__in=vendors):
                 order_amount = added_carts.filter(item__vendor=vendor, date=date).aggregate(
                     tot=Sum('total_price_with_tax'))['tot'] or 0
-                if order_amount < vendor.delivery_charge.get(
+                if vendor.delivery_charge.get(
+                        'minimumAmountForFreeDelivery') and order_amount < vendor.delivery_charge.get(
                         'minimumAmountForFreeDelivery', 0) and vendor.delivery_charge.get('deliveryCharge', 0):
                     delivery_charges.append({
                         'date': str(date), 'deliveryCharge': vendor.delivery_charge.get('deliveryCharge', 0),
-                        'supplier': {'id': vendor.id}
+                        'supplier': {
+                            'id': vendor.id, 'name': vendor.name, 'email': vendor.email
+                        }
+                    })
+                    total_delivery_charge += vendor.delivery_charge.get('deliveryCharge', 0)
+                elif not vendor.delivery_charge.get(
+                        'minimumAmountForFreeDelivery') and vendor.delivery_charge.get('deliveryCharge', 0):
+                    delivery_charges.append({
+                        'date': str(date), 'deliveryCharge': vendor.delivery_charge.get('deliveryCharge', 0),
+                        'supplier': {
+                            'id': vendor.id, 'name': vendor.name, 'email': vendor.email
+                        }
                     })
                     total_delivery_charge += vendor.delivery_charge.get('deliveryCharge', 0)
                 else:
                     delivery_charges.append({
-                        'date': str(date), 'deliveryCharge': 0, 'supplier': {'id': vendor.id}
+                        'date': str(date), 'deliveryCharge': 0, 'supplier': {
+                            'id': vendor.id, 'name': vendor.name, 'email': vendor.email
+                        }
                     })
         return {
             'quantity': qty,

@@ -822,6 +822,9 @@ class ApplyCoupon(graphene.Mutation):
         order.discount_amount = amount_discounted
         order.coupon = coupon
         order.save()
+        company = order.company
+        company.invoice_amount -= amount_discounted
+        company.save()
         return ApplyCoupon(
             success=True, message=translate_text("Successfully applied")
         )

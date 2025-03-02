@@ -265,9 +265,13 @@ class Order(BaseWithoutID, SoftDeletion):
         if self.order_carts.exists():
             try:
                 vendor_delivery_charge = self.order_carts.last().item.vendor.delivery_charge
-                return vendor_delivery_charge.get(
-                    'deliveryCharge', 0) if vendor_delivery_charge.get(
-                    'minimumAmountForFreeDelivery', 0) > actual_price - self.discount_amount else 0
+                if vendor_delivery_charge.get('minimumAmountForFreeDelivery') and vendor_delivery_charge.get('minimumAmountForFreeDelivery', 0) > actual_price - self.discount_amount:
+                    delivery_charge = vendor_delivery_charge.get('deliveryCharge', 0)
+                elif not vendor_delivery_charge.get('minimumAmountForFreeDelivery'):
+                    delivery_charge = vendor_delivery_charge.get('deliveryCharge', 0)
+                else:
+                    delivery_charge = 0
+                return delivery_charge
             except Exception:
                 return 0
         return 0

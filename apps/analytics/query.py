@@ -19,6 +19,8 @@ User = get_user_model()
 
 
 class QueryDateRangeChoices(models.TextChoices):
+    TODAY = 'today'
+    LIFETIME = 'lifetime'
     LAST_7_DAYS = 'last-7-days'
     LAST_30_DAYS = 'last-30-days'
     LAST_6_MONTHS = 'last-6-months'
@@ -26,6 +28,7 @@ class QueryDateRangeChoices(models.TextChoices):
 
 
 DATE_RANGE = {
+    QueryDateRangeChoices.TODAY: 1,
     QueryDateRangeChoices.LAST_7_DAYS: 7,
     QueryDateRangeChoices.LAST_30_DAYS: 30,
     QueryDateRangeChoices.LAST_6_MONTHS: 6 * 30 + 3,
@@ -93,7 +96,7 @@ class AdminDashboard:
         )
 
     def get_sold_products(self):
-        if self.date_range:
+        if self.date_range and self.date_range != QueryDateRangeChoices.LIFETIME:
             date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
             carts = SellCart.objects.filter(date__gte=date).exclude(
                 order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
@@ -160,7 +163,7 @@ class VendorDashboard:
         return context
 
     def get_sold_products(self):
-        if self.date_range:
+        if self.date_range and self.date_range != QueryDateRangeChoices.LIFETIME:
             date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
             carts = SellCart.objects.filter(date__gte=date, item__vendor=self.vendor).exclude(
                 order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
@@ -235,7 +238,7 @@ class Query(graphene.ObjectType):
 
     @is_admin_user
     def resolve_company_due(self, info, date_range="", **kwargs):
-        if date_range:
+        if date_range and date_range != QueryDateRangeChoices.LIFETIME:
             date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
             orders = Order.objects.filter(delivery_date__gte=date)
         else:
