@@ -44,9 +44,15 @@ class AdminDashboard:
         self.date_range = date_range
 
     def get_data(self):
-        orders = Order.objects.all()
+        if self.date_range and self.date_range != QueryDateRangeChoices.LIFETIME:
+            date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
+            orders = Order.objects.filter(delivery_date__gte=date)
+            companies = Company.objects.filter(created_on__date__gte=date)
+        else:
+            orders = Order.objects.all()
+            companies = Company.objects.all()
         context = {
-            'totalCustomers': Company.objects.count(),
+            'totalCustomers': companies.count(),
             'totalOrders': orders.count(),
             'totalSales': str(orders.exclude(
                 status=InvoiceStatusChoices.CANCELLED).aggregate(tot=Sum('final_price'))['tot'] or '0.00'),
@@ -135,22 +141,29 @@ class VendorDashboard:
         self.vendor = vendor
 
     def get_data(self):
-        total_sales = SellCart.objects.filter(item__vendor=self.vendor).exclude(
-            order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
-        ).aggregate(tot=Sum('total_price_with_tax'))['tot'] or 0
-        owner_revenue = total_sales - (SellCart.objects.filter(item__vendor=self.vendor).exclude(
-            order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
-        ).aggregate(tot=Sum('owner_commission'))['tot'] or 0)
+        if self.date_range and self.date_range != QueryDateRangeChoices.LIFETIME:
+            date = timezone.now().date() - datetime.timedelta(days=DATE_RANGE[self.date_range])
+            sell_carts = SellCart.objects.filter(date__gte=date, item__vendor=self.vendor).exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
+            )
+            withdraws = self.vendor.withdraw_requests.filter(
+                status=WithdrawRequestChoices.COMPLETED,  # created_on__date__gte=date
+            )
+        else:
+            sell_carts = SellCart.objects.filter(item__vendor=self.vendor).exclude(
+                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
+            )
+            withdraws = self.vendor.withdraw_requests.filter(
+                status=WithdrawRequestChoices.COMPLETED
+            )
+        total_sales = sell_carts.aggregate(tot=Sum('total_price_with_tax'))['tot'] or 0
+        owner_revenue = total_sales - (sell_carts.aggregate(tot=Sum('owner_commission'))['tot'] or 0)
         total_revenue = total_sales - owner_revenue
         context = {
-            'totalOrders': SellCart.objects.filter(item__vendor=self.vendor).exclude(
-                order__isnull=True, order__status=InvoiceStatusChoices.CANCELLED
-            ).order_by('order').values_list('order', flat=True).distinct().count(),
+            'totalOrders': sell_carts.order_by('order').values_list('order', flat=True).distinct().count(),
             'totalSales': str(total_sales or '0.00'),
             'totalRevenue': str(total_revenue or '0.00'),
-            'totalWithdraw': str(self.vendor.withdraw_requests.filter(
-                status=WithdrawRequestChoices.COMPLETED
-            ).aggregate(tot=models.Sum('withdraw_amount'))['tot'] or '0.00'),
+            'totalWithdraw': str(withdraws.aggregate(tot=models.Sum('withdraw_amount'))['tot'] or '0.00'),
             'salesToday': str(SellCart.objects.filter(
                 created_on__date=timezone.now().date(), item__vendor=self.vendor
             ).exclude(
